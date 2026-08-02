@@ -1,0 +1,77 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class OtpCode extends Model
+{
+    use HasFactory;
+
+
+
+    protected $fillable = [
+
+        'user_id',
+
+        'mobile',
+
+        'code',
+
+        'purpose',
+
+        'expires_at',
+
+        'used_at',
+
+        'ip_address',
+
+        'user_agent',
+
+    ];
+
+
+
+    protected function casts(): array
+    {
+        return [
+
+            'expires_at' => 'datetime',
+
+            'used_at' => 'datetime',
+
+        ];
+    }
+
+
+
+    // هر OTP متعلق به یک کاربر است
+    public function user()
+    {
+        return $this->belongsTo(
+            User::class
+        );
+    }
+
+
+
+    // بررسی انقضا
+    public function isExpired(): bool
+    {
+        return now()->greaterThan(
+            $this->expires_at
+        );
+    }
+
+
+
+    // بررسی استفاده شده بودن OTP
+    public function isUsed(): bool
+    {
+        return !is_null(
+            $this->used_at
+        );
+    }
+
+}
