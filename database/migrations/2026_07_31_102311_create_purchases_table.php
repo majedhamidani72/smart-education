@@ -6,52 +6,114 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * اجرای Migration
+     */
     public function up(): void
     {
         Schema::create('purchases', function (Blueprint $table) {
 
-            $table->id(); // شناسه خرید
+            $table->id();
+
+            /*
+            |--------------------------------------------------------------------------
+            | کاربر
+            |--------------------------------------------------------------------------
+            */
 
             $table->foreignId('user_id')
                 ->constrained()
-                ->cascadeOnDelete(); // خریدار
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
+
+            /*
+            |--------------------------------------------------------------------------
+            | شماره فاکتور
+            |--------------------------------------------------------------------------
+            */
 
             $table->string('invoice_number')
-                ->unique(); // شماره فاکتور
+                ->unique();
 
-            $table->decimal('total_amount', 12, 0); // مبلغ کل قبل از تخفیف
+            /*
+            |--------------------------------------------------------------------------
+            | مبلغ‌ها
+            |--------------------------------------------------------------------------
+            */
 
-            $table->decimal('discount_amount', 12, 0)
-                ->default(0); // مبلغ تخفیف
+            $table->unsignedBigInteger('total_amount');
 
-            $table->decimal('payable_amount', 12, 0); // مبلغ نهایی قابل پرداخت
+            $table->unsignedBigInteger('discount_amount')
+                ->default(0);
 
-            $table->enum('payment_status', [
+            $table->unsignedBigInteger('payable_amount');
+
+            /*
+            |--------------------------------------------------------------------------
+            | وضعیت سفارش
+            |--------------------------------------------------------------------------
+            */
+
+            $table->enum('status', [
+
                 'pending',
-                'paid',
-                'failed',
-                'cancelled',
-                'refunded'
-            ])->default('pending'); // وضعیت پرداخت
 
-            $table->enum('payment_method', [
-                'zibal',
-                'wallet',
-                'admin'
-            ])->nullable(); // روش پرداخت
+                'paid',
+
+                'cancelled',
+
+                'refunded',
+
+            ])->default('pending');
+
+            /*
+            |--------------------------------------------------------------------------
+            | زمان پرداخت
+            |--------------------------------------------------------------------------
+            */
 
             $table->timestamp('paid_at')
-                ->nullable(); // زمان پرداخت موفق
+                ->nullable();
 
-            $table->timestamps(); // created_at و updated_at
+            /*
+            |--------------------------------------------------------------------------
+            | توضیحات ادمین
+            |--------------------------------------------------------------------------
+            */
 
-            $table->softDeletes(); // حذف نرم
+            $table->text('notes')
+                ->nullable();
+
+            $table->timestamps();
+
+            $table->softDeletes();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
+            $table->index(
+                ['user_id', 'status'],
+                'purchase_user_status_index'
+            );
+
+            $table->index(
+                ['invoice_number'],
+                'purchase_invoice_index'
+            );
 
         });
     }
 
+    /**
+     * حذف جدول
+     */
     public function down(): void
     {
-        Schema::dropIfExists('purchases');
+        Schema::dropIfExists(
+            'purchases'
+        );
     }
 };

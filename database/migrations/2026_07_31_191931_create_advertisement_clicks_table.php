@@ -7,36 +7,81 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * اجرای Migration
      */
     public function up(): void
     {
         Schema::create('advertisement_clicks', function (Blueprint $table) {
 
-    $table->id();
+            $table->id();
 
+            /*
+            |--------------------------------------------------------------------------
+            | تبلیغ
+            |--------------------------------------------------------------------------
+            */
 
-    $table->foreignId('advertisement_id')
-        ->constrained()
-        ->cascadeOnDelete();
+            $table->foreignId('advertisement_id')
+                ->constrained()
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
 
+            /*
+            |--------------------------------------------------------------------------
+            | کاربر
+            |--------------------------------------------------------------------------
+            */
 
-    $table->foreignId('user_id')
-        ->nullable()
-        ->constrained()
-        ->nullOnDelete();
+            $table->foreignId('user_id')
+                ->nullable()
+                ->constrained()
+                ->nullOnDelete();
 
+            /*
+            |--------------------------------------------------------------------------
+            | اطلاعات کلیک
+            |--------------------------------------------------------------------------
+            */
 
-    $table->timestamps();
+            $table->string('ip_address', 45)
+                ->nullable();
 
-});
+            $table->text('user_agent')
+                ->nullable();
+
+            $table->string('device_type')
+                ->nullable();
+
+            $table->string('platform')
+                ->nullable();
+
+            $table->string('referer')
+                ->nullable();
+
+            $table->timestamps();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
+            $table->index('advertisement_id');
+
+            $table->index('user_id');
+
+            $table->index('created_at');
+
+        });
     }
 
     /**
-     * Reverse the migrations.
+     * حذف جدول
      */
     public function down(): void
     {
-        Schema::dropIfExists('advertisement_clicks');
+        Schema::dropIfExists(
+            'advertisement_clicks'
+        );
     }
 };

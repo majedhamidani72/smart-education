@@ -6,52 +6,149 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('payment_transactions', function (Blueprint $table) {
 
-            $table->id(); // شناسه تراکنش
+            $table->id();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Relations
+            |--------------------------------------------------------------------------
+            */
 
             $table->foreignId('purchase_id')
                 ->constrained()
-                ->cascadeOnDelete(); // خرید مربوطه
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
 
             $table->foreignId('user_id')
                 ->constrained()
-                ->cascadeOnDelete(); // پرداخت کننده
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
 
-            $table->string('gateway'); // درگاه پرداخت (zibal)
+            /*
+            |--------------------------------------------------------------------------
+            | Gateway
+            |--------------------------------------------------------------------------
+            */
 
-            $table->string('transaction_id')
-                ->nullable(); // شناسه تراکنش در درگاه
+            $table->string('gateway', 30);
+            // zibal
 
-            $table->string('reference_id')
-                ->nullable(); // کد رهگیری بانک
+            $table->string('authority', 100)
+                ->nullable();
+            // TrackId / Authority
 
-            $table->decimal('amount',12,0); // مبلغ تراکنش
+            $table->string('transaction_id', 100)
+                ->nullable();
+            // شناسه داخلی درگاه
 
-            $table->enum('status',[
+            $table->string('reference_id', 100)
+                ->nullable();
+            // شماره مرجع بانک
+
+            /*
+            |--------------------------------------------------------------------------
+            | Amount
+            |--------------------------------------------------------------------------
+            */
+
+            $table->unsignedBigInteger('amount');
+
+            $table->string('currency', 10)
+                ->default('IRT');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Status
+            |--------------------------------------------------------------------------
+            */
+
+            $table->enum('status', [
+
                 'pending',
+
                 'paid',
+
                 'failed',
+
                 'cancelled',
-                'refunded'
-            ])->default('pending'); // وضعیت تراکنش
+
+                'refunded',
+
+            ])->default('pending');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Result
+            |--------------------------------------------------------------------------
+            */
+
+            $table->string('card_pan', 20)
+                ->nullable();
 
             $table->text('message')
-                ->nullable(); // پیام دریافتی از درگاه
+                ->nullable();
 
             $table->json('gateway_response')
-                ->nullable(); // پاسخ کامل زیبال
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Dates
+            |--------------------------------------------------------------------------
+            */
 
             $table->timestamp('paid_at')
-                ->nullable(); // زمان پرداخت موفق
+                ->nullable();
 
-            $table->timestamps(); // created_at و updated_at
+            $table->timestamp('verified_at')
+                ->nullable();
+
+            $table->timestamps();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
+            $table->index(
+                ['user_id', 'status'],
+                'payment_user_status_index'
+            );
+
+            $table->index(
+                ['purchase_id'],
+                'payment_purchase_index'
+            );
+
+            $table->index(
+                ['gateway'],
+                'payment_gateway_index'
+            );
+
+            $table->index(
+                ['authority'],
+                'payment_authority_index'
+            );
+
+            $table->index(
+                ['reference_id'],
+                'payment_reference_index'
+            );
 
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('payment_transactions');

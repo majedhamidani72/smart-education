@@ -7,45 +7,113 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * اجرای Migration
      */
     public function up(): void
     {
         Schema::create('advertisements', function (Blueprint $table) {
 
-        $table->id();
+            $table->id();
 
-        $table->string('title');
-        // عنوان تبلیغ
+            /*
+            |--------------------------------------------------------------------------
+            | اطلاعات تبلیغ
+            |--------------------------------------------------------------------------
+            */
 
-        $table->string('image');
-        // مسیر تصویر بنر
+            $table->string('title');
+            // عنوان تبلیغ
 
-        $table->string('link')->nullable();
-        // لینک مقصد
+            $table->string('image');
+            // تصویر تبلیغ
 
-        $table->string('position')->nullable();
-        // محل نمایش مثل home_top
+            $table->string('link')
+                ->nullable();
+            // لینک مقصد
 
-        $table->dateTime('start_date')->nullable();
-        // شروع نمایش
+            $table->text('description')
+                ->nullable();
+            // توضیحات
 
-        $table->dateTime('end_date')->nullable();
-        // پایان نمایش
+            /*
+            |--------------------------------------------------------------------------
+            | محل نمایش
+            |--------------------------------------------------------------------------
+            */
 
-        $table->boolean('is_active')->default(true);
-        // فعال یا غیرفعال بودن
+            $table->enum('position', [
 
-        $table->timestamps();
+                'home',
 
-    });
+                'book',
+
+                'lesson',
+
+                'quiz',
+
+                'profile',
+
+                'popup',
+
+            ]);
+            // محل نمایش
+
+            /*
+            |--------------------------------------------------------------------------
+            | ترتیب نمایش
+            |--------------------------------------------------------------------------
+            */
+
+            $table->unsignedInteger('sort_order')
+                ->default(1);
+
+            /*
+            |--------------------------------------------------------------------------
+            | وضعیت
+            |--------------------------------------------------------------------------
+            */
+
+            $table->boolean('is_active')
+                ->default(true);
+
+            /*
+            |--------------------------------------------------------------------------
+            | زمان نمایش
+            |--------------------------------------------------------------------------
+            */
+
+            $table->timestamp('starts_at')
+                ->nullable();
+
+            $table->timestamp('expires_at')
+                ->nullable();
+
+            $table->timestamps();
+
+            $table->softDeletes();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
+            $table->index('position');
+
+            $table->index('is_active');
+
+            $table->index('sort_order');
+
+        });
     }
 
     /**
-     * Reverse the migrations.
+     * حذف جدول
      */
     public function down(): void
     {
-        Schema::dropIfExists('advertisements');
+        Schema::dropIfExists(
+            'advertisements'
+        );
     }
 };

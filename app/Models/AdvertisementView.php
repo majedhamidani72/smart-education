@@ -2,36 +2,44 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class AdvertisementView extends Model
 {
     use HasFactory;
 
+    /*
+    |--------------------------------------------------------------------------
+    | فیلدهای قابل ثبت
+    |--------------------------------------------------------------------------
+    */
 
-
-    // فیلدهایی که اجازه ذخیره دارند
     protected $fillable = [
 
         'advertisement_id',
-        // تبلیغ مشاهده شده
-
 
         'user_id',
-        // کاربر مشاهده کننده (ممکن است مهمان باشد)
+
+        'ip_address',
+
+        'user_agent',
+
+        'device_type',
+
+        'platform',
 
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | روابط
+    |--------------------------------------------------------------------------
+    */
 
-
-    // =========================
-    // Relationships
-    // =========================
-
-
-    // هر بازدید مربوط به یک تبلیغ است
+    /**
+     * تبلیغ
+     */
     public function advertisement()
     {
         return $this->belongsTo(
@@ -39,9 +47,9 @@ class AdvertisementView extends Model
         );
     }
 
-
-
-    // هر بازدید ممکن است توسط یک کاربر باشد
+    /**
+     * کاربر
+     */
     public function user()
     {
         return $this->belongsTo(
@@ -49,4 +57,29 @@ class AdvertisementView extends Model
         );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | متدهای کمکی
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * بازدید مهمان
+     */
+    public function isGuest(): bool
+    {
+        return is_null(
+            $this->user_id
+        );
+    }
+
+    /**
+     * بازدید کاربر وارد شده
+     */
+    public function isAuthenticated(): bool
+    {
+        return !is_null(
+            $this->user_id
+        );
+    }
 }

@@ -2,46 +2,73 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PurchaseItem extends Model
 {
     use HasFactory;
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | فیلدهای قابل ثبت
+    |--------------------------------------------------------------------------
+    */
 
     protected $fillable = [
 
         'purchase_id',
-        // خرید اصلی
-
 
         'plan_id',
-        // پلن خریداری شده
 
+        'item_type',
+
+        'item_id',
+
+        'title',
 
         'price',
-        // قیمت اصلی
-
 
         'discount_amount',
-        // تخفیف
-
 
         'final_price',
-        // مبلغ نهایی
+
+        'quantity',
+
+        'notes',
 
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | تبدیل نوع داده‌ها
+    |--------------------------------------------------------------------------
+    */
 
+    protected function casts(): array
+    {
+        return [
 
-    // =========================
-    // Relationships
-    // =========================
+            'price' => 'integer',
 
+            'discount_amount' => 'integer',
 
-    // هر آیتم متعلق به یک خرید است
+            'final_price' => 'integer',
+
+            'quantity' => 'integer',
+
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | روابط
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * خرید
+     */
     public function purchase()
     {
         return $this->belongsTo(
@@ -49,9 +76,9 @@ class PurchaseItem extends Model
         );
     }
 
-
-
-    // هر آیتم مربوط به یک پلن است
+    /**
+     * پلن خریداری شده
+     */
     public function plan()
     {
         return $this->belongsTo(
@@ -59,14 +86,101 @@ class PurchaseItem extends Model
         );
     }
 
-
-
-    // اشتراک ساخته شده از این آیتم
+    /**
+     * اشتراک ایجاد شده
+     */
     public function subscription()
     {
         return $this->hasOne(
-            Subscription::class
+            Subscription::class,
+            'purchase_id',
+            'purchase_id'
         );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | متدهای کمکی
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * کتاب
+     */
+    public function isBook(): bool
+    {
+        return $this->item_type === 'book';
+    }
+
+    /**
+     * درس
+     */
+    public function isLesson(): bool
+    {
+        return $this->item_type === 'lesson';
+    }
+
+    /**
+     * اشتراک
+     */
+    public function isSubscription(): bool
+    {
+        return $this->item_type === 'subscription';
+    }
+
+    /**
+     * بسته آموزشی
+     */
+    public function isPackage(): bool
+    {
+        return $this->item_type === 'package';
+    }
+
+    /**
+     * آزمون
+     */
+    public function isQuiz(): bool
+    {
+        return $this->item_type === 'quiz';
+    }
+
+    /**
+     * مبلغ کل
+     */
+    public function getTotalPrice(): int
+    {
+        return (int) (
+
+            $this->final_price
+
+            *
+
+            $this->quantity
+
+        );
+    }
+
+    /**
+     * مبلغ تخفیف
+     */
+    public function getDiscount(): int
+    {
+        return (int) $this->discount_amount;
+    }
+
+    /**
+     * قیمت اصلی
+     */
+    public function getPrice(): int
+    {
+        return (int) $this->price;
+    }
+
+    /**
+     * قیمت نهایی
+     */
+    public function getFinalPrice(): int
+    {
+        return (int) $this->final_price;
+    }
 }

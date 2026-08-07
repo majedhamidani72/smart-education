@@ -2,72 +2,53 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Plan extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /*
+    |--------------------------------------------------------------------------
+    | فیلدهای قابل ثبت
+    |--------------------------------------------------------------------------
+    */
 
-
-    // فیلدهایی که اجازه ذخیره دارند
     protected $fillable = [
 
         'title',
-        // عنوان پلن
-
 
         'description',
-        // توضیحات پلن
-
 
         'planable_type',
-        // نوع محصول قابل فروش
-        // مثال: App, Book, Subject
-
 
         'planable_id',
-        // شناسه محصول قابل فروش
-
 
         'price',
-        // قیمت اصلی
-
 
         'discount_price',
-        // قیمت با تخفیف
-
 
         'purchase_type',
-        // نوع خرید
-        // one_time
-        // subscription
-
 
         'duration_days',
-        // مدت اشتراک به روز
-
 
         'is_active',
-        // فعال بودن پلن
-
 
         'sort_order',
-        // ترتیب نمایش
-
 
         'starts_at',
-        // شروع فروش
-
 
         'expires_at',
-        // پایان فروش
 
     ];
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | تبدیل نوع داده‌ها
+    |--------------------------------------------------------------------------
+    */
 
     protected function casts(): array
     {
@@ -77,7 +58,11 @@ class Plan extends Model
 
             'discount_price' => 'integer',
 
+            'duration_days' => 'integer',
+
             'is_active' => 'boolean',
+
+            'sort_order' => 'integer',
 
             'starts_at' => 'datetime',
 
@@ -86,17 +71,23 @@ class Plan extends Model
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | روابط
+    |--------------------------------------------------------------------------
+    */
 
-
-    // محصولی که این پلن برای آن ساخته شده
+    /**
+     * محصول مربوط به پلن
+     */
     public function planable()
     {
         return $this->morphTo();
     }
 
-
-
-    // آیتم‌های خرید مربوط به این پلن
+    /**
+     * آیتم‌های خرید
+     */
     public function purchaseItems()
     {
         return $this->hasMany(
@@ -104,4 +95,131 @@ class Plan extends Model
         );
     }
 
+    /**
+     * اشتراک‌ها
+     */
+    public function subscriptions()
+    {
+        return $this->hasMany(
+            Subscription::class
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | متدهای کمکی
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * آیا فعال است؟
+     */
+    public function isActive(): bool
+    {
+        if (!$this->is_active) {
+
+            return false;
+
+        }
+
+        if (
+
+            $this->starts_at
+
+            &&
+
+            now()->lt($this->starts_at)
+
+        ) {
+
+            return false;
+
+        }
+
+        if (
+
+            $this->expires_at
+
+            &&
+
+            now()->gt($this->expires_at)
+
+        ) {
+
+            return false;
+
+        }
+
+        return true;
+    }
+
+    /**
+     * آیا اشتراکی است؟
+     */
+    public function isSubscription(): bool
+    {
+        return $this->purchase_type === 'subscription';
+    }
+
+    /**
+     * آیا خرید دائمی است؟
+     */
+    public function isOneTime(): bool
+    {
+        return $this->purchase_type === 'one_time';
+    }
+
+    /**
+     * قیمت نهایی
+     */
+    public function finalPrice(): int
+    {
+        if (
+
+            $this->discount_price
+
+            &&
+
+            $this->discount_price > 0
+
+        ) {
+
+            return $this->discount_price;
+
+        }
+
+        return $this->price;
+    }
+
+    /**
+     * میزان تخفیف
+     */
+    public function discountAmount(): int
+    {
+        return max(
+
+            0,
+
+            $this->price - $this->finalPrice()
+
+        );
+    }
+
+    /**
+     * درصد تخفیف
+     */
+    public function discountPercent(): int
+    {
+        if ($this->price <= 0) {
+
+            return 0;
+
+        }
+
+        return (int) round(
+
+            ($this->discountAmount() / $this->price) * 100
+
+        );
+    }
 }

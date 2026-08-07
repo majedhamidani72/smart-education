@@ -2,49 +2,73 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class TeacherEarning extends Model
 {
     use HasFactory;
 
+    /*
+    |--------------------------------------------------------------------------
+    | فیلدهای قابل ثبت
+    |--------------------------------------------------------------------------
+    */
 
     protected $fillable = [
 
-        'teacher_id', // معلم
+        'teacher_id',
 
-        'purchase_id', // خرید مربوطه
+        'purchase_id',
 
-        'amount', // مبلغ سهم معلم
+        'purchase_item_id',
 
-        'percentage', // درصد سهم
+        'sale_amount',
 
-        'status', // pending یا paid
+        'percentage',
 
-        'paid_at', // زمان تسویه
+        'amount',
+
+        'status',
+
+        'settlement_number',
+
+        'paid_at',
+
+        'notes',
 
     ];
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | تبدیل نوع داده‌ها
+    |--------------------------------------------------------------------------
+    */
 
     protected function casts(): array
     {
         return [
+
+            'sale_amount' => 'integer',
+
+            'amount' => 'integer',
+
+            'percentage' => 'integer',
 
             'paid_at' => 'datetime',
 
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | روابط
+    |--------------------------------------------------------------------------
+    */
 
-
-    // =========================
-    // Relationships
-    // =========================
-
-
-    // درآمد متعلق به یک معلم است
+    /**
+     * معلم
+     */
     public function teacher()
     {
         return $this->belongsTo(
@@ -53,12 +77,71 @@ class TeacherEarning extends Model
         );
     }
 
-
-
-    // مربوط به یک خرید است
+    /**
+     * خرید
+     */
     public function purchase()
     {
-        return $this->belongsTo(Purchase::class);
+        return $this->belongsTo(
+            Purchase::class
+        );
     }
 
+    /**
+     * آیتم خرید
+     */
+    public function purchaseItem()
+    {
+        return $this->belongsTo(
+            PurchaseItem::class
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | متدهای کمکی
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * آیا تسویه شده است؟
+     */
+    public function isPaid(): bool
+    {
+        return $this->status === 'paid';
+    }
+
+    /**
+     * در انتظار تسویه
+     */
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    /**
+     * لغو شده
+     */
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled';
+    }
+
+    /**
+     * ثبت تسویه
+     */
+    public function markAsPaid(
+        string $settlementNumber
+    ): void
+    {
+        $this->update([
+
+            'status' => 'paid',
+
+            'paid_at' => now(),
+
+            'settlement_number' => $settlementNumber,
+
+        ]);
+    }
 }

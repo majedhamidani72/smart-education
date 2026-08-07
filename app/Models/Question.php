@@ -72,8 +72,9 @@ class Question extends Model
     {
         return [
 
+            'default_score' => 'integer',
+
             'is_active' => 'boolean',
-            // تبدیل وضعیت فعال بودن
 
         ];
     }
@@ -113,7 +114,7 @@ class Question extends Model
         return $this->belongsToMany(
             Quiz::class,
             'quiz_question'
-        );
+        )->withTimestamps();
     }
 
 
@@ -125,5 +126,4 @@ class Question extends Model
             QuestionOption::class
         );
     }
-
 }

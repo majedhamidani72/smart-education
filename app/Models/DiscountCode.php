@@ -2,21 +2,27 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class DiscountCode extends Model
 {
     use HasFactory, SoftDeletes;
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | فیلدهای قابل ثبت
+    |--------------------------------------------------------------------------
+    */
 
     protected $fillable = [
 
         'code',
 
         'title',
+
+        'description',
 
         'type',
 
@@ -30,6 +36,8 @@ class DiscountCode extends Model
 
         'used_count',
 
+        'usage_per_user',
+
         'starts_at',
 
         'expires_at',
@@ -38,7 +46,11 @@ class DiscountCode extends Model
 
     ];
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | تبدیل نوع داده‌ها
+    |--------------------------------------------------------------------------
+    */
 
     protected function casts(): array
     {
@@ -50,6 +62,12 @@ class DiscountCode extends Model
 
             'minimum_purchase' => 'integer',
 
+            'usage_limit' => 'integer',
+
+            'used_count' => 'integer',
+
+            'usage_per_user' => 'integer',
+
             'starts_at' => 'datetime',
 
             'expires_at' => 'datetime',
@@ -59,13 +77,79 @@ class DiscountCode extends Model
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | متدهای کمکی
+    |--------------------------------------------------------------------------
+    */
 
-
-    // بررسی معتبر بودن کد
-    public function isValid(): bool
+    /**
+     * فعال بودن
+     */
+    public function isActive(): bool
     {
-        return $this->is_active
-            && (!$this->expires_at || now()->lessThan($this->expires_at));
+        return $this->is_active;
     }
 
+    /**
+     * منقضی شده؟
+     */
+    public function isExpired(): bool
+    {
+        return $this->expires_at
+            && now()->greaterThan($this->expires_at);
+    }
+
+    /**
+     * شروع شده؟
+     */
+    public function hasStarted(): bool
+    {
+        return !$this->starts_at
+            || now()->greaterThanOrEqualTo($this->starts_at);
+    }
+
+    /**
+     * ظرفیت تمام شده؟
+     */
+    public function isLimitReached(): bool
+    {
+        if (!$this->usage_limit) {
+
+            return false;
+
+        }
+
+        return $this->used_count >= $this->usage_limit;
+    }
+
+    /**
+     * معتبر است؟
+     */
+    public function isValid(): bool
+    {
+        return $this->isActive()
+
+            &&
+
+            $this->hasStarted()
+
+            &&
+
+            !$this->isExpired()
+
+            &&
+
+            !$this->isLimitReached();
+    }
+
+    /**
+     * افزایش تعداد استفاده
+     */
+    public function increaseUsage(): void
+    {
+        $this->increment(
+            'used_count'
+        );
+    }
 }

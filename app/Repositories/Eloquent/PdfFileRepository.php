@@ -9,8 +9,8 @@ use App\Repositories\Interfaces\PdfFileRepositoryInterface;
 class PdfFileRepository extends BaseRepository implements PdfFileRepositoryInterface
 {
     public function __construct(
-        PdfFile $pdfFile
-    ) {
-        $this->model = $pdfFile;
-    }
+    PdfFile $pdfFile
+) {
+    parent::__construct($pdfFile);
+}
 }

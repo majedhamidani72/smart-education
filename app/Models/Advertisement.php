@@ -2,56 +2,172 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Advertisement extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
+    /*
+    |--------------------------------------------------------------------------
+    | فیلدهای قابل ثبت
+    |--------------------------------------------------------------------------
+    */
 
     protected $fillable = [
 
-        'title', // عنوان تبلیغ
+        'title',
 
-        'image', // تصویر تبلیغ
+        'image',
 
-        'link', // لینک مقصد
+        'link',
 
-        'position', // محل نمایش
+        'description',
 
-        'start_date', // شروع نمایش
+        'position',
 
-        'end_date', // پایان نمایش
+        'sort_order',
 
-        'is_active', // فعال بودن
+        'is_active',
+
+        'starts_at',
+
+        'expires_at',
 
     ];
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | تبدیل نوع داده‌ها
+    |--------------------------------------------------------------------------
+    */
 
     protected function casts(): array
     {
         return [
 
-            'start_date' => 'datetime',
+            'starts_at' => 'datetime',
 
-            'end_date' => 'datetime',
+            'expires_at' => 'datetime',
 
             'is_active' => 'boolean',
+
+            'sort_order' => 'integer',
 
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | روابط
+    |--------------------------------------------------------------------------
+    */
 
-    // بررسی فعال بودن تبلیغ
-    public function isActive(): bool
+    /**
+     * بازدیدها
+     */
+    public function views()
     {
-        return $this->is_active
-            && now()->between(
-                $this->start_date,
-                $this->end_date
-            );
+        return $this->hasMany(
+            AdvertisementView::class
+        );
     }
 
+    /**
+     * کلیک‌ها
+     */
+    public function clicks()
+    {
+        return $this->hasMany(
+            AdvertisementClick::class
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | متدهای کمکی
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * فعال بودن تبلیغ
+     */
+    public function isActive(): bool
+    {
+        if (!$this->is_active) {
+
+            return false;
+
+        }
+
+        if (
+
+            $this->starts_at
+
+            &&
+
+            now()->lt($this->starts_at)
+
+        ) {
+
+            return false;
+
+        }
+
+        if (
+
+            $this->expires_at
+
+            &&
+
+            now()->gt($this->expires_at)
+
+        ) {
+
+            return false;
+
+        }
+
+        return true;
+    }
+
+    /**
+     * تعداد بازدید
+     */
+    public function totalViews(): int
+    {
+        return $this->views()->count();
+    }
+
+    /**
+     * تعداد کلیک
+     */
+    public function totalClicks(): int
+    {
+        return $this->clicks()->count();
+    }
+
+    /**
+     * نرخ کلیک
+     */
+    public function ctr(): float
+    {
+        $views = $this->totalViews();
+
+        if ($views === 0) {
+
+            return 0;
+
+        }
+
+        return round(
+
+            ($this->totalClicks() / $views) * 100,
+
+            2
+
+        );
+    }
 }

@@ -39,6 +39,8 @@ class QuestionAttempt extends Model
 
             'is_correct' => 'boolean',
 
+            'score_awarded' => 'integer',
+
             'question_snapshot' => 'array',
 
             'options_snapshot' => 'array',
@@ -78,5 +80,4 @@ class QuestionAttempt extends Model
             'question_option_id'
         );
     }
-
 }

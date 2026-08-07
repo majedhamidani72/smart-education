@@ -51,6 +51,12 @@ class QuizAttempt extends Model
 
             'percentage' => 'decimal:2',
 
+            'total_score' => 'integer',
+
+            'earned_score' => 'integer',
+
+            'duration_seconds' => 'integer',
+
         ];
     }
 
@@ -83,5 +89,4 @@ class QuizAttempt extends Model
             QuestionAttempt::class
         );
     }
-
 }

@@ -7,43 +7,111 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * اجرای Migration
      */
     public function up(): void
     {
         Schema::create('notifications', function (Blueprint $table) {
 
-    $table->id();
+            $table->id();
 
-    $table->foreignId('user_id')
-        ->constrained()
-        ->cascadeOnDelete();
-    // کاربری که اعلان را دریافت می‌کند
+            /*
+            |--------------------------------------------------------------------------
+            | کاربر
+            |--------------------------------------------------------------------------
+            */
 
+            $table->foreignId('user_id')
+                ->constrained()
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
 
-    $table->string('title');
-    // عنوان اعلان
+            /*
+            |--------------------------------------------------------------------------
+            | اطلاعات اعلان
+            |--------------------------------------------------------------------------
+            */
 
+            $table->string('title');
 
-    $table->text('message');
-    // متن اعلان
+            $table->text('message');
 
+            /*
+            |--------------------------------------------------------------------------
+            | نوع اعلان
+            |--------------------------------------------------------------------------
+            */
 
-    $table->boolean('is_read')
-        ->default(false);
-    // خوانده شده یا خیر
+            $table->enum('type', [
 
+                'system',
 
-    $table->timestamps();
+                'purchase',
 
-});
+                'payment',
+
+                'quiz',
+
+                'lesson',
+
+                'advertisement',
+
+            ])->default('system');
+
+            /*
+            |--------------------------------------------------------------------------
+            | لینک
+            |--------------------------------------------------------------------------
+            */
+
+            $table->string('action_url')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | وضعیت خواندن
+            |--------------------------------------------------------------------------
+            */
+
+            $table->boolean('is_read')
+                ->default(false);
+
+            $table->timestamp('read_at')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | اطلاعات اضافی
+            |--------------------------------------------------------------------------
+            */
+
+            $table->json('data')
+                ->nullable();
+
+            $table->timestamps();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
+            $table->index('user_id');
+
+            $table->index('type');
+
+            $table->index('is_read');
+
+        });
     }
 
     /**
-     * Reverse the migrations.
+     * حذف جدول
      */
     public function down(): void
     {
-        Schema::dropIfExists('notifications');
+        Schema::dropIfExists(
+            'notifications'
+        );
     }
 };

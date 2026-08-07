@@ -9,8 +9,6 @@ class PaymentTransaction extends Model
 {
     use HasFactory;
 
-
-
     protected $fillable = [
 
         'purchase_id',
@@ -19,13 +17,19 @@ class PaymentTransaction extends Model
 
         'gateway',
 
+        'authority',
+
         'transaction_id',
 
         'reference_id',
 
         'amount',
 
+        'currency',
+
         'status',
+
+        'card_pan',
 
         'message',
 
@@ -33,9 +37,9 @@ class PaymentTransaction extends Model
 
         'paid_at',
 
+        'verified_at',
+
     ];
-
-
 
     protected function casts(): array
     {
@@ -45,12 +49,17 @@ class PaymentTransaction extends Model
 
             'paid_at' => 'datetime',
 
+            'verified_at' => 'datetime',
+
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
 
-
-    // هر تراکنش متعلق به یک خرید است
     public function purchase()
     {
         return $this->belongsTo(
@@ -58,9 +67,6 @@ class PaymentTransaction extends Model
         );
     }
 
-
-
-    // کاربر پرداخت کننده
     public function user()
     {
         return $this->belongsTo(
@@ -68,4 +74,29 @@ class PaymentTransaction extends Model
         );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Helpers
+    |--------------------------------------------------------------------------
+    */
+
+    public function isPaid(): bool
+    {
+        return $this->status === 'paid';
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function isFailed(): bool
+    {
+        return $this->status === 'failed';
+    }
+
+    public function isRefunded(): bool
+    {
+        return $this->status === 'refunded';
+    }
 }

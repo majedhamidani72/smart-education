@@ -6,34 +6,132 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * اجرای Migration
+     */
     public function up(): void
     {
         Schema::create('purchase_items', function (Blueprint $table) {
 
-            $table->id(); // شناسه آیتم خرید
+            $table->id();
+
+            /*
+            |--------------------------------------------------------------------------
+            | خرید
+            |--------------------------------------------------------------------------
+            */
 
             $table->foreignId('purchase_id')
                 ->constrained()
-                ->cascadeOnDelete(); // فاکتور مربوطه
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
 
-            $table->foreignId('plan_id')
-                ->constrained()
-                ->restrictOnDelete(); // پلن خریداری شده
+            /*
+            |--------------------------------------------------------------------------
+            | نوع آیتم
+            |--------------------------------------------------------------------------
+            */
 
-            $table->decimal('price', 12, 0); // قیمت اصلی پلن
+            $table->enum('item_type', [
 
-            $table->decimal('discount_amount', 12, 0)
-                ->default(0); // تخفیف این آیتم
+                'book',
 
-            $table->decimal('final_price', 12, 0); // مبلغ نهایی پرداخت شده
+                'lesson',
 
-            $table->timestamps(); // created_at و updated_at
+                'subscription',
+
+                'package',
+
+                'quiz',
+
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | شناسه آیتم
+            |--------------------------------------------------------------------------
+            */
+
+            $table->unsignedBigInteger(
+                'item_id'
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | عنوان آیتم
+            |--------------------------------------------------------------------------
+            */
+
+            $table->string(
+                'title'
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | مبلغ‌ها
+            |--------------------------------------------------------------------------
+            */
+
+            $table->unsignedBigInteger(
+                'price'
+            );
+
+            $table->unsignedBigInteger(
+                'discount_amount'
+            )->default(0);
+
+            $table->unsignedBigInteger(
+                'final_price'
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | تعداد
+            |--------------------------------------------------------------------------
+            */
+
+            $table->unsignedInteger(
+                'quantity'
+            )->default(1);
+
+            /*
+            |--------------------------------------------------------------------------
+            | توضیحات
+            |--------------------------------------------------------------------------
+            */
+
+            $table->text(
+                'notes'
+            )->nullable();
+
+            $table->timestamps();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
+            $table->index(
+                ['purchase_id'],
+                'purchase_item_purchase_index'
+            );
+
+            $table->index(
+                ['item_type', 'item_id'],
+                'purchase_item_type_id_index'
+            );
 
         });
     }
 
+    /**
+     * حذف جدول
+     */
     public function down(): void
     {
-        Schema::dropIfExists('purchase_items');
+        Schema::dropIfExists(
+            'purchase_items'
+        );
     }
 };

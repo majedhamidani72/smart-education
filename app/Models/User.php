@@ -47,18 +47,17 @@ class User extends Authenticatable
 
     // تبدیل خودکار نوع داده‌ها
     protected function casts(): array
-    {
-        return [
+{
+    return [
 
-            'phone_verified_at' => 'datetime',
-            // زمان تایید شماره موبایل
+        'phone_verified_at' => 'datetime',
 
+        'last_login_at' => 'datetime',
 
-            'last_login_at' => 'datetime',
-            // آخرین ورود کاربر
+        'is_active' => 'boolean',
 
-        ];
-    }
+    ];
+}
 
 
 

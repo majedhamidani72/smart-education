@@ -21,9 +21,16 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete(); // سؤال
 
-            $table->unsignedSmallInteger('score')->default(1); // امتیاز سؤال در این آزمون
+            $table->unsignedTinyInteger('score')
+                ->default(1);
 
-            $table->unsignedSmallInteger('sort_order')->default(1); // ترتیب سؤال
+            $table->unsignedSmallInteger('sort_order')
+                ->default(1);
+
+            $table->index([
+                'quiz_id',
+                'sort_order'
+            ]);
 
             $table->timestamps();
 

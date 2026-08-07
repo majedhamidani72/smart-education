@@ -151,7 +151,7 @@ class Quiz extends Model
         return $this->belongsToMany(
             Question::class,
             'quiz_question'
-        );
+        )->withTimestamps();
     }
 
 
@@ -163,5 +163,4 @@ class Quiz extends Model
             QuizAttempt::class
         );
     }
-
 }

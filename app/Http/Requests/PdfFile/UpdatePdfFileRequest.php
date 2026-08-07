@@ -2,28 +2,37 @@
 
 namespace App\Http\Requests\PdfFile;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdatePdfFileRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            //
+
+            'content_item_id' => [
+                'sometimes',
+                'exists:content_items,id',
+            ],
+
+            'title' => [
+                'sometimes',
+                'string',
+                'max:150',
+            ],
+
+            'pdf' => [
+                'nullable',
+                'file',
+                'mimes:pdf',
+                'max:51200',
+            ],
+
         ];
     }
 }

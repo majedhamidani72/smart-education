@@ -2,30 +2,44 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Notification extends Model
 {
     use HasFactory;
 
+    /*
+    |--------------------------------------------------------------------------
+    | فیلدهای قابل ثبت
+    |--------------------------------------------------------------------------
+    */
 
     protected $fillable = [
 
         'user_id',
-        // کاربر دریافت کننده
 
         'title',
-        // عنوان
 
         'message',
-        // متن پیام
+
+        'type',
+
+        'action_url',
 
         'is_read',
-        // وضعیت خواندن
+
+        'read_at',
+
+        'data',
 
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | تبدیل نوع داده‌ها
+    |--------------------------------------------------------------------------
+    */
 
     protected function casts(): array
     {
@@ -33,15 +47,62 @@ class Notification extends Model
 
             'is_read' => 'boolean',
 
+            'read_at' => 'datetime',
+
+            'data' => 'array',
+
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | روابط
+    |--------------------------------------------------------------------------
+    */
 
-
-    // هر اعلان متعلق به یک کاربر است
+    /**
+     * کاربر
+     */
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(
+            User::class
+        );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | متدهای کمکی
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * خوانده شده؟
+     */
+    public function isRead(): bool
+    {
+        return $this->is_read;
+    }
+
+    /**
+     * خواندن اعلان
+     */
+    public function markAsRead(): void
+    {
+        $this->update([
+
+            'is_read' => true,
+
+            'read_at' => now(),
+
+        ]);
+    }
+
+    /**
+     * خواندن نشده؟
+     */
+    public function isUnread(): bool
+    {
+        return !$this->is_read;
+    }
 }

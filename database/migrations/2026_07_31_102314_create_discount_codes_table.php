@@ -6,53 +6,137 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * اجرای Migration
+     */
     public function up(): void
     {
         Schema::create('discount_codes', function (Blueprint $table) {
 
-            $table->id(); // شناسه کد تخفیف
+            $table->id();
 
-            $table->string('code')->unique(); // کد تخفیف
+            /*
+            |--------------------------------------------------------------------------
+            | اطلاعات کد تخفیف
+            |--------------------------------------------------------------------------
+            */
 
-            $table->string('title'); // عنوان تخفیف
+            $table->string('code')
+                ->unique();
+
+            $table->string('title');
+
+            $table->text('description')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | نوع تخفیف
+            |--------------------------------------------------------------------------
+            */
 
             $table->enum('type', [
+
                 'fixed',
-                'percent'
-            ]); // نوع تخفیف
 
-            $table->decimal('value', 12, 0); // مقدار تخفیف
+                'percent',
 
-            $table->decimal('max_discount', 12, 0)
-                ->nullable(); // حداکثر مبلغ تخفیف
+            ]);
 
-            $table->decimal('minimum_purchase', 12, 0)
-                ->default(0); // حداقل مبلغ خرید
+            $table->unsignedBigInteger(
+                'value'
+            );
 
-            $table->unsignedInteger('usage_limit')
-                ->nullable(); // حداکثر تعداد استفاده
+            $table->unsignedBigInteger(
+                'max_discount'
+            )->nullable();
 
-            $table->unsignedInteger('used_count')
-                ->default(0); // تعداد استفاده شده
+            /*
+            |--------------------------------------------------------------------------
+            | حداقل مبلغ خرید
+            |--------------------------------------------------------------------------
+            */
 
-            $table->dateTime('starts_at')
-                ->nullable(); // شروع اعتبار
+            $table->unsignedBigInteger(
+                'minimum_purchase'
+            )->default(0);
 
-            $table->dateTime('expires_at')
-                ->nullable(); // پایان اعتبار
+            /*
+            |--------------------------------------------------------------------------
+            | محدودیت استفاده
+            |--------------------------------------------------------------------------
+            */
 
-            $table->boolean('is_active')
-                ->default(true); // فعال یا غیرفعال
+            $table->unsignedInteger(
+                'usage_limit'
+            )->nullable();
 
-            $table->timestamps(); // created_at و updated_at
+            $table->unsignedInteger(
+                'used_count'
+            )->default(0);
 
-            $table->softDeletes(); // حذف نرم
+            /*
+            |--------------------------------------------------------------------------
+            | هر کاربر چند بار؟
+            |--------------------------------------------------------------------------
+            */
+
+            $table->unsignedInteger(
+                'usage_per_user'
+            )->default(1);
+
+            /*
+            |--------------------------------------------------------------------------
+            | وضعیت
+            |--------------------------------------------------------------------------
+            */
+
+            $table->boolean(
+                'is_active'
+            )->default(true);
+
+            /*
+            |--------------------------------------------------------------------------
+            | تاریخ اعتبار
+            |--------------------------------------------------------------------------
+            */
+
+            $table->timestamp(
+                'starts_at'
+            )->nullable();
+
+            $table->timestamp(
+                'expires_at'
+            )->nullable();
+
+            $table->timestamps();
+
+            $table->softDeletes();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
+            $table->index(
+                ['code']
+            );
+
+            $table->index(
+                ['is_active']
+            );
 
         });
     }
 
+    /**
+     * حذف جدول
+     */
     public function down(): void
     {
-        Schema::dropIfExists('discount_codes');
+        Schema::dropIfExists(
+            'discount_codes'
+        );
     }
 };

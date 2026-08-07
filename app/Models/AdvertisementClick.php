@@ -2,13 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class AdvertisementClick extends Model
 {
     use HasFactory;
 
+    /*
+    |--------------------------------------------------------------------------
+    | فیلدهای قابل ثبت
+    |--------------------------------------------------------------------------
+    */
 
     protected $fillable = [
 
@@ -16,10 +21,27 @@ class AdvertisementClick extends Model
 
         'user_id',
 
+        'ip_address',
+
+        'user_agent',
+
+        'device_type',
+
+        'platform',
+
+        'referer',
+
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | روابط
+    |--------------------------------------------------------------------------
+    */
 
-
+    /**
+     * تبلیغ
+     */
     public function advertisement()
     {
         return $this->belongsTo(
@@ -27,11 +49,39 @@ class AdvertisementClick extends Model
         );
     }
 
-
-
+    /**
+     * کاربر
+     */
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(
+            User::class
+        );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | متدهای کمکی
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * کلیک مهمان
+     */
+    public function isGuest(): bool
+    {
+        return is_null(
+            $this->user_id
+        );
+    }
+
+    /**
+     * کلیک کاربر وارد شده
+     */
+    public function isAuthenticated(): bool
+    {
+        return !is_null(
+            $this->user_id
+        );
+    }
 }

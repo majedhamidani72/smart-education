@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ContentItem;
 use Illuminate\Database\Eloquent\Collection;
 use App\Repositories\Interfaces\ContentItemRepositoryInterface;
+use Illuminate\Support\Facades\Auth;
 
 class ContentItemService
 {
@@ -92,7 +93,7 @@ class ContentItemService
 
                 'status' => 'approved',
 
-                'reviewed_by' => auth()->id(),
+                'reviewed_by' => Auth::id(),
 
             ]
         );
@@ -111,7 +112,7 @@ class ContentItemService
 
                 'status' => 'rejected',
 
-                'reviewed_by' => auth()->id(),
+                'reviewed_by' => Auth::id(),
 
             ]
         );

@@ -6,50 +6,110 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * اجرای Migration
+     */
     public function up(): void
     {
         Schema::create('subscriptions', function (Blueprint $table) {
 
             $table->id();
-            // شناسه اشتراک
 
+            /*
+            |--------------------------------------------------------------------------
+            | کاربر
+            |--------------------------------------------------------------------------
+            */
 
             $table->foreignId('user_id')
                 ->constrained()
+                ->cascadeOnUpdate()
                 ->cascadeOnDelete();
-            // دانش‌آموز صاحب اشتراک
 
+            /*
+            |--------------------------------------------------------------------------
+            | خرید
+            |--------------------------------------------------------------------------
+            */
 
-            $table->foreignId('purchase_item_id')
+            $table->foreignId('purchase_id')
                 ->constrained()
+                ->cascadeOnUpdate()
                 ->cascadeOnDelete();
-            // آیتم خریدی که باعث ایجاد اشتراک شده
 
+            /*
+            |--------------------------------------------------------------------------
+            | پلن اشتراک
+            |--------------------------------------------------------------------------
+            */
 
-            $table->dateTime('starts_at');
-            // زمان شروع اشتراک
+            $table->foreignId('plan_id')
+                ->constrained()
+                ->restrictOnDelete();
 
-
-            $table->dateTime('expires_at');
-            // زمان پایان اشتراک
-
+            /*
+            |--------------------------------------------------------------------------
+            | وضعیت اشتراک
+            |--------------------------------------------------------------------------
+            */
 
             $table->enum('status', [
-                'active',
-                'expired',
-                'cancelled'
-            ])->default('active');
-            // وضعیت اشتراک
 
+                'active',
+
+                'expired',
+
+                'cancelled',
+
+            ])->default('active');
+
+            /*
+            |--------------------------------------------------------------------------
+            | تاریخ شروع و پایان
+            |--------------------------------------------------------------------------
+            */
+
+            $table->dateTime('starts_at');
+
+            $table->dateTime('expires_at');
+
+            /*
+            |--------------------------------------------------------------------------
+            | زمان لغو
+            |--------------------------------------------------------------------------
+            */
+
+            $table->dateTime('cancelled_at')
+                ->nullable();
 
             $table->timestamps();
+
+            /*
+            |--------------------------------------------------------------------------
+            | ایندکس‌ها
+            |--------------------------------------------------------------------------
+            */
+
+            $table->index(
+                ['user_id', 'status'],
+                'subscription_user_status_index'
+            );
+
+            $table->index(
+                'expires_at',
+                'subscription_expire_index'
+            );
 
         });
     }
 
-
+    /**
+     * حذف جدول
+     */
     public function down(): void
     {
-        Schema::dropIfExists('subscriptions');
+        Schema::dropIfExists(
+            'subscriptions'
+        );
     }
 };
