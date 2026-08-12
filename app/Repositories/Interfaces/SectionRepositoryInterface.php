@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @extends BaseRepositoryInterface<Model>
  */
-interface SectionRepositoryInterface
+interface SectionRepositoryInterface extends BaseRepositoryInterface
 {
     public function getAll(): Collection;
 

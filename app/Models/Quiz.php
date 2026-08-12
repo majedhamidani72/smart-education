@@ -11,79 +11,43 @@ class Quiz extends Model
     use HasFactory, SoftDeletes;
 
 
-
     protected $fillable = [
 
         'quizable_type',
-        'quizable_id',
-        // ارتباط با بخش، فصل یا کتاب
 
+        'quizable_id',
 
         'created_by',
-        // سازنده آزمون (معلم یا ادمین)
-
 
         'reviewed_by',
-        // ادمینی که بررسی کرده
-
 
         'title',
-        // عنوان آزمون
-
 
         'description',
-        // توضیحات
-
 
         'questions_count',
-        // تعداد سوالات نمایشی
-
 
         'time_limit',
-        // زمان آزمون به دقیقه
-
 
         'passing_percentage',
-        // درصد قبولی
-
 
         'max_attempts',
-        // تعداد دفعات شرکت
-
 
         'randomize_questions',
-        // تصادفی بودن سوالات
-
 
         'randomize_options',
-        // تصادفی بودن گزینه‌ها
-
 
         'show_result',
-        // نمایش نتیجه
-
 
         'show_correct_answers',
-        // نمایش پاسخ صحیح
-
 
         'is_free',
-        // رایگان یا پولی
-
 
         'status',
-        // draft
-        // pending
-        // active
-        // inactive
-
 
         'rejection_reason',
-        // دلیل رد
-
 
         'published_at',
-        // زمان انتشار
 
     ];
 
@@ -110,12 +74,16 @@ class Quiz extends Model
 
 
 
-    // =========================
-    // Relationships
-    // =========================
+    /*
+    |--------------------------------------------------------------------------
+    | Relations
+    |--------------------------------------------------------------------------
+    */
 
 
-    // ارتباط با بخش، فصل یا کتاب
+    /**
+     * ارتباط آزمون با بخش، فصل یا کتاب
+     */
     public function quizable()
     {
         return $this->morphTo();
@@ -123,7 +91,9 @@ class Quiz extends Model
 
 
 
-    // سازنده آزمون
+    /**
+     * سازنده آزمون
+     */
     public function creator()
     {
         return $this->belongsTo(
@@ -134,7 +104,9 @@ class Quiz extends Model
 
 
 
-    // ادمین بررسی کننده
+    /**
+     * مدیر بررسی کننده
+     */
     public function reviewer()
     {
         return $this->belongsTo(
@@ -145,22 +117,35 @@ class Quiz extends Model
 
 
 
-    // سوالات آزمون
+    /**
+     * سوالات آزمون
+     */
     public function questions()
     {
         return $this->belongsToMany(
             Question::class,
             'quiz_question'
-        )->withTimestamps();
+        )
+        ->withPivot([
+
+            'score',
+
+            'sort_order',
+
+        ])
+        ->withTimestamps();
     }
 
 
 
-    // شرکت‌های کاربران در آزمون
+    /**
+     * شرکت‌های کاربران در آزمون
+     */
     public function attempts()
     {
         return $this->hasMany(
             QuizAttempt::class
         );
     }
+
 }

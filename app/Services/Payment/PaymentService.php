@@ -2,8 +2,10 @@
 
 namespace App\Services\Payment;
 
+use Throwable;
 use App\Models\Purchase;
 use App\Models\PaymentTransaction;
+use Illuminate\Support\Facades\Log;
 use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Repositories\Interfaces\PaymentTransactionRepositoryInterface;
 
@@ -23,11 +25,9 @@ class PaymentService
         PaymentTransactionRepositoryInterface $transactionRepository,
         PaymentGatewayInterface $gateway
     ) {
-
         $this->transactionRepository = $transactionRepository;
 
         $this->gateway = $gateway;
-
     }
 
     /**
@@ -36,15 +36,14 @@ class PaymentService
     public function createTransaction(
         Purchase $purchase
     ): PaymentTransaction {
-
         return $this->transactionRepository->create([
 
             'purchase_id' => $purchase->id,
 
             'user_id' => $purchase->user_id,
 
-            'gateway' => 'zibal',
-
+            'gateway' => env('PAYMENT_DEFAULT', 'zibal'),
+            
             'amount' => $purchase->price,
 
             'currency' => 'IRT',
@@ -52,7 +51,6 @@ class PaymentService
             'status' => 'pending',
 
         ]);
-
     }
 
     /**
@@ -61,12 +59,30 @@ class PaymentService
     public function requestPayment(
         PaymentTransaction $transaction
     ): array {
+        try {
 
-        return $this->gateway
-            ->requestPayment(
-                $transaction
-            );
+            return $this->gateway
+                ->requestPayment(
+                    $transaction
+                );
+        } catch (Throwable $e) {
 
+            Log::error('Payment request failed.', [
+
+                'transaction_id' => $transaction->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            return [
+
+                'success' => false,
+
+                'message' => 'Payment request failed.',
+
+            ];
+        }
     }
 
     /**
@@ -76,47 +92,68 @@ class PaymentService
         PaymentTransaction $transaction,
         array $data
     ): array {
+        try {
 
-        $result = $this->gateway
-            ->verifyPayment(
-                $transaction,
-                $data
-            );
-
-        if (
-
-            isset($result['success'])
-
-            &&
-
-            $result['success'] === true
-
-        ) {
-
-            $this->transactionRepository
-                ->markAsPaid(
-
+            $result = $this->gateway
+                ->verifyPayment(
                     $transaction,
-
-                    $result
-
+                    $data
                 );
 
-        } else {
+            if (
+                isset($result['success'])
+                &&
+                $result['success'] === true
+            ) {
+
+                $this->transactionRepository
+                    ->markAsPaid(
+
+                        $transaction,
+
+                        $result
+
+                    );
+            } else {
+
+                $this->transactionRepository
+                    ->markAsFailed(
+
+                        $transaction,
+
+                        $result['message'] ?? null
+
+                    );
+            }
+
+            return $result;
+        } catch (Throwable $e) {
+
+            Log::error('Payment verification failed.', [
+
+                'transaction_id' => $transaction->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
 
             $this->transactionRepository
                 ->markAsFailed(
 
                     $transaction,
 
-                    $result['message'] ?? null
+                    $e->getMessage()
 
                 );
 
+            return [
+
+                'success' => false,
+
+                'message' => 'Payment verification failed.',
+
+            ];
         }
-
-        return $result;
-
     }
 
     /**
@@ -125,12 +162,29 @@ class PaymentService
     public function refund(
         PaymentTransaction $transaction
     ): array {
+        try {
 
-        return $this->gateway
-            ->refundPayment(
-                $transaction
-            );
+            return $this->gateway
+                ->refundPayment(
+                    $transaction
+                );
+        } catch (Throwable $e) {
 
+            Log::error('Refund failed.', [
+
+                'transaction_id' => $transaction->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            return [
+
+                'success' => false,
+
+                'message' => 'Refund failed.',
+
+            ];
+        }
     }
-
 }

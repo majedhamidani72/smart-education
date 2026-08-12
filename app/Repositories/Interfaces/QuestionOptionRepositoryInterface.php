@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @extends BaseRepositoryInterface<QuestionOption>
  */
-interface QuestionOptionRepositoryInterface
+interface QuestionOptionRepositoryInterface extends BaseRepositoryInterface
 {
     public function getAll(): Collection;
 

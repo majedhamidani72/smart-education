@@ -6,68 +6,12 @@ use App\Models\Device;
 use Illuminate\Database\Eloquent\Collection;
 use App\Repositories\Interfaces\DeviceRepositoryInterface;
 
-class DeviceRepository implements DeviceRepositoryInterface
+class DeviceRepository extends BaseRepository implements DeviceRepositoryInterface
 {
-    /**
-     * مدل Device
-     */
-    protected Device $model;
-
     public function __construct(
         Device $model
     ) {
-        $this->model = $model;
-    }
-
-    /**
-     * ایجاد دستگاه
-     */
-    public function create(
-        array $data
-    ): Device {
-
-        return $this->model->create(
-            $data
-        );
-
-    }
-
-    /**
-     * بروزرسانی دستگاه
-     */
-    public function update(
-        Device $device,
-        array $data
-    ): bool {
-
-        return $device->update(
-            $data
-        );
-
-    }
-
-    /**
-     * حذف دستگاه
-     */
-    public function delete(
-        Device $device
-    ): bool {
-
-        return $device->delete();
-
-    }
-
-    /**
-     * دریافت دستگاه با شناسه
-     */
-    public function findById(
-        int $id
-    ): ?Device {
-
-        return $this->model->find(
-            $id
-        );
-
+        parent::__construct($model);
     }
 
     /**
@@ -75,17 +19,14 @@ class DeviceRepository implements DeviceRepositoryInterface
      */
     public function findByIdentifier(
         string $identifier
-    ): ?Device {
-
+    ): ?Device
+    {
         return $this->model
-
             ->where(
                 'device_identifier',
                 $identifier
             )
-
             ->first();
-
     }
 
     /**
@@ -93,19 +34,15 @@ class DeviceRepository implements DeviceRepositoryInterface
      */
     public function getUserDevices(
         int $userId
-    ): Collection {
-
+    ): Collection
+    {
         return $this->model
-
             ->where(
                 'user_id',
                 $userId
             )
-
             ->latest()
-
             ->get();
-
     }
 
     /**
@@ -113,21 +50,16 @@ class DeviceRepository implements DeviceRepositoryInterface
      */
     public function getActiveUserDevices(
         int $userId
-    ): Collection {
-
+    ): Collection
+    {
         return $this->model
-
             ->active()
-
             ->where(
                 'user_id',
                 $userId
             )
-
             ->latest()
-
             ->get();
-
     }
 
     /**
@@ -135,16 +67,15 @@ class DeviceRepository implements DeviceRepositoryInterface
      */
     public function activate(
         Device $device
-    ): bool {
-
+    ): bool
+    {
         return $device->update([
 
-            'is_active' => true,
+            'is_active'     => true,
 
             'last_login_at' => now(),
 
         ]);
-
     }
 
     /**
@@ -152,14 +83,13 @@ class DeviceRepository implements DeviceRepositoryInterface
      */
     public function deactivate(
         Device $device
-    ): bool {
-
+    ): bool
+    {
         return $device->update([
 
             'is_active' => false,
 
         ]);
-
     }
 
     /**
@@ -168,16 +98,15 @@ class DeviceRepository implements DeviceRepositoryInterface
     public function updateLastLogin(
         Device $device,
         ?string $ip
-    ): bool {
-
+    ): bool
+    {
         return $device->update([
 
             'last_login_at' => now(),
 
-            'last_ip' => $ip,
+            'last_ip'       => $ip,
 
         ]);
-
     }
 
     /**
@@ -186,13 +115,12 @@ class DeviceRepository implements DeviceRepositoryInterface
     public function updateFcmToken(
         Device $device,
         ?string $token
-    ): bool {
-
+    ): bool
+    {
         return $device->update([
 
             'fcm_token' => $token,
 
         ]);
-
     }
 }

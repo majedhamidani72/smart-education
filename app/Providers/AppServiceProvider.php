@@ -79,6 +79,29 @@ use App\Repositories\Interfaces\DeviceRepositoryInterface;
 use App\Services\Sms\Contracts\SmsProviderInterface;
 use App\Services\Sms\Providers\MockSmsProvider;
 
+// Plan
+use App\Repositories\Eloquent\PlanRepository;
+use App\Repositories\Interfaces\PlanRepositoryInterface;
+
+// Purchase
+use App\Repositories\Eloquent\PurchaseRepository;
+use App\Repositories\Interfaces\PurchaseRepositoryInterface;
+
+// Purchase Item
+use App\Repositories\Eloquent\PurchaseItemRepository;
+use App\Repositories\Interfaces\PurchaseItemRepositoryInterface;
+
+// Subscription
+use App\Repositories\Eloquent\SubscriptionRepository;
+use App\Repositories\Interfaces\SubscriptionRepositoryInterface;
+
+// Payment Transaction
+use App\Repositories\Eloquent\PaymentTransactionRepository;
+use App\Repositories\Interfaces\PaymentTransactionRepositoryInterface;
+
+use App\Services\Payment\Contracts\PaymentGatewayInterface;
+use App\Services\Payment\Providers\ZibalProvider;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -87,106 +110,139 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Grade
-        $this->app->bind(
+        $this->app->singleton(
             GradeRepositoryInterface::class,
             GradeRepository::class
         );
 
         // Subject
-        $this->app->bind(
+        $this->app->singleton(
             SubjectRepositoryInterface::class,
             SubjectRepository::class
         );
 
         // Book
-        $this->app->bind(
+        $this->app->singleton(
             BookRepositoryInterface::class,
             BookRepository::class
         );
 
         // Chapter
-        $this->app->bind(
+        $this->app->singleton(
             ChapterRepositoryInterface::class,
             ChapterRepository::class
         );
 
         // Section
-        $this->app->bind(
+        $this->app->singleton(
             SectionRepositoryInterface::class,
             SectionRepository::class
         );
 
         // Content Item
-        $this->app->bind(
+        $this->app->singleton(
             ContentItemRepositoryInterface::class,
             ContentItemRepository::class
         );
 
         // Video
-        $this->app->bind(
+        $this->app->singleton(
             VideoRepositoryInterface::class,
             VideoRepository::class
         );
 
         // PDF File
-        $this->app->bind(
+        $this->app->singleton(
             PdfFileRepositoryInterface::class,
             PdfFileRepository::class
         );
 
         // Step By Step Page
-        $this->app->bind(
+        $this->app->singleton(
             StepByStepPageRepositoryInterface::class,
             StepByStepPageRepository::class
         );
 
         // Sample Question
-        $this->app->bind(
+        $this->app->singleton(
             SampleQuestionRepositoryInterface::class,
             SampleQuestionRepository::class
         );
 
         // Quiz
-        $this->app->bind(
+        $this->app->singleton(
             QuizRepositoryInterface::class,
             QuizRepository::class
         );
 
         // Question
-        $this->app->bind(
+        $this->app->singleton(
             QuestionRepositoryInterface::class,
             QuestionRepository::class
         );
 
         // Question Option
-        $this->app->bind(
+        $this->app->singleton(
             QuestionOptionRepositoryInterface::class,
             QuestionOptionRepository::class
         );
 
         // Quiz Attempt
-        $this->app->bind(
+        $this->app->singleton(
             QuizAttemptRepositoryInterface::class,
             QuizAttemptRepository::class
         );
 
         // Question Attempt
-        $this->app->bind(
+        $this->app->singleton(
             QuestionAttemptRepositoryInterface::class,
             QuestionAttemptRepository::class
         );
 
         // OTP
-        $this->app->bind(
+        $this->app->singleton(
             OtpCodeRepositoryInterface::class,
             OtpCodeRepository::class
         );
 
         // Device
-        $this->app->bind(
+        $this->app->singleton(
             DeviceRepositoryInterface::class,
             DeviceRepository::class
         );
+
+        // Plan
+        $this->app->singleton(
+            PlanRepositoryInterface::class,
+            PlanRepository::class
+        );
+
+        // Purchase
+        $this->app->singleton(
+            PurchaseRepositoryInterface::class,
+            PurchaseRepository::class
+        );
+
+        // Purchase Item
+        $this->app->singleton(
+            PurchaseItemRepositoryInterface::class,
+            PurchaseItemRepository::class
+        );
+
+        // Subscription
+        $this->app->singleton(
+            SubscriptionRepositoryInterface::class,
+            SubscriptionRepository::class
+        );
+
+        // Payment Transaction
+        $this->app->singleton(
+            PaymentTransactionRepositoryInterface::class,
+            PaymentTransactionRepository::class
+        );
+
+
+
 
         /*
         |--------------------------------------------------------------------------
@@ -201,9 +257,22 @@ class AppServiceProvider extends ServiceProvider
         | MeliPayamakProvider::class
         |--------------------------------------------------------------------------
         */
-        $this->app->bind(
+        $this->app->singleton(
             SmsProviderInterface::class,
             MockSmsProvider::class
+        );
+        
+
+        /*|--------------------------------------------------------------------------
+        | Payment Gateway
+        |--------------------------------------------------------------------------
+        | فعلاً از زیبال استفاده می‌کنیم.
+        | بعداً فقط همین خط را به Provider جدید تغییر می‌دهیم.
+        |--------------------------------------------------------------------------
+        */
+        $this->app->singleton(
+            PaymentGatewayInterface::class,
+            ZibalProvider::class
         );
     }
 

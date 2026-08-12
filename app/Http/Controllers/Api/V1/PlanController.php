@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Models\Plan;
+use App\Helpers\ApiResponse;
+use App\Services\PlanService;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PlanResource;
 use App\Http\Requests\Plan\StorePlanRequest;
 use App\Http\Requests\Plan\UpdatePlanRequest;
-use App\Http\Resources\PlanResource;
-use App\Services\PlanService;
-use Illuminate\Http\JsonResponse;
 
 class PlanController extends Controller
 {
@@ -28,63 +29,74 @@ class PlanController extends Controller
     /**
      * لیست پلن‌ها
      */
-    public function index(): JsonResponse
+    public function index()
     {
-        return response()->json([
+        $this->authorize(
+            'viewAny',
+            Plan::class
+        );
 
-            'success' => true,
+        $plans = $this->service->paginate();
 
-            'message' => 'لیست پلن‌ها.',
+        return ApiResponse::success(
 
-            'data' => PlanResource::collection(
+            PlanResource::collection(
 
-                $this->service->getAll()
+                $plans
 
             ),
 
-        ]);
+            'Plans retrieved successfully.'
+
+        );
     }
 
     /**
      * پلن‌های فعال
      */
-    public function active(): JsonResponse
+    public function active()
     {
-        return response()->json([
+        $this->authorize(
+            'viewAny',
+            Plan::class
+        );
 
-            'success' => true,
+        return ApiResponse::success(
 
-            'message' => 'پلن‌های فعال.',
-
-            'data' => PlanResource::collection(
+            PlanResource::collection(
 
                 $this->service->getActive()
 
             ),
 
-        ]);
+            'Active plans retrieved successfully.'
+
+        );
     }
 
     /**
      * نمایش یک پلن
      */
     public function show(
-        int $id
-    ): JsonResponse
+        Plan $plan
+    )
     {
-        return response()->json([
+        $this->authorize(
+            'view',
+            $plan
+        );
 
-            'success' => true,
+        return ApiResponse::success(
 
-            'message' => 'اطلاعات پلن.',
+            new PlanResource(
 
-            'data' => new PlanResource(
-
-                $this->service->findById($id)
+                $plan
 
             ),
 
-        ]);
+            'Plan retrieved successfully.'
+
+        );
     }
 
     /**
@@ -92,27 +104,32 @@ class PlanController extends Controller
      */
     public function store(
         StorePlanRequest $request
-    ): JsonResponse
+    )
     {
+        $this->authorize(
+            'create',
+            Plan::class
+        );
+
         $plan = $this->service->create(
 
             $request->validated()
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'پلن با موفقیت ایجاد شد.',
-
-            'data' => new PlanResource(
+            new PlanResource(
 
                 $plan
 
             ),
 
-        ], 201);
+            'Plan created successfully.',
+
+            201
+
+        );
     }
 
     /**
@@ -120,10 +137,13 @@ class PlanController extends Controller
      */
     public function update(
         UpdatePlanRequest $request,
-        int $id
-    ): JsonResponse
+        Plan $plan
+    )
     {
-        $plan = $this->service->findById($id);
+        $this->authorize(
+            'update',
+            $plan
+        );
 
         $plan = $this->service->update(
 
@@ -133,38 +153,43 @@ class PlanController extends Controller
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'پلن بروزرسانی شد.',
-
-            'data' => new PlanResource(
+            new PlanResource(
 
                 $plan
 
             ),
 
-        ]);
+            'Plan updated successfully.'
+
+        );
     }
 
     /**
      * حذف پلن
      */
     public function destroy(
-        int $id
-    ): JsonResponse
+        Plan $plan
+    )
     {
-        $plan = $this->service->findById($id);
+        $this->authorize(
+            'delete',
+            $plan
+        );
 
-        $this->service->delete($plan);
+        $this->service->delete(
 
-        return response()->json([
+            $plan
 
-            'success' => true,
+        );
 
-            'message' => 'پلن حذف شد.',
+        return ApiResponse::success(
 
-        ]);
+            null,
+
+            'Plan deleted successfully.'
+
+        );
     }
 }

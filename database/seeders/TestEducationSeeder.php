@@ -6,48 +6,76 @@ use Illuminate\Database\Seeder;
 use App\Models\Grade;
 use App\Models\Subject;
 
-
 class TestEducationSeeder extends Seeder
 {
     public function run(): void
     {
+        /*
+        |--------------------------------------------------------------------------
+        | پایه پنجم
+        |--------------------------------------------------------------------------
+        */
 
-        // ساخت پایه پنجم
-        $grade = Grade::create([
+        $grade = Grade::firstOrCreate(
 
-            'title' => 'پنجم',
+            [
 
-            'slug' => 'fifth-grade',
+                'slug' => 'fifth-grade',
 
-            'grade_number' => 5,
+            ],
 
-            'sort_order' => 1,
+            [
 
-            'is_active' => true,
+                'title' => 'پنجم',
 
-        ]);
+                'grade_number' => 5,
 
+                'sort_order' => 1,
 
+                'is_active' => true,
 
-        // ساخت درس ریاضی
-        $subject = Subject::create([
+            ]
 
-            'title' => 'ریاضی',
+        );
 
-            'slug' => 'mathematics',
+        /*
+        |--------------------------------------------------------------------------
+        | درس ریاضی
+        |--------------------------------------------------------------------------
+        */
 
-            'description' => 'درس ریاضی',
+        $subject = Subject::firstOrCreate(
 
-            'sort_order' => 1,
+            [
 
-            'is_active' => true,
+                'slug' => 'mathematics',
 
-        ]);
+            ],
 
+            [
 
+                'title' => 'ریاضی',
 
-        // اتصال پایه به درس
-        $grade->subjects()->attach($subject->id);
+                'description' => 'درس ریاضی',
 
+                'sort_order' => 1,
+
+                'is_active' => true,
+
+            ]
+
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | اتصال پایه و درس
+        |--------------------------------------------------------------------------
+        */
+
+        if (! $grade->subjects()->where('subject_id', $subject->id)->exists()) {
+
+            $grade->subjects()->attach($subject->id);
+
+        }
     }
 }

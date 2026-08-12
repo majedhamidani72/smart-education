@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Subscription;
-use Illuminate\Http\JsonResponse;
+use App\Helpers\ApiResponse;
 use App\Services\SubscriptionService;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SubscriptionResource;
@@ -12,82 +12,101 @@ use App\Http\Requests\Subscription\UpdateSubscriptionRequest;
 
 class SubscriptionController extends Controller
 {
-    protected SubscriptionService $service;
+    /**
+     * سرویس اشتراک
+     */
+    protected SubscriptionService $subscriptionService;
 
+    /**
+     * Constructor
+     */
     public function __construct(
-        SubscriptionService $service
+        SubscriptionService $subscriptionService
     ) {
-        $this->service = $service;
+        $this->subscriptionService = $subscriptionService;
     }
 
     /**
      * لیست اشتراک‌ها
      */
-    public function index(): JsonResponse
+    public function index()
     {
-        return response()->json([
+        $this->authorize(
+            'viewAny',
+            Subscription::class
+        );
 
-            'success' => true,
+        $subscriptions = $this->subscriptionService->paginate();
 
-            'message' => 'لیست اشتراک‌ها.',
+        return ApiResponse::success(
 
-            'data' => SubscriptionResource::collection(
+            SubscriptionResource::collection(
 
-                $this->service->getAll()
+                $subscriptions
 
             ),
 
-        ]);
+            'Subscriptions retrieved successfully.'
+
+        );
     }
 
     /**
-     * نمایش اشتراک
+     * نمایش یک اشتراک
      */
     public function show(
         Subscription $subscription
-    ): JsonResponse
+    )
     {
-        return response()->json([
+        $this->authorize(
+            'view',
+            $subscription
+        );
 
-            'success' => true,
+        return ApiResponse::success(
 
-            'message' => 'اطلاعات اشتراک.',
-
-            'data' => new SubscriptionResource(
+            new SubscriptionResource(
 
                 $subscription
 
             ),
 
-        ]);
+            'Subscription retrieved successfully.'
+
+        );
     }
 
     /**
-     * ثبت اشتراک
+     * ایجاد اشتراک
      */
     public function store(
         StoreSubscriptionRequest $request
-    ): JsonResponse
+    )
     {
-        $subscription = $this->service->create(
+        $this->authorize(
+            'create',
+            Subscription::class
+        );
+
+        $subscription = $this->subscriptionService->create(
 
             $request->validated()
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'اشتراک با موفقیت ثبت شد.',
-
-            'data' => new SubscriptionResource(
+            new SubscriptionResource(
 
                 $subscription
 
             ),
 
-        ], 201);
+            'Subscription created successfully.',
+
+            201
+
+        );
     }
 
     /**
@@ -96,9 +115,14 @@ class SubscriptionController extends Controller
     public function update(
         UpdateSubscriptionRequest $request,
         Subscription $subscription
-    ): JsonResponse
+    )
     {
-        $subscription = $this->service->update(
+        $this->authorize(
+            'update',
+            $subscription
+        );
+
+        $subscription = $this->subscriptionService->update(
 
             $subscription,
 
@@ -106,19 +130,17 @@ class SubscriptionController extends Controller
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'اشتراک بروزرسانی شد.',
-
-            'data' => new SubscriptionResource(
+            new SubscriptionResource(
 
                 $subscription
 
             ),
 
-        ]);
+            'Subscription updated successfully.'
+
+        );
     }
 
     /**
@@ -126,75 +148,95 @@ class SubscriptionController extends Controller
      */
     public function destroy(
         Subscription $subscription
-    ): JsonResponse
+    )
     {
-        $this->service->delete(
+        $this->authorize(
+            'delete',
+            $subscription
+        );
+
+        $this->subscriptionService->delete(
 
             $subscription
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
+            null,
 
-            'message' => 'اشتراک حذف شد.',
+            'Subscription deleted successfully.'
 
-        ]);
+        );
     }
 
     /**
      * اشتراک‌های فعال
      */
-    public function active(): JsonResponse
+    public function active()
     {
-        return response()->json([
+        $this->authorize(
+            'viewAny',
+            Subscription::class
+        );
 
-            'success' => true,
+        return ApiResponse::success(
 
-            'data' => SubscriptionResource::collection(
+            SubscriptionResource::collection(
 
-                $this->service->getActive()
+                $this->subscriptionService->getActive()
 
             ),
 
-        ]);
+            'Active subscriptions retrieved successfully.'
+
+        );
     }
 
     /**
-     * اشتراک‌های منقضی
+     * اشتراک‌های منقضی شده
      */
-    public function expired(): JsonResponse
+    public function expired()
     {
-        return response()->json([
+        $this->authorize(
+            'viewAny',
+            Subscription::class
+        );
 
-            'success' => true,
+        return ApiResponse::success(
 
-            'data' => SubscriptionResource::collection(
+            SubscriptionResource::collection(
 
-                $this->service->getExpired()
+                $this->subscriptionService->getExpired()
 
             ),
 
-        ]);
+            'Expired subscriptions retrieved successfully.'
+
+        );
     }
 
     /**
      * اشتراک‌های لغو شده
      */
-    public function cancelled(): JsonResponse
+    public function cancelled()
     {
-        return response()->json([
+        $this->authorize(
+            'viewAny',
+            Subscription::class
+        );
 
-            'success' => true,
+        return ApiResponse::success(
 
-            'data' => SubscriptionResource::collection(
+            SubscriptionResource::collection(
 
-                $this->service->getCancelled()
+                $this->subscriptionService->getCancelled()
 
             ),
 
-        ]);
+            'Cancelled subscriptions retrieved successfully.'
+
+        );
     }
 
     /**
@@ -202,23 +244,30 @@ class SubscriptionController extends Controller
      */
     public function activate(
         Subscription $subscription
-    ): JsonResponse
+    )
     {
-        $subscription = $this->service->activate(
+        $this->authorize(
+            'update',
             $subscription
         );
 
-        return response()->json([
+        $subscription = $this->subscriptionService->activate(
 
-            'success' => true,
+            $subscription
 
-            'message' => 'اشتراک فعال شد.',
+        );
 
-            'data' => new SubscriptionResource(
+        return ApiResponse::success(
+
+            new SubscriptionResource(
+
                 $subscription
+
             ),
 
-        ]);
+            'Subscription activated successfully.'
+
+        );
     }
 
     /**
@@ -226,23 +275,30 @@ class SubscriptionController extends Controller
      */
     public function cancel(
         Subscription $subscription
-    ): JsonResponse
+    )
     {
-        $subscription = $this->service->cancel(
+        $this->authorize(
+            'update',
             $subscription
         );
 
-        return response()->json([
+        $subscription = $this->subscriptionService->cancel(
 
-            'success' => true,
+            $subscription
 
-            'message' => 'اشتراک لغو شد.',
+        );
 
-            'data' => new SubscriptionResource(
+        return ApiResponse::success(
+
+            new SubscriptionResource(
+
                 $subscription
+
             ),
 
-        ]);
+            'Subscription cancelled successfully.'
+
+        );
     }
 
     /**
@@ -250,14 +306,18 @@ class SubscriptionController extends Controller
      */
     public function extend(
         Subscription $subscription
-    ): JsonResponse
+    )
     {
-        $days = (int) request()->input(
-            'days',
-            30
+        $this->authorize(
+            'update',
+            $subscription
         );
 
-        $subscription = $this->service->extend(
+        $days = (int) request(
+            'days'
+        );
+
+        $subscription = $this->subscriptionService->extend(
 
             $subscription,
 
@@ -265,18 +325,16 @@ class SubscriptionController extends Controller
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'اشتراک تمدید شد.',
-
-            'data' => new SubscriptionResource(
+            new SubscriptionResource(
 
                 $subscription
 
             ),
 
-        ]);
+            'Subscription extended successfully.'
+
+        );
     }
 }

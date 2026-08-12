@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use Throwable;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\NewAccessToken;
 
 class AuthService
@@ -26,23 +28,45 @@ class AuthService
      */
     public function sendOtp(
         string $mobile
-    ): array {
+    ): array
+    {
+        try {
 
-        $loginToken = $this->otpService->sendOtp(
+            $loginToken = $this->otpService->sendOtp(
 
-            $mobile,
+                $mobile,
 
-            'login'
+                'login'
 
-        );
+            );
 
-        return [
+            return [
 
-            'login_token' => $loginToken,
+                'login_token' => $loginToken,
 
-            'message' => 'کد تایید با موفقیت ارسال شد.',
+                'message' => 'کد تایید با موفقیت ارسال شد.',
 
-        ];
+            ];
+
+        } catch (Throwable $e) {
+
+            Log::error('Send OTP failed.', [
+
+                'mobile' => $mobile,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            return [
+
+                'success' => false,
+
+                'message' => 'ارسال کد تایید با خطا مواجه شد.',
+
+            ];
+
+        }
     }
 
     /**
@@ -51,8 +75,8 @@ class AuthService
     public function verifyOtp(
         string $loginToken,
         string $code
-    ): NewAccessToken {
-
+    ): NewAccessToken
+    {
         $user = $this->otpService->verifyOtp(
 
             $loginToken,
@@ -87,14 +111,35 @@ class AuthService
      */
     public function resendOtp(
         string $loginToken
-    ): array {
+    ): array
+    {
+        try {
 
-        return $this->otpService->resendOtp(
+            return $this->otpService->resendOtp(
 
-            $loginToken
+                $loginToken
 
-        );
+            );
 
+        } catch (Throwable $e) {
+
+            Log::error('Resend OTP failed.', [
+
+                'login_token' => $loginToken,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            return [
+
+                'success' => false,
+
+                'message' => 'ارسال مجدد کد تایید با خطا مواجه شد.',
+
+            ];
+
+        }
     }
 
     /**
@@ -102,10 +147,9 @@ class AuthService
      */
     public function logout(
         User $user
-    ): void {
-
+    ): void
+    {
         $user->currentAccessToken()?->delete();
-
     }
 
     /**
@@ -113,9 +157,8 @@ class AuthService
      */
     public function logoutFromAllDevices(
         User $user
-    ): void {
-
+    ): void
+    {
         $user->tokens()->delete();
-
     }
 }

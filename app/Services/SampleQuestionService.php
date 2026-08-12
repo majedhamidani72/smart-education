@@ -8,12 +8,19 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Repositories\Interfaces\SampleQuestionRepositoryInterface;
 
 class SampleQuestionService
 {
+    /**
+     * Repository نمونه سوالات
+     */
     protected SampleQuestionRepositoryInterface $sampleQuestionRepository;
 
+    /**
+     * سرویس آپلود فایل
+     */
     protected FileUploadService $fileUploadService;
 
     public function __construct(
@@ -24,22 +31,46 @@ class SampleQuestionService
         $this->fileUploadService = $fileUploadService;
     }
 
+    /**
+     * دریافت همه نمونه سوالات
+     */
     public function getAll(): Collection
     {
         return $this->sampleQuestionRepository->getAll();
     }
 
-    public function findById(
-        int $id
-    ): ?SampleQuestion {
-        return $this->sampleQuestionRepository->findById($id);
+    /**
+     * صفحه‌بندی نمونه سوالات
+     */
+    public function paginate(
+        int $perPage = 15
+    ): LengthAwarePaginator
+    {
+        return $this->sampleQuestionRepository->paginate(
+            $perPage
+        );
     }
 
+    /**
+     * دریافت یک نمونه سوال
+     */
+    public function findById(
+        int $id
+    ): ?SampleQuestion
+    {
+        return $this->sampleQuestionRepository->findById(
+            $id
+        );
+    }
+
+    /**
+     * ایجاد نمونه سوال
+     */
     public function create(
         array $data,
         ?UploadedFile $pdf
-    ): SampleQuestion {
-
+    ): SampleQuestion
+    {
         DB::beginTransaction();
 
         try {
@@ -54,7 +85,9 @@ class SampleQuestionService
                 $data['file'] = $file['file_path'];
             }
 
-            $sampleQuestion = $this->sampleQuestionRepository->create($data);
+            $sampleQuestion = $this->sampleQuestionRepository->create(
+                $data
+            );
 
             DB::commit();
 
@@ -64,24 +97,27 @@ class SampleQuestionService
 
             DB::rollBack();
 
-            Log::error(
-                'Create SampleQuestion Error',
-                [
-                    'message' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                ]
-            );
+            Log::error('Sample question creation failed.', [
+
+                'data' => $data,
+
+                'error' => $e->getMessage(),
+
+            ]);
 
             throw $e;
         }
     }
 
+    /**
+     * بروزرسانی نمونه سوال
+     */
     public function update(
         SampleQuestion $sampleQuestion,
         array $data,
         ?UploadedFile $pdf
-    ): SampleQuestion {
-
+    ): SampleQuestion
+    {
         DB::beginTransaction();
 
         try {
@@ -110,22 +146,25 @@ class SampleQuestionService
 
             DB::rollBack();
 
-            Log::error(
-                'Update SampleQuestion Error',
-                [
-                    'message' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                ]
-            );
+            Log::error('Sample question update failed.', [
+
+                'sample_question_id' => $sampleQuestion->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
 
             throw $e;
         }
     }
 
+    /**
+     * حذف نمونه سوال
+     */
     public function delete(
         SampleQuestion $sampleQuestion
-    ): bool {
-
+    ): bool
+    {
         DB::beginTransaction();
 
         try {
@@ -146,13 +185,13 @@ class SampleQuestionService
 
             DB::rollBack();
 
-            Log::error(
-                'Delete SampleQuestion Error',
-                [
-                    'message' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                ]
-            );
+            Log::error('Sample question delete failed.', [
+
+                'sample_question_id' => $sampleQuestion->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
 
             throw $e;
         }

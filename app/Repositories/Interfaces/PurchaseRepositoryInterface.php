@@ -2,33 +2,60 @@
 
 namespace App\Repositories\Interfaces;
 
+use App\Models\Purchase;
+use Illuminate\Database\Eloquent\Collection;
+
 interface PurchaseRepositoryInterface extends BaseRepositoryInterface
 {
+    /**
+     * پیدا کردن با شماره فاکتور
+     */
     public function findByInvoiceNumber(
         string $invoiceNumber
-    );
+    ): ?Purchase;
 
+    /**
+     * خریدهای یک کاربر
+     */
     public function getByUser(
         int $userId
-    );
+    ): Collection;
 
-    public function getPending();
+    /**
+     * خریدهای در انتظار
+     */
+    public function getPending(): Collection;
 
-    public function getPaid();
+    /**
+     * خریدهای پرداخت شده
+     */
+    public function getPaid(): Collection;
 
+    /**
+     * ثبت پرداخت موفق
+     */
     public function markAsPaid(
-        int $purchaseId
-    );
+        Purchase $purchase
+    ): Purchase;
 
+    /**
+     * ثبت پرداخت ناموفق
+     */
     public function markAsFailed(
-        int $purchaseId
-    );
+        Purchase $purchase
+    ): Purchase;
 
+    /**
+     * لغو خرید
+     */
     public function markAsCancelled(
-        int $purchaseId
-    );
+        Purchase $purchase
+    ): Purchase;
 
+    /**
+     * بازگشت وجه
+     */
     public function markAsRefunded(
-        int $purchaseId
-    );
+        Purchase $purchase
+    ): Purchase;
 }

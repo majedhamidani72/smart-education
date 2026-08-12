@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class QuizAttempt extends Model
 {
     use HasFactory;
-
 
 
     protected $fillable = [
@@ -55,6 +56,12 @@ class QuizAttempt extends Model
 
             'earned_score' => 'integer',
 
+            'correct_answers_count' => 'integer',
+
+            'wrong_answers_count' => 'integer',
+
+            'unanswered_count' => 'integer',
+
             'duration_seconds' => 'integer',
 
         ];
@@ -62,8 +69,17 @@ class QuizAttempt extends Model
 
 
 
-    // کاربر شرکت کننده
-    public function user()
+    /*
+    |--------------------------------------------------------------------------
+    | Relations
+    |--------------------------------------------------------------------------
+    */
+
+
+    /**
+     * دانش آموز
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(
             User::class
@@ -72,8 +88,10 @@ class QuizAttempt extends Model
 
 
 
-    // آزمون
-    public function quiz()
+    /**
+     * آزمون
+     */
+    public function quiz(): BelongsTo
     {
         return $this->belongsTo(
             Quiz::class
@@ -82,8 +100,10 @@ class QuizAttempt extends Model
 
 
 
-    // پاسخ‌های سوالات
-    public function questionAttempts()
+    /**
+     * پاسخ های ثبت شده سوالات
+     */
+    public function questionAttempts(): HasMany
     {
         return $this->hasMany(
             QuestionAttempt::class

@@ -34,20 +34,18 @@ class DeviceController extends Controller
         Request $request
     )
     {
+        $this->authorize(
+            'viewAny',
+            Device::class
+        );
+
+        $devices = $this->deviceService->getUserDevices(
+            $request->user()
+        );
+
         return ApiResponse::success(
-
-            DeviceResource::collection(
-
-                $this->deviceService->getUserDevices(
-
-                    $request->user()
-
-                )
-
-            ),
-
+            DeviceResource::collection($devices),
             'Devices retrieved successfully.'
-
         );
     }
 
@@ -58,24 +56,19 @@ class DeviceController extends Controller
         StoreDeviceRequest $request
     )
     {
+        $this->authorize(
+            'create',
+            Device::class
+        );
+
         $device = $this->deviceService->registerDevice(
-
             $request->user(),
-
             $request->validated()
-
         );
 
         return ApiResponse::success(
-
-            new DeviceResource(
-
-                $device
-
-            ),
-
+            new DeviceResource($device),
             'Device registered successfully.'
-
         );
     }
 
@@ -86,16 +79,14 @@ class DeviceController extends Controller
         Device $device
     )
     {
+        $this->authorize(
+            'view',
+            $device
+        );
+
         return ApiResponse::success(
-
-            new DeviceResource(
-
-                $device
-
-            ),
-
+            new DeviceResource($device),
             'Device retrieved successfully.'
-
         );
     }
 
@@ -107,25 +98,19 @@ class DeviceController extends Controller
         Device $device
     )
     {
-        $this->deviceService
-            ->updateDevice(
+        $this->authorize(
+            'update',
+            $device
+        );
 
-                $device,
-
-                $request->validated()
-
-            );
+        $device = $this->deviceService->updateDevice(
+            $device,
+            $request->validated()
+        );
 
         return ApiResponse::success(
-
-            new DeviceResource(
-
-                $device->fresh()
-
-            ),
-
+            new DeviceResource($device),
             'Device updated successfully.'
-
         );
     }
 
@@ -136,19 +121,18 @@ class DeviceController extends Controller
         Device $device
     )
     {
-        $this->deviceService
-            ->deactivateDevice(
+        $this->authorize(
+            'delete',
+            $device
+        );
 
-                $device
-
-            );
+        $this->deviceService->deactivateDevice(
+            $device
+        );
 
         return ApiResponse::success(
-
             null,
-
             'Device deactivated successfully.'
-
         );
     }
 
@@ -159,20 +143,18 @@ class DeviceController extends Controller
         Request $request
     )
     {
+        $this->authorize(
+            'viewAny',
+            Device::class
+        );
+
+        $devices = $this->deviceService->getActiveDevices(
+            $request->user()
+        );
+
         return ApiResponse::success(
-
-            DeviceResource::collection(
-
-                $this->deviceService->getActiveDevices(
-
-                    $request->user()
-
-                )
-
-            ),
-
+            DeviceResource::collection($devices),
             'Active devices retrieved successfully.'
-
         );
     }
 
@@ -183,19 +165,18 @@ class DeviceController extends Controller
         Device $device
     )
     {
-        $this->deviceService
-            ->activateDevice(
+        $this->authorize(
+            'update',
+            $device
+        );
 
-                $device
-
-            );
+        $this->deviceService->activateDevice(
+            $device
+        );
 
         return ApiResponse::success(
-
             null,
-
             'Device activated successfully.'
-
         );
     }
 
@@ -206,19 +187,18 @@ class DeviceController extends Controller
         Device $device
     )
     {
-        $this->deviceService
-            ->deactivateDevice(
+        $this->authorize(
+            'update',
+            $device
+        );
 
-                $device
-
-            );
+        $this->deviceService->deactivateDevice(
+            $device
+        );
 
         return ApiResponse::success(
-
             null,
-
             'Device deactivated successfully.'
-
         );
     }
 }

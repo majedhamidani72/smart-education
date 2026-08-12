@@ -2,115 +2,168 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Models\PdfFile;
 use App\Helpers\ApiResponse;
+use App\Services\PdfFileService;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PdfFileResource;
 use App\Http\Requests\PdfFile\StorePdfFileRequest;
 use App\Http\Requests\PdfFile\UpdatePdfFileRequest;
-use App\Http\Resources\PdfFileResource;
-use App\Models\PdfFile;
-use App\Services\FileUploadService;
-use App\Services\PdfFileService;
 
 class PdfFileController extends Controller
 {
-    // سرویس PDF
+    /**
+     * سرویس PDF
+     */
     protected PdfFileService $pdfFileService;
 
-    // سرویس مدیریت فایل
-    protected FileUploadService $fileUploadService;
-
     public function __construct(
-        PdfFileService $pdfFileService,
-        FileUploadService $fileUploadService
+        PdfFileService $pdfFileService
     ) {
         $this->pdfFileService = $pdfFileService;
-        $this->fileUploadService = $fileUploadService;
     }
 
-    // لیست PDF ها
+    /**
+     * لیست PDF ها
+     */
     public function index()
     {
+        $this->authorize(
+            'viewAny',
+            PdfFile::class
+        );
+
+        $pdfFiles = $this->pdfFileService->paginate();
+
         return ApiResponse::success(
+
             PdfFileResource::collection(
-                $this->pdfFileService->getAll()
+
+                $pdfFiles
+
             ),
+
             'Pdf files retrieved successfully.'
+
         );
     }
 
-    // نمایش یک PDF
-    public function show(PdfFile $pdfFile)
+    /**
+     * نمایش یک PDF
+     */
+    public function show(
+        PdfFile $pdfFile
+    )
     {
+        $this->authorize(
+            'view',
+            $pdfFile
+        );
+
         return ApiResponse::success(
-            new PdfFileResource($pdfFile),
+
+            new PdfFileResource(
+
+                $pdfFile
+
+            ),
+
             'Pdf file retrieved successfully.'
+
         );
     }
 
-    // ایجاد PDF
-    public function store(StorePdfFileRequest $request)
+    /**
+     * ایجاد PDF
+     */
+    public function store(
+        StorePdfFileRequest $request
+    )
     {
-        $fileInfo = $this->fileUploadService->upload(
-            $request->file('pdf'),
-            'pdfs'
+        $this->authorize(
+            'create',
+            PdfFile::class
         );
 
-        $data = $request->validated();
+        $pdfFile = $this->pdfFileService->create(
 
-        $data['file'] = $fileInfo['file_path'];
-        $data['file_size'] = $fileInfo['file_size'];
+            $request->validated()
 
-        $pdfFile = $this->pdfFileService->create($data);
+        );
 
         return ApiResponse::success(
-            new PdfFileResource($pdfFile),
+
+            new PdfFileResource(
+
+                $pdfFile
+
+            ),
+
             'Pdf file created successfully.',
+
             201
+
         );
     }
 
-    // بروزرسانی PDF
+    /**
+     * بروزرسانی PDF
+     */
     public function update(
         UpdatePdfFileRequest $request,
         PdfFile $pdfFile
-    ) {
-        $data = $request->validated();
-
-        if ($request->hasFile('pdf')) {
-
-            $fileInfo = $this->fileUploadService->replace(
-                $request->file('pdf'),
-                $pdfFile->file,
-                'pdfs'
-            );
-
-            $data['file'] = $fileInfo['file_path'];
-            $data['file_size'] = $fileInfo['file_size'];
-        }
+    )
+    {
+        $this->authorize(
+            'update',
+            $pdfFile
+        );
 
         $pdfFile = $this->pdfFileService->update(
+
             $pdfFile,
-            $data
+
+            $request->validated()
+
         );
 
         return ApiResponse::success(
-            new PdfFileResource($pdfFile),
+
+            new PdfFileResource(
+
+                $pdfFile
+
+            ),
+
             'Pdf file updated successfully.'
+
         );
     }
 
-    // حذف PDF
-    public function destroy(PdfFile $pdfFile)
+    /**
+     * حذف PDF
+     */
+    public function destroy(
+        PdfFile $pdfFile
+    )
     {
-        $this->fileUploadService->delete(
-            $pdfFile->file
+        $this->authorize(
+            'delete',
+            $pdfFile
         );
 
-        $this->pdfFileService->delete($pdfFile);
+        $this->pdfFileService->delete(
+
+            $pdfFile
+
+        );
 
         return ApiResponse::success(
+
             null,
+
             'Pdf file deleted successfully.'
+
         );
     }
 }

@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Models\Subject;
 use App\Helpers\ApiResponse;
 use App\Services\SubjectService;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SubjectResource;
 use App\Http\Requests\Subject\StoreSubjectRequest;
 use App\Http\Requests\Subject\UpdateSubjectRequest;
-use App\Models\Subject;
 
 class SubjectController extends Controller
 {
@@ -31,24 +31,38 @@ class SubjectController extends Controller
      */
     public function index()
     {
-        $subjects = $this->subjectService->getAll();
+        $this->authorize(
+            'viewAny',
+            Subject::class
+        );
+
+        $subjects = $this->subjectService->paginate();
 
         return ApiResponse::success(
 
-            SubjectResource::collection($subjects),
+            SubjectResource::collection(
+
+                $subjects
+
+            ),
 
             'Subjects retrieved successfully.'
 
         );
     }
 
-
     /**
      * ایجاد درس جدید
      */
     public function store(
         StoreSubjectRequest $request
-    ) {
+    )
+    {
+        $this->authorize(
+            'create',
+            Subject::class
+        );
+
         $subject = $this->subjectService->create(
 
             $request->validated()
@@ -57,7 +71,11 @@ class SubjectController extends Controller
 
         return ApiResponse::success(
 
-            new SubjectResource($subject),
+            new SubjectResource(
+
+                $subject
+
+            ),
 
             'Subject created successfully.',
 
@@ -66,30 +84,30 @@ class SubjectController extends Controller
         );
     }
 
-
     /**
      * نمایش اطلاعات یک درس
      */
-    public function show(int $id)
+    public function show(
+        Subject $subject
+    )
     {
-        $subject = $this->subjectService->findById($id);
-
-        if (!$subject) {
-
-            return ApiResponse::notFound(
-                'Subject not found.'
-            );
-        }
+        $this->authorize(
+            'view',
+            $subject
+        );
 
         return ApiResponse::success(
 
-            new SubjectResource($subject),
+            new SubjectResource(
+
+                $subject
+
+            ),
 
             'Subject retrieved successfully.'
 
         );
     }
-
 
     /**
      * بروزرسانی اطلاعات درس
@@ -97,7 +115,13 @@ class SubjectController extends Controller
     public function update(
         UpdateSubjectRequest $request,
         Subject $subject
-    ) {
+    )
+    {
+        $this->authorize(
+            'update',
+            $subject
+        );
+
         $subject = $this->subjectService->update(
 
             $subject,
@@ -108,24 +132,33 @@ class SubjectController extends Controller
 
         return ApiResponse::success(
 
-            new SubjectResource($subject),
+            new SubjectResource(
+
+                $subject
+
+            ),
 
             'Subject updated successfully.'
 
         );
     }
 
-
-
-
     /**
      * حذف نرم درس
      */
     public function destroy(
         Subject $subject
-    ) {
-        $this->subjectService->delete(
+    )
+    {
+        $this->authorize(
+            'delete',
             $subject
+        );
+
+        $this->subjectService->delete(
+
+            $subject
+
         );
 
         return ApiResponse::success(

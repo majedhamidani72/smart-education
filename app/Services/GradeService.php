@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use Throwable;
 use App\Models\Grade;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Repositories\Interfaces\GradeRepositoryInterface;
-use App\Http\Resources\GradeResource;
 
 class GradeService
 {
@@ -32,19 +34,54 @@ class GradeService
     }
 
     /**
+     * صفحه‌بندی پایه‌ها
+     */
+    public function paginate(
+        int $perPage = 15
+    ): LengthAwarePaginator
+    {
+        return $this->gradeRepository->paginate(
+            $perPage
+        );
+    }
+
+    /**
      * دریافت یک پایه
      */
-    public function findById(int $id): ?Grade
+    public function findById(
+        int $id
+    ): ?Grade
     {
-        return $this->gradeRepository->findById($id);
+        return $this->gradeRepository->findById(
+            $id
+        );
     }
 
     /**
      * ایجاد پایه
      */
-    public function create(array $data): Grade
+    public function create(
+        array $data
+    ): Grade
     {
-        return $this->gradeRepository->create($data);
+        try {
+
+            return $this->gradeRepository->create(
+                $data
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Grade creation failed.', [
+
+                'data' => $data,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
@@ -53,11 +90,30 @@ class GradeService
     public function update(
         Grade $grade,
         array $data
-    ): Grade {
-        return $this->gradeRepository->update(
-            $grade,
-            $data
-        );
+    ): Grade
+    {
+        try {
+
+            return $this->gradeRepository->update(
+
+                $grade,
+
+                $data
+
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Grade update failed.', [
+
+                'grade_id' => $grade->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
@@ -65,9 +121,25 @@ class GradeService
      */
     public function delete(
         Grade $grade
-    ): bool {
-        return $this->gradeRepository->delete(
-            $grade
-        );
+    ): bool
+    {
+        try {
+
+            return $this->gradeRepository->delete(
+                $grade
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Grade delete failed.', [
+
+                'grade_id' => $grade->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 }

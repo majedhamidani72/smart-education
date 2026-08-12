@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Models\Purchase;
+use App\Helpers\ApiResponse;
+use App\Services\PurchaseService;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PurchaseResource;
 use App\Http\Requests\Purchase\StorePurchaseRequest;
 use App\Http\Requests\Purchase\UpdatePurchaseRequest;
-use App\Http\Resources\PurchaseResource;
-use App\Services\PurchaseService;
-use Illuminate\Http\JsonResponse;
 
 class PurchaseController extends Controller
 {
+    /**
+     * سرویس خرید
+     */
     protected PurchaseService $service;
 
     public function __construct(
@@ -22,43 +26,51 @@ class PurchaseController extends Controller
     /**
      * لیست خریدها
      */
-    public function index(): JsonResponse
+    public function index()
     {
-        return response()->json([
+        $this->authorize(
+            'viewAny',
+            Purchase::class
+        );
 
-            'success' => true,
+        $purchases = $this->service->paginate();
 
-            'message' => 'لیست خریدها.',
+        return ApiResponse::success(
 
-            'data' => PurchaseResource::collection(
+            PurchaseResource::collection(
 
-                $this->service->getAll()
+                $purchases
 
             ),
 
-        ]);
+            'Purchases retrieved successfully.'
+
+        );
     }
 
     /**
      * نمایش خرید
      */
     public function show(
-        int $purchase
-    ): JsonResponse
+        Purchase $purchase
+    )
     {
-        return response()->json([
+        $this->authorize(
+            'view',
+            $purchase
+        );
 
-            'success' => true,
+        return ApiResponse::success(
 
-            'message' => 'اطلاعات خرید.',
+            new PurchaseResource(
 
-            'data' => new PurchaseResource(
-
-                $this->service->find($purchase)
+                $purchase
 
             ),
 
-        ]);
+            'Purchase retrieved successfully.'
+
+        );
     }
 
     /**
@@ -66,27 +78,32 @@ class PurchaseController extends Controller
      */
     public function store(
         StorePurchaseRequest $request
-    ): JsonResponse
+    )
     {
+        $this->authorize(
+            'create',
+            Purchase::class
+        );
+
         $purchase = $this->service->create(
 
             $request->validated()
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'خرید با موفقیت ثبت شد.',
-
-            'data' => new PurchaseResource(
+            new PurchaseResource(
 
                 $purchase
 
             ),
 
-        ], 201);
+            'Purchase created successfully.',
+
+            201
+
+        );
     }
 
     /**
@@ -94,9 +111,14 @@ class PurchaseController extends Controller
      */
     public function update(
         UpdatePurchaseRequest $request,
-        int $purchase
-    ): JsonResponse
+        Purchase $purchase
+    )
     {
+        $this->authorize(
+            'update',
+            $purchase
+        );
+
         $purchase = $this->service->update(
 
             $purchase,
@@ -105,76 +127,89 @@ class PurchaseController extends Controller
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'خرید بروزرسانی شد.',
-
-            'data' => new PurchaseResource(
+            new PurchaseResource(
 
                 $purchase
 
             ),
 
-        ]);
+            'Purchase updated successfully.'
+
+        );
     }
 
     /**
      * حذف خرید
      */
     public function destroy(
-        int $purchase
-    ): JsonResponse
+        Purchase $purchase
+    )
     {
+        $this->authorize(
+            'delete',
+            $purchase
+        );
+
         $this->service->delete(
 
             $purchase
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
+            null,
 
-            'message' => 'خرید حذف شد.',
+            'Purchase deleted successfully.'
 
-        ]);
+        );
     }
 
     /**
      * خریدهای پرداخت شده
      */
-    public function paid(): JsonResponse
+    public function paid()
     {
-        return response()->json([
+        $this->authorize(
+            'viewAny',
+            Purchase::class
+        );
 
-            'success' => true,
+        return ApiResponse::success(
 
-            'data' => PurchaseResource::collection(
+            PurchaseResource::collection(
 
                 $this->service->paid()
 
             ),
 
-        ]);
+            'Paid purchases retrieved successfully.'
+
+        );
     }
 
     /**
      * خریدهای در انتظار
      */
-    public function pending(): JsonResponse
+    public function pending()
     {
-        return response()->json([
+        $this->authorize(
+            'viewAny',
+            Purchase::class
+        );
 
-            'success' => true,
+        return ApiResponse::success(
 
-            'data' => PurchaseResource::collection(
+            PurchaseResource::collection(
 
                 $this->service->pending()
 
             ),
 
-        ]);
+            'Pending purchases retrieved successfully.'
+
+        );
     }
 }

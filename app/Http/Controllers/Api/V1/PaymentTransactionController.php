@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Models\PaymentTransaction;
-use Illuminate\Http\JsonResponse;
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Services\PaymentTransactionService;
 use App\Http\Resources\PaymentTransactionResource;
@@ -12,6 +12,9 @@ use App\Http\Requests\PaymentTransaction\UpdatePaymentTransactionRequest;
 
 class PaymentTransactionController extends Controller
 {
+    /**
+     * Service
+     */
     protected PaymentTransactionService $service;
 
     public function __construct(
@@ -23,23 +26,26 @@ class PaymentTransactionController extends Controller
     /**
      * لیست تراکنش‌ها
      */
-    public function index(): JsonResponse
+    public function index()
     {
-        return response()->json([
+        $this->authorize(
+            'viewAny',
+            PaymentTransaction::class
+        );
 
-            'success' => true,
+        $transactions = $this->service->paginate();
 
-            'message' => 'لیست تراکنش‌ها.',
+        return ApiResponse::success(
 
-            'data' => PaymentTransactionResource::collection(
+            PaymentTransactionResource::collection(
 
-                $this->service->getUserTransactions(
-                    auth()->id()
-                )
+                $transactions
 
             ),
 
-        ]);
+            'Transactions retrieved successfully.'
+
+        );
     }
 
     /**
@@ -47,49 +53,57 @@ class PaymentTransactionController extends Controller
      */
     public function show(
         PaymentTransaction $paymentTransaction
-    ): JsonResponse
+    )
     {
-        return response()->json([
+        $this->authorize(
+            'view',
+            $paymentTransaction
+        );
 
-            'success' => true,
+        return ApiResponse::success(
 
-            'message' => 'اطلاعات تراکنش.',
-
-            'data' => new PaymentTransactionResource(
+            new PaymentTransactionResource(
 
                 $paymentTransaction
 
             ),
 
-        ]);
+            'Transaction retrieved successfully.'
+
+        );
     }
 
     /**
-     * ثبت تراکنش
+     * ایجاد تراکنش
      */
     public function store(
         StorePaymentTransactionRequest $request
-    ): JsonResponse
+    )
     {
+        $this->authorize(
+            'create',
+            PaymentTransaction::class
+        );
+
         $transaction = $this->service->create(
 
             $request->validated()
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'تراکنش با موفقیت ثبت شد.',
-
-            'data' => new PaymentTransactionResource(
+            new PaymentTransactionResource(
 
                 $transaction
 
             ),
 
-        ], 201);
+            'Transaction created successfully.',
+
+            201
+
+        );
     }
 
     /**
@@ -98,9 +112,14 @@ class PaymentTransactionController extends Controller
     public function update(
         UpdatePaymentTransactionRequest $request,
         PaymentTransaction $paymentTransaction
-    ): JsonResponse
+    )
     {
-        $this->service->update(
+        $this->authorize(
+            'update',
+            $paymentTransaction
+        );
+
+        $paymentTransaction = $this->service->update(
 
             $paymentTransaction,
 
@@ -108,19 +127,17 @@ class PaymentTransactionController extends Controller
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
+            new PaymentTransactionResource(
 
-            'message' => 'تراکنش بروزرسانی شد.',
-
-            'data' => new PaymentTransactionResource(
-
-                $paymentTransaction->fresh()
+                $paymentTransaction
 
             ),
 
-        ]);
+            'Transaction updated successfully.'
+
+        );
     }
 
     /**
@@ -128,30 +145,40 @@ class PaymentTransactionController extends Controller
      */
     public function destroy(
         PaymentTransaction $paymentTransaction
-    ): JsonResponse
+    )
     {
+        $this->authorize(
+            'delete',
+            $paymentTransaction
+        );
+
         $this->service->delete(
 
             $paymentTransaction
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
+            null,
 
-            'message' => 'تراکنش حذف شد.',
+            'Transaction deleted successfully.'
 
-        ]);
+        );
     }
 
     /**
-     * پرداخت موفق
+     * ثبت پرداخت موفق
      */
     public function markAsPaid(
         PaymentTransaction $paymentTransaction
-    ): JsonResponse
+    )
     {
+        $this->authorize(
+            'update',
+            $paymentTransaction
+        );
+
         $this->service->markAsPaid(
 
             $paymentTransaction,
@@ -160,28 +187,31 @@ class PaymentTransactionController extends Controller
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'تراکنش پرداخت شد.',
-
-            'data' => new PaymentTransactionResource(
+            new PaymentTransactionResource(
 
                 $paymentTransaction->fresh()
 
             ),
 
-        ]);
+            'Transaction marked as paid.'
+
+        );
     }
 
     /**
-     * پرداخت ناموفق
+     * ثبت پرداخت ناموفق
      */
     public function markAsFailed(
         PaymentTransaction $paymentTransaction
-    ): JsonResponse
+    )
     {
+        $this->authorize(
+            'update',
+            $paymentTransaction
+        );
+
         $this->service->markAsFailed(
 
             $paymentTransaction,
@@ -190,46 +220,47 @@ class PaymentTransactionController extends Controller
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'تراکنش ناموفق ثبت شد.',
-
-            'data' => new PaymentTransactionResource(
+            new PaymentTransactionResource(
 
                 $paymentTransaction->fresh()
 
             ),
 
-        ]);
+            'Transaction marked as failed.'
+
+        );
     }
 
     /**
-     * بازگشت وجه
+     * ثبت بازگشت وجه
      */
     public function markAsRefunded(
         PaymentTransaction $paymentTransaction
-    ): JsonResponse
+    )
     {
+        $this->authorize(
+            'update',
+            $paymentTransaction
+        );
+
         $this->service->markAsRefunded(
 
             $paymentTransaction
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'بازگشت وجه ثبت شد.',
-
-            'data' => new PaymentTransactionResource(
+            new PaymentTransactionResource(
 
                 $paymentTransaction->fresh()
 
             ),
 
-        ]);
+            'Transaction refunded successfully.'
+
+        );
     }
 }

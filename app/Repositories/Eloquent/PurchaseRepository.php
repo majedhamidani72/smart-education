@@ -74,84 +74,68 @@ class PurchaseRepository extends BaseRepository implements PurchaseRepositoryInt
     }
 
     /**
-     * پرداخت موفق
+     * ثبت پرداخت موفق
      */
     public function markAsPaid(
-        int $purchaseId
+        Purchase $purchase
     ): Purchase
     {
-        $purchase = $this->find(
-            $purchaseId
-        );
-
         $purchase->update([
 
-            'status' => 'paid',
+            'status'  => 'paid',
 
             'paid_at' => now(),
 
         ]);
 
-        return $purchase;
+        return $purchase->fresh();
     }
 
     /**
-     * پرداخت ناموفق
+     * ثبت پرداخت ناموفق
      */
     public function markAsFailed(
-        int $purchaseId
+        Purchase $purchase
     ): Purchase
     {
-        $purchase = $this->find(
-            $purchaseId
-        );
-
         $purchase->update([
 
             'status' => 'failed',
 
         ]);
 
-        return $purchase;
+        return $purchase->fresh();
     }
 
     /**
      * لغو خرید
      */
     public function markAsCancelled(
-        int $purchaseId
+        Purchase $purchase
     ): Purchase
     {
-        $purchase = $this->find(
-            $purchaseId
-        );
-
         $purchase->update([
 
             'status' => 'cancelled',
 
         ]);
 
-        return $purchase;
+        return $purchase->fresh();
     }
 
     /**
-     * بازگشت وجه
+     * ثبت بازگشت وجه
      */
     public function markAsRefunded(
-        int $purchaseId
+        Purchase $purchase
     ): Purchase
     {
-        $purchase = $this->find(
-            $purchaseId
-        );
-
         $purchase->update([
 
             'status' => 'refunded',
 
         ]);
 
-        return $purchase;
+        return $purchase->fresh();
     }
 }

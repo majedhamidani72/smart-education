@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Models\QuestionOption;
 use App\Helpers\ApiResponse;
+use App\Services\QuestionOptionService;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\QuestionOptionResource;
 use App\Http\Requests\QuestionOption\StoreQuestionOptionRequest;
 use App\Http\Requests\QuestionOption\UpdateQuestionOptionRequest;
-use App\Http\Resources\QuestionOptionResource;
-use App\Models\QuestionOption;
-use App\Services\QuestionOptionService;
 
 class QuestionOptionController extends Controller
 {
     protected QuestionOptionService $questionOptionService;
+
 
     public function __construct(
         QuestionOptionService $questionOptionService
@@ -20,71 +21,123 @@ class QuestionOptionController extends Controller
         $this->questionOptionService = $questionOptionService;
     }
 
-    // لیست گزینه‌ها
+
+    /**
+     * لیست گزینه‌ها
+     */
     public function index()
     {
+        $this->authorize(
+            'viewAny',
+            QuestionOption::class
+        );
+
+
+        $options = $this->questionOptionService->paginate();
+
+
         return ApiResponse::success(
-            QuestionOptionResource::collection(
-                $this->questionOptionService->getAll()
-            ),
+            QuestionOptionResource::collection($options),
             'Question options retrieved successfully.'
         );
     }
 
-    // نمایش یک گزینه
+
+    /**
+     * نمایش یک گزینه
+     */
     public function show(
         QuestionOption $questionOption
-    ) {
+    )
+    {
+        $this->authorize(
+            'view',
+            $questionOption
+        );
+
+
+        $questionOption->load([
+            'question',
+        ]);
+
+
         return ApiResponse::success(
-            new QuestionOptionResource(
-                $questionOption
-            ),
+            new QuestionOptionResource($questionOption),
             'Question option retrieved successfully.'
         );
     }
 
-    // ایجاد گزینه
+
+    /**
+     * ایجاد گزینه
+     */
     public function store(
         StoreQuestionOptionRequest $request
-    ) {
+    )
+    {
+        $this->authorize(
+            'create',
+            QuestionOption::class
+        );
+
+
         $questionOption = $this->questionOptionService->create(
             $request->validated()
         );
 
+
         return ApiResponse::success(
-            new QuestionOptionResource(
-                $questionOption
-            ),
+            new QuestionOptionResource($questionOption),
             'Question option created successfully.',
             201
         );
     }
 
-    // بروزرسانی گزینه
+
+    /**
+     * بروزرسانی گزینه
+     */
     public function update(
         UpdateQuestionOptionRequest $request,
         QuestionOption $questionOption
-    ) {
+    )
+    {
+        $this->authorize(
+            'update',
+            $questionOption
+        );
+
+
         $questionOption = $this->questionOptionService->update(
             $questionOption,
             $request->validated()
         );
 
+
         return ApiResponse::success(
-            new QuestionOptionResource(
-                $questionOption
-            ),
+            new QuestionOptionResource($questionOption),
             'Question option updated successfully.'
         );
     }
 
-    // حذف گزینه
+
+    /**
+     * حذف گزینه
+     */
     public function destroy(
         QuestionOption $questionOption
-    ) {
+    )
+    {
+        $this->authorize(
+            'delete',
+            $questionOption
+        );
+
+
         $this->questionOptionService->delete(
             $questionOption
         );
+
 
         return ApiResponse::success(
             null,

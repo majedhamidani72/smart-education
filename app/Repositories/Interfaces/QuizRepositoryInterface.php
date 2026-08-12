@@ -6,16 +6,17 @@ use App\Models\Quiz;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * @extends BaseRepositoryInterface<Quiz>
- */
-interface QuizRepositoryInterface
+interface QuizRepositoryInterface extends BaseRepositoryInterface
 {
     public function getAll(): Collection;
 
-    public function findById(int $id): ?Model;
+    public function findById(
+        int $id
+    ): ?Model;
 
-    public function create(array $data): Model;
+    public function create(
+        array $data
+    ): Model;
 
     public function update(
         Model $model,
@@ -25,4 +26,12 @@ interface QuizRepositoryInterface
     public function delete(
         Model $model
     ): bool;
+
+
+    public function getActiveQuizzes(): Collection;
+
+
+    public function getWithQuestions(
+        Quiz $quiz
+    ): Quiz;
 }

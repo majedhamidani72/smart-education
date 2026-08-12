@@ -4,18 +4,24 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\ResendOtpRequest;
 use App\Http\Requests\Auth\SendOtpRequest;
 use App\Http\Requests\Auth\VerifyOtpRequest;
 use App\Http\Resources\UserResource;
 use App\Services\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
-use App\Http\Requests\Auth\ResendOtpRequest;
 
 class AuthController extends Controller
 {
+    /**
+     * سرویس احراز هویت
+     */
     protected AuthService $authService;
 
+    /**
+     * Constructor
+     */
     public function __construct(
         AuthService $authService
     ) {
@@ -27,61 +33,41 @@ class AuthController extends Controller
      */
     public function sendOtp(
         SendOtpRequest $request
-    ) {
+    )
+    {
+        $data = $request->validated();
 
         $key = sprintf(
-
             '%s|%s',
-
             $request->ip(),
-
-            $request->mobile
-
+            $data['mobile']
         );
 
         if (
-
             RateLimiter::tooManyAttempts(
-
                 $key,
-
                 5
-
             )
-
         ) {
-
             return ApiResponse::error(
-
                 'Too many OTP requests. Please try again after 15 minutes.',
-
                 null,
-
                 429
-
             );
         }
 
         RateLimiter::hit(
-
             $key,
-
             900
-
         );
 
         $result = $this->authService->sendOtp(
-
-            $request->mobile
-
+            $data['mobile']
         );
 
         return ApiResponse::success(
-
             $result,
-
             'OTP sent successfully.'
-
         );
     }
 
@@ -90,18 +76,16 @@ class AuthController extends Controller
      */
     public function verifyOtp(
         VerifyOtpRequest $request
-    ) {
+    )
+    {
+        $data = $request->validated();
 
         $token = $this->authService->verifyOtp(
-
-            $request->login_token,
-
-            $request->code
-
+            $data['login_token'],
+            $data['code']
         );
 
         return ApiResponse::success(
-
             [
 
                 'access_token' => $token->plainTextToken,
@@ -113,9 +97,7 @@ class AuthController extends Controller
                 ),
 
             ],
-
             'Login successful.'
-
         );
     }
 
@@ -124,16 +106,13 @@ class AuthController extends Controller
      */
     public function me(
         Request $request
-    ) {
-
+    )
+    {
         return ApiResponse::success(
-
             new UserResource(
                 $request->user()
             ),
-
             'User retrieved successfully.'
-
         );
     }
 
@@ -142,43 +121,34 @@ class AuthController extends Controller
      */
     public function logout(
         Request $request
-    ) {
-
+    )
+    {
         $this->authService->logout(
-
             $request->user()
-
         );
 
         return ApiResponse::success(
-
             null,
-
             'Logout successful.'
-
         );
     }
-
 
     /**
      * ارسال مجدد کد تایید
      */
     public function resendOtp(
         ResendOtpRequest $request
-    ) {
+    )
+    {
+        $data = $request->validated();
 
         $result = $this->authService->resendOtp(
-
-            $request->login_token
-
+            $data['login_token']
         );
 
         return ApiResponse::success(
-
             $result,
-
             'OTP resent successfully.'
-
         );
     }
 }

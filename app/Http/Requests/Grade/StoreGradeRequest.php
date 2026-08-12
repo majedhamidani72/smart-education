@@ -11,7 +11,8 @@ class StoreGradeRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->user()->can('create grades');    }
+        return $this->user()?->can('create grades') ?? false;
+    }
 
     /**
      * قوانین اعتبارسنجی

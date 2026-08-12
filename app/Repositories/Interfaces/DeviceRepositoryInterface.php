@@ -5,37 +5,8 @@ namespace App\Repositories\Interfaces;
 use App\Models\Device;
 use Illuminate\Database\Eloquent\Collection;
 
-interface DeviceRepositoryInterface
+interface DeviceRepositoryInterface extends BaseRepositoryInterface
 {
-    /**
-     * ایجاد دستگاه جدید
-     */
-    public function create(
-        array $data
-    ): Device;
-
-    /**
-     * بروزرسانی دستگاه
-     */
-    public function update(
-        Device $device,
-        array $data
-    ): bool;
-
-    /**
-     * حذف دستگاه
-     */
-    public function delete(
-        Device $device
-    ): bool;
-
-    /**
-     * دریافت دستگاه بر اساس شناسه
-     */
-    public function findById(
-        int $id
-    ): ?Device;
-
     /**
      * دریافت دستگاه بر اساس شناسه یکتا
      */

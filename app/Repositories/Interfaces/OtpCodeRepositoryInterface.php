@@ -4,15 +4,8 @@ namespace App\Repositories\Interfaces;
 
 use App\Models\OtpCode;
 
-interface OtpCodeRepositoryInterface
+interface OtpCodeRepositoryInterface extends BaseRepositoryInterface
 {
-    /**
-     * ایجاد OTP
-     */
-    public function create(
-        array $data
-    ): OtpCode;
-
     /**
      * دریافت OTP بر اساس Login Token
      */

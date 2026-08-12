@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Helpers\ApiResponse;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\QuestionAttempt\StoreQuestionAttemptRequest;
-use App\Http\Requests\QuestionAttempt\UpdateQuestionAttemptRequest;
-use App\Http\Resources\QuestionAttemptResource;
 use App\Models\QuestionAttempt;
+use App\Models\QuizAttempt;
+use App\Helpers\ApiResponse;
 use App\Services\QuestionAttemptService;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\QuestionAttemptResource;
+use Illuminate\Http\Request;
 
 class QuestionAttemptController extends Controller
 {
@@ -20,75 +20,94 @@ class QuestionAttemptController extends Controller
         $this->questionAttemptService = $questionAttemptService;
     }
 
-    // لیست پاسخ‌ها
-    public function index()
+
+    /**
+     * لیست پاسخ‌ها
+     */
+    public function index(
+        Request $request
+    )
     {
+        $attempts = $this->questionAttemptService
+            ->getByUser(
+                $request->user()
+            );
+
+
         return ApiResponse::success(
-            QuestionAttemptResource::collection(
-                $this->questionAttemptService->getAll()
-            ),
+            QuestionAttemptResource::collection($attempts),
             'Question attempts retrieved successfully.'
         );
     }
 
-    // نمایش یک پاسخ
+
+    /**
+     * نمایش یک پاسخ
+     */
     public function show(
         QuestionAttempt $questionAttempt
-    ) {
+    )
+    {
+        $this->authorize(
+            'view',
+            $questionAttempt
+        );
+
+
+        $questionAttempt->load([
+            'question',
+            'selectedOption',
+            'quizAttempt',
+        ]);
+
+
         return ApiResponse::success(
-            new QuestionAttemptResource(
-                $questionAttempt
-            ),
+            new QuestionAttemptResource($questionAttempt),
             'Question attempt retrieved successfully.'
         );
     }
 
-    // ایجاد پاسخ
+
+    /**
+     * ثبت پاسخ
+     */
     public function store(
-        StoreQuestionAttemptRequest $request
-    ) {
-        $questionAttempt = $this->questionAttemptService->create(
-            $request->validated()
+        Request $request,
+        QuizAttempt $quizAttempt
+    )
+    {
+        $this->authorize(
+            'update',
+            $quizAttempt
         );
 
+
+        $data = $request->validate([
+
+            'question_id' => [
+                'required',
+                'exists:questions,id',
+            ],
+
+            'question_option_id' => [
+                'nullable',
+                'exists:question_options,id',
+            ],
+
+        ]);
+
+
+        $questionAttempt = $this->questionAttemptService
+            ->submitAnswer(
+                $quizAttempt,
+                $data
+            );
+
+
         return ApiResponse::success(
-            new QuestionAttemptResource(
-                $questionAttempt
-            ),
-            'Question attempt created successfully.',
+            new QuestionAttemptResource($questionAttempt),
+            'Answer submitted successfully.',
             201
-        );
-    }
-
-    // بروزرسانی پاسخ
-    public function update(
-        UpdateQuestionAttemptRequest $request,
-        QuestionAttempt $questionAttempt
-    ) {
-        $questionAttempt = $this->questionAttemptService->update(
-            $questionAttempt,
-            $request->validated()
-        );
-
-        return ApiResponse::success(
-            new QuestionAttemptResource(
-                $questionAttempt
-            ),
-            'Question attempt updated successfully.'
-        );
-    }
-
-    // حذف پاسخ
-    public function destroy(
-        QuestionAttempt $questionAttempt
-    ) {
-        $this->questionAttemptService->delete(
-            $questionAttempt
-        );
-
-        return ApiResponse::success(
-            null,
-            'Question attempt deleted successfully.'
         );
     }
 }

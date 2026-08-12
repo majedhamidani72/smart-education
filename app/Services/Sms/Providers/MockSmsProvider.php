@@ -8,14 +8,14 @@ use App\Services\Sms\Contracts\SmsProviderInterface;
 class MockSmsProvider implements SmsProviderInterface
 {
     /**
-     * ارسال آزمایشی OTP
+     * ارسال آزمایشی کد تأیید (OTP)
      */
     public function sendOtp(
         string $mobile,
         string $code
-    ): bool {
-
-        Log::info('Mock SMS', [
+    ): bool
+    {
+        Log::info('Mock OTP SMS', [
 
             'mobile' => $mobile,
 
@@ -26,11 +26,22 @@ class MockSmsProvider implements SmsProviderInterface
         return true;
     }
 
-//شش ماه بعد اگر قاصدک خریدی
+    /**
+     * ارسال آزمایشی پیامک
+     */
+    public function send(
+        string $mobile,
+        string $message
+    ): bool
+    {
+        Log::info('Mock SMS', [
 
-// فقط این فایل را اضافه می‌کنیم:
+            'mobile' => $mobile,
 
-// app/Services/Sms/Providers/GhasedakSmsProvider.php
+            'message' => $message,
 
-// و فقط یک خط در AppServiceProvider تغییر می‌کند:
+        ]);
+
+        return true;
+    }
 }

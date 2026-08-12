@@ -13,33 +13,84 @@ class QuizAttemptResource extends JsonResource
 
             'id' => $this->id,
 
-            'user_id' => $this->user_id,
-
             'quiz_id' => $this->quiz_id,
 
-            'total_score' => $this->total_score,
+            'user_id' => $this->user_id,
 
-            'earned_score' => $this->earned_score,
 
-            'percentage' => $this->percentage,
+            'score' => [
 
-            'correct_answers_count' => $this->correct_answers_count,
+                'total' => $this->total_score,
 
-            'wrong_answers_count' => $this->wrong_answers_count,
+                'earned' => $this->earned_score,
 
-            'unanswered_count' => $this->unanswered_count,
+                'percentage' => $this->percentage,
+
+            ],
+
+
+            'statistics' => [
+
+                'correct_answers' => $this->correct_answers_count,
+
+                'wrong_answers' => $this->wrong_answers_count,
+
+                'unanswered' => $this->unanswered_count,
+
+            ],
+
 
             'status' => $this->status,
 
-            'started_at' => $this->started_at,
-
-            'finished_at' => $this->finished_at,
 
             'duration_seconds' => $this->duration_seconds,
 
-            'created_at' => $this->created_at,
 
-            'updated_at' => $this->updated_at,
+            'started_at' => $this->started_at
+                ? $this->started_at->format('Y-m-d H:i:s')
+                : null,
+
+
+            'finished_at' => $this->finished_at
+                ? $this->finished_at->format('Y-m-d H:i:s')
+                : null,
+
+
+            'quiz' => $this->whenLoaded(
+                'quiz',
+                function () {
+                    return [
+                        'id' => $this->quiz->id,
+                        'title' => $this->quiz->title,
+                    ];
+                }
+            ),
+
+
+            'user' => $this->whenLoaded(
+                'user',
+                function () {
+                    return [
+                        'id' => $this->user->id,
+                        'name' => $this->user->name,
+                    ];
+                }
+            ),
+
+
+            'answers' => QuestionAttemptResource::collection(
+                $this->whenLoaded('questionAttempts')
+            ),
+
+
+            'created_at' => $this->created_at
+                ? $this->created_at->format('Y-m-d H:i:s')
+                : null,
+
+
+            'updated_at' => $this->updated_at
+                ? $this->updated_at->format('Y-m-d H:i:s')
+                : null,
 
         ];
     }

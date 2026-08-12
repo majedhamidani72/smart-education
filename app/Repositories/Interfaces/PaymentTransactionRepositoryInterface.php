@@ -5,37 +5,8 @@ namespace App\Repositories\Interfaces;
 use App\Models\PaymentTransaction;
 use Illuminate\Database\Eloquent\Collection;
 
-interface PaymentTransactionRepositoryInterface
+interface PaymentTransactionRepositoryInterface extends BaseRepositoryInterface
 {
-    /**
-     * ایجاد تراکنش
-     */
-    public function create(
-        array $data
-    ): PaymentTransaction;
-
-    /**
-     * بروزرسانی تراکنش
-     */
-    public function update(
-        PaymentTransaction $transaction,
-        array $data
-    ): bool;
-
-    /**
-     * حذف تراکنش
-     */
-    public function delete(
-        PaymentTransaction $transaction
-    ): bool;
-
-    /**
-     * دریافت تراکنش با شناسه
-     */
-    public function findById(
-        int $id
-    ): ?PaymentTransaction;
-
     /**
      * پیدا کردن با Authority
      */

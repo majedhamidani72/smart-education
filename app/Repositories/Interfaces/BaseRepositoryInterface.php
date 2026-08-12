@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repositories\Interfaces;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
@@ -11,30 +15,49 @@ use Illuminate\Database\Eloquent\Model;
 interface BaseRepositoryInterface
 {
     /**
-     * @return Collection<int, TModel>
+     * @return Collection<int,TModel>
      */
     public function getAll(): Collection;
+
+
+    public function paginate(
+        int $perPage = 15
+    ): LengthAwarePaginator;
+
+
+    public function query(): Builder;
+
 
     /**
      * @return TModel|null
      */
-    public function findById(int $id): ?Model;
+    public function findById(
+        int $id
+    ): ?Model;
+
 
     /**
      * @param array<string,mixed> $data
+     *
      * @return TModel
      */
-    public function create(array $data): Model;
+    public function create(
+        array $data
+    ): Model;
+
 
     /**
      * @param TModel $model
+     *
      * @param array<string,mixed> $data
+     *
      * @return TModel
      */
     public function update(
         Model $model,
         array $data
     ): Model;
+
 
     /**
      * @param TModel $model

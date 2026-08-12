@@ -14,29 +14,34 @@ class ContentItemController extends Controller
 {
     protected ContentItemService $contentItemService;
 
+
     public function __construct(
         ContentItemService $contentItemService
     ) {
         $this->contentItemService = $contentItemService;
     }
 
+
     /**
      * لیست محتواها
      */
     public function index()
     {
+        $this->authorize(
+            'viewAny',
+            ContentItem::class
+        );
+
+
+        $contentItems = $this->contentItemService->paginate();
+
+
         return ApiResponse::success(
-
-            ContentItemResource::collection(
-
-                $this->contentItemService->getAll()
-
-            ),
-
+            ContentItemResource::collection($contentItems),
             'Content items retrieved successfully.'
-
         );
     }
+
 
     /**
      * نمایش یک محتوا
@@ -45,16 +50,25 @@ class ContentItemController extends Controller
         ContentItem $contentItem
     )
     {
+        $this->authorize(
+            'view',
+            $contentItem
+        );
+
+
+        $contentItem->load([
+            'creator',
+            'reviewer',
+            'contentable',
+        ]);
+
+
         return ApiResponse::success(
-
-            new ContentItemResource(
-                $contentItem
-            ),
-
+            new ContentItemResource($contentItem),
             'Content item retrieved successfully.'
-
         );
     }
+
 
     /**
      * ایجاد محتوا
@@ -63,54 +77,64 @@ class ContentItemController extends Controller
         StoreContentItemRequest $request
     )
     {
-        $contentItem = $this->contentItemService->create(
-
-            $request->validated()
-
+        $this->authorize(
+            'create',
+            ContentItem::class
         );
+
+
+        $contentItem = $this->contentItemService->create(
+            $request->validated()
+        );
+
+
+        $contentItem->load([
+            'creator',
+            'contentable',
+        ]);
+
 
         return ApiResponse::success(
-
-            new ContentItemResource(
-                $contentItem
-            ),
-
+            new ContentItemResource($contentItem),
             'Content item created successfully.',
-
             201
-
         );
     }
+
 
     /**
      * بروزرسانی محتوا
      */
     public function update(
-
         UpdateContentItemRequest $request,
-
         ContentItem $contentItem
-
     )
     {
-        $contentItem = $this->contentItemService->update(
-
-            $contentItem,
-
-            $request->validated()
-
+        $this->authorize(
+            'update',
+            $contentItem
         );
+
+
+        $contentItem = $this->contentItemService->update(
+            $contentItem,
+            $request->validated()
+        );
+
+
+        $contentItem->load([
+            'creator',
+            'reviewer',
+            'contentable',
+        ]);
+
 
         return ApiResponse::success(
-
-            new ContentItemResource(
-                $contentItem
-            ),
-
+            new ContentItemResource($contentItem),
             'Content item updated successfully.'
-
         );
     }
+
 
     /**
      * حذف نرم محتوا
@@ -119,18 +143,23 @@ class ContentItemController extends Controller
         ContentItem $contentItem
     )
     {
+        $this->authorize(
+            'delete',
+            $contentItem
+        );
+
+
         $this->contentItemService->delete(
             $contentItem
         );
 
+
         return ApiResponse::success(
-
             null,
-
             'Content item deleted successfully.'
-
         );
     }
+
 
     /**
      * ارسال برای بررسی
@@ -139,19 +168,23 @@ class ContentItemController extends Controller
         ContentItem $contentItem
     )
     {
-        $contentItem = $this->contentItemService
-            ->submitForReview($contentItem);
+        $this->authorize(
+            'update',
+            $contentItem
+        );
+
+
+        $contentItem = $this->contentItemService->submitForReview(
+            $contentItem
+        );
+
 
         return ApiResponse::success(
-
-            new ContentItemResource(
-                $contentItem
-            ),
-
+            new ContentItemResource($contentItem),
             'Content submitted successfully.'
-
         );
     }
+
 
     /**
      * تایید محتوا
@@ -160,19 +193,23 @@ class ContentItemController extends Controller
         ContentItem $contentItem
     )
     {
-        $contentItem = $this->contentItemService
-            ->approve($contentItem);
+        $this->authorize(
+            'approve',
+            $contentItem
+        );
+
+
+        $contentItem = $this->contentItemService->approve(
+            $contentItem
+        );
+
 
         return ApiResponse::success(
-
-            new ContentItemResource(
-                $contentItem
-            ),
-
+            new ContentItemResource($contentItem),
             'Content approved successfully.'
-
         );
     }
+
 
     /**
      * رد محتوا
@@ -181,19 +218,23 @@ class ContentItemController extends Controller
         ContentItem $contentItem
     )
     {
-        $contentItem = $this->contentItemService
-            ->reject($contentItem);
+        $this->authorize(
+            'reject',
+            $contentItem
+        );
+
+
+        $contentItem = $this->contentItemService->reject(
+            $contentItem
+        );
+
 
         return ApiResponse::success(
-
-            new ContentItemResource(
-                $contentItem
-            ),
-
+            new ContentItemResource($contentItem),
             'Content rejected successfully.'
-
         );
     }
+
 
     /**
      * انتشار محتوا
@@ -202,17 +243,20 @@ class ContentItemController extends Controller
         ContentItem $contentItem
     )
     {
-        $contentItem = $this->contentItemService
-            ->publish($contentItem);
+        $this->authorize(
+            'publish',
+            $contentItem
+        );
+
+
+        $contentItem = $this->contentItemService->publish(
+            $contentItem
+        );
+
 
         return ApiResponse::success(
-
-            new ContentItemResource(
-                $contentItem
-            ),
-
+            new ContentItemResource($contentItem),
             'Content published successfully.'
-
         );
     }
 }

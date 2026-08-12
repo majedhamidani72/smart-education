@@ -2,72 +2,75 @@
 
 namespace App\Models;
 
+use Filament\Panel;
+use Filament\Models\Contracts\FilamentUser;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
-
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
-    // قابلیت API، Factory، اعلان، نقش‌ها و حذف نرم
-    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
+    use HasApiTokens;
+    use HasFactory;
+    use Notifiable;
+    use HasRoles;
+    use SoftDeletes;
 
 
-
-    // فیلدهایی که اجازه Mass Assignment دارند
     protected $fillable = [
 
         'name',
-        // نام کاربر
-
 
         'mobile',
-        // شماره موبایل
 
     ];
 
 
-
-    // فیلدهایی که نباید در خروجی نمایش داده شوند
     protected $hidden = [
 
         'password',
-        // رمز عبور
-
 
         'remember_token',
-        // توکن نشست لاراول
 
     ];
 
 
-
-    // تبدیل خودکار نوع داده‌ها
     protected function casts(): array
-{
-    return [
+    {
+        return [
 
-        'phone_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
 
-        'last_login_at' => 'datetime',
+            'last_login_at' => 'datetime',
 
-        'is_active' => 'boolean',
+            'is_active' => 'boolean',
 
-    ];
-}
-
-
-
-    // =========================
-    // Relationships
-    // =========================
+        ];
+    }
 
 
-    // هر کاربر چند OTP دارد
-    public function otpCodes()
+
+    public function canAccessPanel(
+        Panel $panel
+    ): bool {
+
+        return $this->is_active
+            &&
+            (
+                $this->hasRole('SuperAdmin')
+                ||
+                $this->hasRole('Admin')
+            );
+
+    }
+
+
+
+    public function otpCodes(): HasMany
     {
         return $this->hasMany(
             OtpCode::class
@@ -76,8 +79,7 @@ class User extends Authenticatable
 
 
 
-    // هر کاربر چند خرید دارد
-    public function purchases()
+    public function purchases(): HasMany
     {
         return $this->hasMany(
             Purchase::class
@@ -86,8 +88,7 @@ class User extends Authenticatable
 
 
 
-    // هر کاربر چند اشتراک دارد
-    public function subscriptions()
+    public function subscriptions(): HasMany
     {
         return $this->hasMany(
             Subscription::class
@@ -96,8 +97,7 @@ class User extends Authenticatable
 
 
 
-    // تراکنش‌های پرداخت کاربر
-    public function paymentTransactions()
+    public function paymentTransactions(): HasMany
     {
         return $this->hasMany(
             PaymentTransaction::class
@@ -106,19 +106,27 @@ class User extends Authenticatable
 
 
 
-    // ویدئوهای ساخته شده توسط معلم
-    public function videos()
+    public function uploadedVideos(): HasMany
     {
         return $this->hasMany(
             Video::class,
-            'teacher_id'
+            'uploaded_by'
         );
     }
 
 
 
-    // آزمون‌های ساخته شده توسط کاربر
-    public function quizzes()
+    public function approvedVideos(): HasMany
+    {
+        return $this->hasMany(
+            Video::class,
+            'approved_by'
+        );
+    }
+
+
+
+    public function quizzes(): HasMany
     {
         return $this->hasMany(
             Quiz::class,
@@ -128,8 +136,7 @@ class User extends Authenticatable
 
 
 
-    // لاگ‌های ثبت شده توسط کاربر
-    public function systemLogs()
+    public function systemLogs(): HasMany
     {
         return $this->hasMany(
             SystemLog::class
@@ -138,8 +145,7 @@ class User extends Authenticatable
 
 
 
-    // رضایتنامه‌های معلم
-    public function teacherAgreements()
+    public function teacherAgreements(): HasMany
     {
         return $this->hasMany(
             TeacherAgreement::class,
@@ -149,12 +155,10 @@ class User extends Authenticatable
 
 
 
-    // دستگاه‌های متصل کاربر
-    public function devices()
+    public function devices(): HasMany
     {
         return $this->hasMany(
             Device::class
         );
     }
-
 }

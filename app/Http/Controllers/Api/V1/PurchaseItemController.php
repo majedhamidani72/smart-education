@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use Illuminate\Http\JsonResponse;
+use App\Models\PurchaseItem;
+use App\Helpers\ApiResponse;
 use App\Services\PurchaseItemService;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PurchaseItemResource;
-use App\Models\PurchaseItem;
 use App\Http\Requests\PurchaseItem\StorePurchaseItemRequest;
 use App\Http\Requests\PurchaseItem\UpdatePurchaseItemRequest;
 
 class PurchaseItemController extends Controller
 {
+    /**
+     * سرویس آیتم خرید
+     */
     protected PurchaseItemService $service;
 
     public function __construct(
@@ -21,83 +24,101 @@ class PurchaseItemController extends Controller
     }
 
     /**
-     * لیست آیتم‌ها
+     * لیست آیتم‌های خرید
      */
-    public function index(): JsonResponse
+    public function index()
     {
-        return response()->json([
+        $this->authorize(
+            'viewAny',
+            PurchaseItem::class
+        );
 
-            'success' => true,
+        $purchaseItems = $this->service->paginate();
 
-            'message' => 'لیست آیتم‌های خرید.',
+        return ApiResponse::success(
 
-            'data' => PurchaseItemResource::collection(
+            PurchaseItemResource::collection(
 
-                $this->service->getAll()
+                $purchaseItems
 
             ),
 
-        ]);
+            'Purchase items retrieved successfully.'
+
+        );
     }
 
     /**
-     * نمایش یک آیتم
+     * نمایش یک آیتم خرید
      */
     public function show(
         PurchaseItem $purchaseItem
-    ): JsonResponse
+    )
     {
-        return response()->json([
+        $this->authorize(
+            'view',
+            $purchaseItem
+        );
 
-            'success' => true,
+        return ApiResponse::success(
 
-            'message' => 'اطلاعات آیتم خرید.',
-
-            'data' => new PurchaseItemResource(
+            new PurchaseItemResource(
 
                 $purchaseItem
 
             ),
 
-        ]);
+            'Purchase item retrieved successfully.'
+
+        );
     }
 
     /**
-     * ثبت آیتم
+     * ثبت آیتم خرید
      */
     public function store(
         StorePurchaseItemRequest $request
-    ): JsonResponse
+    )
     {
+        $this->authorize(
+            'create',
+            PurchaseItem::class
+        );
+
         $purchaseItem = $this->service->create(
 
             $request->validated()
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'آیتم خرید با موفقیت ثبت شد.',
-
-            'data' => new PurchaseItemResource(
+            new PurchaseItemResource(
 
                 $purchaseItem
 
             ),
 
-        ], 201);
+            'Purchase item created successfully.',
+
+            201
+
+        );
     }
 
     /**
-     * بروزرسانی آیتم
+     * بروزرسانی آیتم خرید
      */
     public function update(
         UpdatePurchaseItemRequest $request,
         PurchaseItem $purchaseItem
-    ): JsonResponse
+    )
     {
+        $this->authorize(
+            'update',
+            $purchaseItem
+        );
+
         $purchaseItem = $this->service->update(
 
             $purchaseItem,
@@ -106,40 +127,43 @@ class PurchaseItemController extends Controller
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
-
-            'message' => 'آیتم خرید بروزرسانی شد.',
-
-            'data' => new PurchaseItemResource(
+            new PurchaseItemResource(
 
                 $purchaseItem
 
             ),
 
-        ]);
+            'Purchase item updated successfully.'
+
+        );
     }
 
     /**
-     * حذف آیتم
+     * حذف آیتم خرید
      */
     public function destroy(
         PurchaseItem $purchaseItem
-    ): JsonResponse
+    )
     {
+        $this->authorize(
+            'delete',
+            $purchaseItem
+        );
+
         $this->service->delete(
 
             $purchaseItem
 
         );
 
-        return response()->json([
+        return ApiResponse::success(
 
-            'success' => true,
+            null,
 
-            'message' => 'آیتم خرید حذف شد.',
+            'Purchase item deleted successfully.'
 
-        ]);
+        );
     }
 }

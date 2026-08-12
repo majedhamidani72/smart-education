@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class QuestionTopic extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
 
     // فیلدهای قابل ذخیره
@@ -31,5 +33,4 @@ class QuestionTopic extends Model
     {
         return $this->hasMany(Question::class);
     }
-
 }

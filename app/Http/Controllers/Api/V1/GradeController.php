@@ -2,88 +2,136 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Models\Grade;
+use App\Helpers\ApiResponse;
 use App\Services\GradeService;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\GradeResource;
-use App\Helpers\ApiResponse;
 use App\Http\Requests\Grade\StoreGradeRequest;
 use App\Http\Requests\Grade\UpdateGradeRequest;
-use App\Models\Grade;
-
-
 
 class GradeController extends Controller
 {
+    /**
+     * Grade Service
+     */
     protected GradeService $gradeService;
 
+    /**
+     * Constructor
+     */
     public function __construct(
         GradeService $gradeService
     ) {
         $this->gradeService = $gradeService;
     }
 
+    /**
+     * لیست پایه‌ها
+     */
     public function index()
     {
-        $grades = $this->gradeService->getAll();
+        $this->authorize(
+            'viewAny',
+            Grade::class
+        );
+
+        $grades = $this->gradeService->paginate();
 
         return ApiResponse::success(
-            GradeResource::collection($grades),
+            GradeResource::collection(
+                $grades
+            ),
             'Grades retrieved successfully.'
         );
     }
 
-
-
-    public function show(int $id)
+    /**
+     * نمایش یک پایه
+     */
+    public function show(
+        Grade $grade
+    )
     {
-        $grade = $this->gradeService->findById($id);
+        $this->authorize(
+            'view',
+            $grade
+        );
 
         return ApiResponse::success(
-            new GradeResource($grade),
+            new GradeResource(
+                $grade
+            ),
             'Grade retrieved successfully.'
         );
     }
 
-    public function store(StoreGradeRequest $request)
+    /**
+     * ایجاد پایه
+     */
+    public function store(
+        StoreGradeRequest $request
+    )
     {
+        $this->authorize(
+            'create',
+            Grade::class
+        );
+
         $grade = $this->gradeService->create(
             $request->validated()
         );
 
         return ApiResponse::success(
-            new GradeResource($grade),
+            new GradeResource(
+                $grade
+            ),
             'Grade created successfully.',
             201
         );
     }
 
-
-
+    /**
+     * بروزرسانی پایه
+     */
     public function update(
         UpdateGradeRequest $request,
-        Grade $grade // گرید را براساس ایدی ورودی از دیتابیس میگیرد.
-    ) {
+        Grade $grade
+    )
+    {
+        $this->authorize(
+            'update',
+            $grade
+        );
+
         $grade = $this->gradeService->update(
-
             $grade,
-
             $request->validated()
-
         );
 
         return ApiResponse::success(
-
-            new GradeResource($grade),
-
+            new GradeResource(
+                $grade
+            ),
             'Grade updated successfully.'
-
         );
     }
 
-
-    public function destroy(Grade $grade)
+    /**
+     * حذف پایه
+     */
+    public function destroy(
+        Grade $grade
+    )
     {
-        $this->gradeService->delete($grade);
+        $this->authorize(
+            'delete',
+            $grade
+        );
+
+        $this->gradeService->delete(
+            $grade
+        );
 
         return ApiResponse::success(
             null,

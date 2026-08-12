@@ -24,24 +24,33 @@ class PaymentCallbackController extends Controller
         PaymentService $paymentService,
         PaymentTransactionRepositoryInterface $transactionRepository
     ) {
-
         $this->paymentService = $paymentService;
 
         $this->transactionRepository = $transactionRepository;
-
     }
 
     /**
-     * Callback زیبال
+     * Callback درگاه پرداخت
      */
     public function __invoke(
         Request $request
     )
     {
+        $authority = $request->input('trackId');
 
-        $authority = $request->input(
-            'trackId'
-        );
+        if (!$authority) {
+
+            return ApiResponse::error(
+
+                'شناسه تراکنش ارسال نشده است.',
+
+                null,
+
+                422
+
+            );
+
+        }
 
         $transaction = $this->transactionRepository
             ->findByAuthority(
@@ -51,7 +60,9 @@ class PaymentCallbackController extends Controller
         if (!$transaction) {
 
             return ApiResponse::notFound(
+
                 'تراکنش یافت نشد.'
+
             );
 
         }
@@ -72,6 +83,5 @@ class PaymentCallbackController extends Controller
             'پرداخت با موفقیت بررسی شد.'
 
         );
-
     }
 }

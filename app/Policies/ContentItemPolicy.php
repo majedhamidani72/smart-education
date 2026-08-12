@@ -2,76 +2,138 @@
 
 namespace App\Policies;
 
-use App\Models\ContentItem;
 use App\Models\User;
+use App\Models\ContentItem;
 
 class ContentItemPolicy
 {
-
-    // مشاهده لیست محتوا
-    public function viewAny(User $user): bool
+    /**
+     * مشاهده لیست محتواها
+     */
+    public function viewAny(
+        User $user
+    ): bool
     {
-        return true;
+        return $user->can('content-items.view');
     }
 
-
-
-    // مشاهده یک محتوا
+    /**
+     * مشاهده یک محتوا
+     */
     public function view(
         User $user,
         ContentItem $contentItem
-    ): bool {
-
-        // ادمین همه چیز را می‌بیند
-        if ($user->hasRole('Admin')) {
-            return true;
-        }
-
-
-        // معلم فقط محتوای خودش
-        return $contentItem->created_by === $user->id;
-    }
-
-
-
-    // ساخت محتوا
-    public function create(User $user): bool
+    ): bool
     {
-        return $user->hasAnyRole([
-            'Admin',
-            'Teacher'
-        ]);
+        return $user->can('content-items.view');
     }
 
+    /**
+     * ایجاد محتوا
+     */
+    public function create(
+        User $user
+    ): bool
+    {
+        return $user->can('content-items.create');
+    }
 
-
-    // ویرایش محتوا
+    /**
+     * ویرایش محتوا
+     */
     public function update(
         User $user,
         ContentItem $contentItem
-    ): bool {
-
-
-        if ($user->hasRole('Admin')) {
-            return true;
-        }
-
-
-        return $contentItem->created_by === $user->id;
+    ): bool
+    {
+        return $user->can('content-items.update');
     }
 
-
-
-    // حذف محتوا
+    /**
+     * حذف محتوا
+     */
     public function delete(
         User $user,
         ContentItem $contentItem
-    ): bool {
-
-
-        // فقط ادمین
-        return $user->hasRole('Admin');
-
+    ): bool
+    {
+        return $user->can('content-items.delete');
     }
 
+    /**
+     * ارسال برای بررسی
+     */
+    public function submit(
+        User $user,
+        ContentItem $contentItem
+    ): bool
+    {
+        return $user->can('content-items.submit');
+    }
+
+    /**
+     * تأیید محتوا
+     */
+    public function approve(
+        User $user,
+        ContentItem $contentItem
+    ): bool
+    {
+        return $user->can('content-items.approve');
+    }
+
+    /**
+     * رد محتوا
+     */
+    public function reject(
+        User $user,
+        ContentItem $contentItem
+    ): bool
+    {
+        return $user->can('content-items.reject');
+    }
+
+    /**
+     * انتشار محتوا
+     */
+    public function publish(
+        User $user,
+        ContentItem $contentItem
+    ): bool
+    {
+        return $user->can('content-items.publish');
+    }
+
+    /**
+     * لغو انتشار محتوا
+     */
+    public function unpublish(
+        User $user,
+        ContentItem $contentItem
+    ): bool
+    {
+        return $user->can('content-items.unpublish');
+    }
+
+    /**
+     * بازیابی محتوا
+     */
+    public function restore(
+        User $user,
+        ContentItem $contentItem
+    ): bool
+    {
+        return $user->can('content-items.update');
+    }
+
+    /**
+     * حذف دائمی محتوا
+     */
+    public function forceDelete(
+        User $user,
+        ContentItem $contentItem
+    ): bool
+    {
+        return $user->can('content-items.delete');
+    }
 }

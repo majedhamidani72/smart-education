@@ -12,60 +12,126 @@ use App\Http\Requests\Chapter\UpdateChapterRequest;
 
 class ChapterController extends Controller
 {
+    /**
+     * Service
+     */
     protected ChapterService $chapterService;
 
-    public function __construct(ChapterService $chapterService)
-    {
+    /**
+     * Constructor
+     */
+    public function __construct(
+        ChapterService $chapterService
+    ) {
         $this->chapterService = $chapterService;
     }
 
+    /**
+     * لیست فصل‌ها
+     */
     public function index()
     {
+        $this->authorize(
+            'viewAny',
+            Chapter::class
+        );
+
+        $chapters = $this->chapterService->paginate();
+
         return ApiResponse::success(
             ChapterResource::collection(
-                $this->chapterService->getAll()
+                $chapters
             ),
             'Chapters retrieved successfully.'
         );
     }
 
-    public function show(Chapter $chapter)
+    /**
+     * نمایش یک فصل
+     */
+    public function show(
+        Chapter $chapter
+    )
     {
+        $this->authorize(
+            'view',
+            $chapter
+        );
+
         return ApiResponse::success(
-            new ChapterResource($chapter),
+            new ChapterResource(
+                $chapter
+            ),
             'Chapter retrieved successfully.'
         );
     }
 
-    public function store(StoreChapterRequest $request)
+    /**
+     * ایجاد فصل
+     */
+    public function store(
+        StoreChapterRequest $request
+    )
     {
+        $this->authorize(
+            'create',
+            Chapter::class
+        );
+
         $chapter = $this->chapterService->create(
             $request->validated()
         );
 
         return ApiResponse::success(
-            new ChapterResource($chapter),
+            new ChapterResource(
+                $chapter
+            ),
             'Chapter created successfully.',
             201
         );
     }
 
-    public function update(UpdateChapterRequest $request, Chapter $chapter)
+    /**
+     * بروزرسانی فصل
+     */
+    public function update(
+        UpdateChapterRequest $request,
+        Chapter $chapter
+    )
     {
+        $this->authorize(
+            'update',
+            $chapter
+        );
+
         $chapter = $this->chapterService->update(
             $chapter,
             $request->validated()
         );
 
         return ApiResponse::success(
-            new ChapterResource($chapter),
+            new ChapterResource(
+                $chapter
+            ),
             'Chapter updated successfully.'
         );
     }
 
-    public function destroy(Chapter $chapter)
+    /**
+     * حذف نرم فصل
+     */
+    public function destroy(
+        Chapter $chapter
+    )
     {
-        $this->chapterService->delete($chapter);
+        $this->authorize(
+            'delete',
+            $chapter
+        );
+
+        $this->chapterService->delete(
+            $chapter
+        );
 
         return ApiResponse::success(
             null,

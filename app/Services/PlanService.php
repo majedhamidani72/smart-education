@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use Throwable;
 use App\Models\Plan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Repositories\Interfaces\PlanRepositoryInterface;
 
 class PlanService
@@ -31,6 +34,18 @@ class PlanService
     }
 
     /**
+     * صفحه‌بندی پلن‌ها
+     */
+    public function paginate(
+        int $perPage = 15
+    ): LengthAwarePaginator
+    {
+        return $this->repository->paginate(
+            $perPage
+        );
+    }
+
+    /**
      * پلن‌های فعال
      */
     public function getActive(): Collection
@@ -45,7 +60,9 @@ class PlanService
         int $id
     ): ?Plan
     {
-        return $this->repository->findById($id);
+        return $this->repository->findById(
+            $id
+        );
     }
 
     /**
@@ -85,9 +102,25 @@ class PlanService
         array $data
     ): Plan
     {
-        return $this->repository->create(
-            $data
-        );
+        try {
+
+            return $this->repository->create(
+                $data
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Plan creation failed.', [
+
+                'data' => $data,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+
+        }
     }
 
     /**
@@ -98,10 +131,29 @@ class PlanService
         array $data
     ): Plan
     {
-        return $this->repository->update(
-            $plan,
-            $data
-        );
+        try {
+
+            return $this->repository->update(
+
+                $plan,
+
+                $data
+
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Plan update failed.', [
+
+                'plan_id' => $plan->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+
+        }
     }
 
     /**
@@ -111,8 +163,24 @@ class PlanService
         Plan $plan
     ): bool
     {
-        return $this->repository->delete(
-            $plan
-        );
+        try {
+
+            return $this->repository->delete(
+                $plan
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Plan delete failed.', [
+
+                'plan_id' => $plan->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+
+        }
     }
 }

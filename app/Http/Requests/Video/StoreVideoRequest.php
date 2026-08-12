@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Video;
 
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,8 +13,10 @@ class StoreVideoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return auth()->check()
+            && auth()->user()->can('videos.create');
     }
+
 
     /**
      * قوانین اعتبارسنجی
@@ -21,13 +25,95 @@ class StoreVideoRequest extends FormRequest
     {
         return [
 
-            'content_item_id' => 'required|exists:content_items,id',
+            /*
+            |--------------------------------------------------------------------------
+            | محتوای آموزشی مربوط به ویدئو
+            |--------------------------------------------------------------------------
+            */
 
-            'video' => 'required|file|mimes:mp4,mov,avi,mkv,webm|max:512000',
+            'content_item_id' => [
 
-            'quality' => 'nullable|string|max:20',
+                'required',
 
-            'download_allowed' => 'sometimes|boolean',
+                'integer',
+
+                'exists:content_items,id',
+
+            ],
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | فایل ویدئو
+            |--------------------------------------------------------------------------
+            */
+
+            'video' => [
+
+                'required',
+
+                'file',
+
+                'mimes:mp4,mov,avi,mkv,webm',
+
+                // حدود 500 مگابایت
+                'max:512000',
+
+            ],
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | تنظیمات ویدئو
+            |--------------------------------------------------------------------------
+            */
+
+            'quality' => [
+
+                'nullable',
+
+                'string',
+
+                'max:15',
+
+            ],
+
+
+            'download_allowed' => [
+
+                'nullable',
+
+                'boolean',
+
+            ],
+
+        ];
+    }
+
+
+    /**
+     * پیام‌های خطا
+     */
+    public function messages(): array
+    {
+        return [
+
+            'content_item_id.required'
+                => 'محتوای آموزشی الزامی است.',
+
+            'content_item_id.exists'
+                => 'محتوای آموزشی انتخاب شده معتبر نیست.',
+
+
+            'video.required'
+                => 'فایل ویدئو الزامی است.',
+
+            'video.mimes'
+                => 'فرمت ویدئو باید یکی از mp4، mov، avi، mkv یا webm باشد.',
+
+            'video.max'
+                => 'حجم ویدئو نباید بیشتر از 500 مگابایت باشد.',
+
 
         ];
     }

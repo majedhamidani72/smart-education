@@ -1,74 +1,88 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repositories\Eloquent;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 abstract class BaseRepository
 {
-    /**
-     * مدل Repository
-     */
     protected Model $model;
 
-    /**
-     * سازنده
-     */
+
     public function __construct(
         Model $model
     ) {
         $this->model = $model;
     }
 
-    /**
-     * دریافت همه رکوردها
-     */
+
     public function getAll(): Collection
     {
-        return $this->model->all();
+        return $this->model
+            ->newQuery()
+            ->latest()
+            ->get();
     }
 
-    /**
-     * دریافت یک رکورد
-     */
+
+    public function paginate(
+        int $perPage = 15
+    ): LengthAwarePaginator {
+
+        return $this->model
+            ->newQuery()
+            ->latest()
+            ->paginate($perPage);
+    }
+
+
+    public function query(): Builder
+    {
+        return $this->model
+            ->newQuery();
+    }
+
+
     public function findById(
         int $id
-    ): ?Model
-    {
-        return $this->model->find($id);
+    ): ?Model {
+
+        return $this->model
+            ->newQuery()
+            ->find($id);
     }
 
-    /**
-     * ایجاد رکورد
-     */
+
     public function create(
         array $data
-    ): Model
-    {
-        return $this->model->create($data);
+    ): Model {
+
+        return $this->model
+            ->newQuery()
+            ->create($data);
     }
 
-    /**
-     * بروزرسانی رکورد
-     */
+
     public function update(
         Model $model,
         array $data
-    ): Model
-    {
+    ): Model {
+
         $model->update($data);
 
         return $model->fresh();
     }
 
-    /**
-     * حذف رکورد
-     */
+
     public function delete(
         Model $model
-    ): bool
-    {
-        return $model->delete();
+    ): bool {
+
+        return (bool) $model->delete();
     }
 }

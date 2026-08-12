@@ -4,11 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class QuestionAttempt extends Model
 {
     use HasFactory;
-
 
 
     protected $fillable = [
@@ -52,8 +52,17 @@ class QuestionAttempt extends Model
 
 
 
-    // مربوط به یک آزمون انجام شده
-    public function quizAttempt()
+    /*
+    |--------------------------------------------------------------------------
+    | Relations
+    |--------------------------------------------------------------------------
+    */
+
+
+    /**
+     * مربوط به یک تلاش آزمون
+     */
+    public function quizAttempt(): BelongsTo
     {
         return $this->belongsTo(
             QuizAttempt::class
@@ -62,8 +71,10 @@ class QuestionAttempt extends Model
 
 
 
-    // مربوط به یک سوال
-    public function question()
+    /**
+     * سوال مربوطه
+     */
+    public function question(): BelongsTo
     {
         return $this->belongsTo(
             Question::class
@@ -72,12 +83,15 @@ class QuestionAttempt extends Model
 
 
 
-    // گزینه انتخاب شده
-    public function selectedOption()
+    /**
+     * گزینه انتخاب شده توسط دانش آموز
+     */
+    public function selectedOption(): BelongsTo
     {
         return $this->belongsTo(
             QuestionOption::class,
             'question_option_id'
         );
     }
+
 }

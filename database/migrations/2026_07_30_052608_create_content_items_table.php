@@ -9,52 +9,86 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('content_items', function (Blueprint $table) {
+
             $table->id(); // شناسه محتوا
+
+            /*
+            |--------------------------------------------------------------------------
+            | Relations
+            |--------------------------------------------------------------------------
+            */
 
             $table->foreignId('section_id')
                 ->constrained()
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete(); // بخش آموزشی
+                ->cascadeOnDelete();
 
             $table->foreignId('content_type_id')
                 ->constrained()
                 ->cascadeOnUpdate()
-                ->restrictOnDelete(); // نوع محتوا
+                ->restrictOnDelete();
 
             $table->foreignId('created_by')
                 ->constrained('users')
                 ->cascadeOnUpdate()
-                ->restrictOnDelete(); // سازنده محتوا
+                ->restrictOnDelete();
 
             $table->foreignId('reviewed_by')
                 ->nullable()
                 ->constrained('users')
                 ->cascadeOnUpdate()
-                ->nullOnDelete(); // مدیر بررسی‌کننده
+                ->nullOnDelete();
 
-            $table->string('title'); // عنوان محتوا
+            /*
+            |--------------------------------------------------------------------------
+            | Content
+            |--------------------------------------------------------------------------
+            */
 
-            $table->string('slug'); // نام یکتا
+            $table->string('title');
 
-            $table->text('description')->nullable(); // توضیحات
+            $table->string('slug');
 
-            $table->unsignedSmallInteger('page_number')->nullable(); // شماره صفحه کتاب
+            $table->text('description')->nullable();
 
-            $table->string('thumbnail')->nullable(); // تصویر شاخص
+            $table->unsignedSmallInteger('page_number')->nullable();
 
-            $table->boolean('is_free')->default(false); // رایگان یا پولی
+            $table->string('thumbnail')->nullable();
 
-            $table->string('status', 30)->default('draft'); // وضعیت محتوا
+            $table->boolean('is_free')->default(false);
 
-            $table->text('rejection_reason')->nullable(); // دلیل رد شدن
+            /*
+            |--------------------------------------------------------------------------
+            | Status
+            |--------------------------------------------------------------------------
+            */
 
-            $table->unsignedSmallInteger('sort_order')->default(1); // ترتیب نمایش
+            $table->string('status', 30)->default('draft');
 
-            $table->timestamp('published_at')->nullable(); // زمان انتشار
+            $table->text('rejection_reason')->nullable();
+
+            
+
+            // زمان انتشار
+            $table->timestamp('published_at')->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sort
+            |--------------------------------------------------------------------------
+            */
+
+            $table->unsignedSmallInteger('sort_order')->default(1);
 
             $table->timestamps();
 
             $table->softDeletes();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
 
             $table->unique(
                 ['section_id', 'slug'],
@@ -69,6 +103,11 @@ return new class extends Migration
             $table->index(
                 ['is_free', 'status'],
                 'content_access_index'
+            );
+
+            $table->index(
+                ['section_id', 'sort_order'],
+                'content_section_sort_index'
             );
         });
     }

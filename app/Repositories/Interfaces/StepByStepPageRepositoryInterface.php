@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @extends BaseRepositoryInterface<StepByStepPage>
  */
-interface StepByStepPageRepositoryInterface
+interface StepByStepPageRepositoryInterface extends BaseRepositoryInterface
 {
     public function getAll(): Collection;
 

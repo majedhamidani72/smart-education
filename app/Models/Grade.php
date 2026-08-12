@@ -45,7 +45,12 @@ class Grade extends Model
         return $this->belongsToMany(
             Subject::class,
             'grade_subject'
-        );
+        )
+            ->withPivot([
+                'is_active',
+                'sort_order',
+            ])
+            ->withTimestamps();
     }
 
 
@@ -57,5 +62,4 @@ class Grade extends Model
             AppGradeSubject::class
         );
     }
-
 }

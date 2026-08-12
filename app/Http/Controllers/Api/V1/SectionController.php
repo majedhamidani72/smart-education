@@ -12,6 +12,9 @@ use App\Http\Requests\Section\UpdateSectionRequest;
 
 class SectionController extends Controller
 {
+    /**
+     * سرویس بخش
+     */
     protected SectionService $sectionService;
 
     public function __construct(
@@ -25,11 +28,18 @@ class SectionController extends Controller
      */
     public function index()
     {
+        $this->authorize(
+            'viewAny',
+            Section::class
+        );
+
+        $sections = $this->sectionService->paginate();
+
         return ApiResponse::success(
 
             SectionResource::collection(
 
-                $this->sectionService->getAll()
+                $sections
 
             ),
 
@@ -43,10 +53,20 @@ class SectionController extends Controller
      */
     public function show(
         Section $section
-    ) {
+    )
+    {
+        $this->authorize(
+            'view',
+            $section
+        );
+
         return ApiResponse::success(
 
-            new SectionResource($section),
+            new SectionResource(
+
+                $section
+
+            ),
 
             'Section retrieved successfully.'
 
@@ -58,7 +78,13 @@ class SectionController extends Controller
      */
     public function store(
         StoreSectionRequest $request
-    ) {
+    )
+    {
+        $this->authorize(
+            'create',
+            Section::class
+        );
+
         $section = $this->sectionService->create(
 
             $request->validated()
@@ -67,7 +93,11 @@ class SectionController extends Controller
 
         return ApiResponse::success(
 
-            new SectionResource($section),
+            new SectionResource(
+
+                $section
+
+            ),
 
             'Section created successfully.',
 
@@ -82,7 +112,13 @@ class SectionController extends Controller
     public function update(
         UpdateSectionRequest $request,
         Section $section
-    ) {
+    )
+    {
+        $this->authorize(
+            'update',
+            $section
+        );
+
         $section = $this->sectionService->update(
 
             $section,
@@ -93,7 +129,11 @@ class SectionController extends Controller
 
         return ApiResponse::success(
 
-            new SectionResource($section),
+            new SectionResource(
+
+                $section
+
+            ),
 
             'Section updated successfully.'
 
@@ -101,12 +141,22 @@ class SectionController extends Controller
     }
 
     /**
-     * حذف نرم بخش
+     * حذف بخش
      */
     public function destroy(
         Section $section
-    ) {
-        $this->sectionService->delete($section);
+    )
+    {
+        $this->authorize(
+            'delete',
+            $section
+        );
+
+        $this->sectionService->delete(
+
+            $section
+
+        );
 
         return ApiResponse::success(
 

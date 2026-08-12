@@ -2,12 +2,18 @@
 
 namespace App\Services;
 
+use Throwable;
 use App\Models\PurchaseItem;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Repositories\Interfaces\PurchaseItemRepositoryInterface;
 
 class PurchaseItemService
 {
+    /**
+     * Repository آیتم‌های خرید
+     */
     protected PurchaseItemRepositoryInterface $repository;
 
     public function __construct(
@@ -22,6 +28,18 @@ class PurchaseItemService
     public function getAll(): Collection
     {
         return $this->repository->getAll();
+    }
+
+    /**
+     * صفحه‌بندی آیتم‌های خرید
+     */
+    public function paginate(
+        int $perPage = 15
+    ): LengthAwarePaginator
+    {
+        return $this->repository->paginate(
+            $perPage
+        );
     }
 
     /**
@@ -69,9 +87,25 @@ class PurchaseItemService
         array $data
     ): PurchaseItem
     {
-        return $this->repository->createItem(
-            $data
-        );
+        try {
+
+            return $this->repository->createItem(
+                $data
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Purchase item creation failed.', [
+
+                'data' => $data,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+
+        }
     }
 
     /**
@@ -82,10 +116,29 @@ class PurchaseItemService
         array $data
     ): PurchaseItem
     {
-        return $this->repository->update(
-            $purchaseItem,
-            $data
-        );
+        try {
+
+            return $this->repository->update(
+
+                $purchaseItem,
+
+                $data
+
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Purchase item update failed.', [
+
+                'purchase_item_id' => $purchaseItem->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+
+        }
     }
 
     /**
@@ -95,8 +148,24 @@ class PurchaseItemService
         PurchaseItem $purchaseItem
     ): bool
     {
-        return $this->repository->delete(
-            $purchaseItem
-        );
+        try {
+
+            return $this->repository->delete(
+                $purchaseItem
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Purchase item delete failed.', [
+
+                'purchase_item_id' => $purchaseItem->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+
+        }
     }
 }

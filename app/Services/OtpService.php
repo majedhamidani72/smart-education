@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use Throwable;
 use App\Models\User;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use App\Services\Sms\SmsService;
 use App\Exceptions\Auth\ExpiredOtpException;
 use App\Exceptions\Auth\InvalidLoginTokenException;
@@ -58,85 +60,67 @@ class OtpService
     public function sendOtp(
         string $mobile,
         string $purpose = 'login'
-    ): string {
+    ): string
+    {
+        try {
 
-        /*
-        |--------------------------------------------------------------------------
-        | غیرفعال کردن تمام OTP های فعال قبلی
-        |--------------------------------------------------------------------------
-        */
+            $this->otpRepository
+                ->deactivateActiveOtps(
+                    $mobile,
+                    $purpose
+                );
 
-        $this->otpRepository
-            ->deactivateActiveOtps(
+            $otp = $this->generateOtp();
+
+            $loginToken = $this->generateLoginToken();
+
+            $this->otpRepository->create([
+
+                'mobile' => $mobile,
+
+                'code' => $otp,
+
+                'login_token' => $loginToken,
+
+                'purpose' => $purpose,
+
+                'attempts' => 0,
+
+                'is_verified' => false,
+
+                'expires_at' => now()->addMinutes(2),
+
+                'ip_address' => request()->ip(),
+
+                'user_agent' => request()->userAgent(),
+
+            ]);
+
+            $this->smsService->sendOtp(
+
                 $mobile,
-                $purpose
+
+                $otp
+
             );
 
-        /*
-        |--------------------------------------------------------------------------
-        | تولید OTP جدید
-        |--------------------------------------------------------------------------
-        */
+            return $loginToken;
 
-        $otp = $this->generateOtp();
+        } catch (Throwable $e) {
 
-        /*
-        |--------------------------------------------------------------------------
-        | تولید Login Token
-        |--------------------------------------------------------------------------
-        */
+            Log::error('Send OTP failed.', [
 
-        $loginToken = $this->generateLoginToken();
+                'mobile' => $mobile,
 
-        /*
-        |--------------------------------------------------------------------------
-        | ذخیره در دیتابیس
-        |--------------------------------------------------------------------------
-        */
+                'purpose' => $purpose,
 
-        $this->otpRepository->create([
+                'error' => $e->getMessage(),
 
-            'mobile' => $mobile,
+            ]);
 
-            'code' => $otp,
+            throw $e;
 
-            'login_token' => $loginToken,
-
-            'purpose' => $purpose,
-
-            'attempts' => 0,
-
-            'is_verified' => false,
-
-            'expires_at' => now()->addMinutes(2),
-
-            'ip_address' => request()->ip(),
-
-            'user_agent' => request()->userAgent(),
-
-        ]);
-
-        /*
-        |--------------------------------------------------------------------------
-        | ارسال پیامک
-        |--------------------------------------------------------------------------
-        */
-
-        $this->smsService->sendOtp(
-
-            $mobile,
-
-            $otp
-
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | بازگرداندن Login Token
-        |--------------------------------------------------------------------------
-        */
-
-        return $loginToken;
+        }
     }
 
     /**
@@ -145,141 +129,96 @@ class OtpService
     public function verifyOtp(
         string $loginToken,
         string $code
-    ): User {
+    ): User
+    {
+        try {
 
-        /*
-            |--------------------------------------------------------------------------
-            | دریافت OTP
-            |--------------------------------------------------------------------------
-            */
+            $otp = $this->otpRepository
+                ->findByLoginToken(
+                    $loginToken
+                );
 
-        $otp = $this->otpRepository
-            ->findByLoginToken(
-                $loginToken
+            if (!$otp) {
+
+                throw new InvalidLoginTokenException();
+
+            }
+
+            $otp->refresh();
+
+            if ($otp->attempts >= 5) {
+
+                throw new OtpAttemptsExceededException();
+
+            }
+
+            if ($otp->isExpired()) {
+
+                throw new ExpiredOtpException();
+
+            }
+
+            if ($otp->isUsed()) {
+
+                throw new OtpAlreadyUsedException();
+
+            }
+
+            if ($otp->code !== $code) {
+
+                $otp->incrementAttempts();
+
+                throw new InvalidOtpException();
+
+            }
+
+            $user = User::firstOrCreate(
+
+                [
+
+                    'mobile' => $otp->mobile,
+
+                ],
+
+                [
+
+                    'phone_verified_at' => now(),
+
+                ]
+
             );
 
-        /*
-            |--------------------------------------------------------------------------
-            | بررسی معتبر بودن Login Token
-            |--------------------------------------------------------------------------
-            */
-
-        if (!$otp) {
-
-            throw new InvalidLoginTokenException();
-        }
-
-        /*
-            |--------------------------------------------------------------------------
-            | بروزرسانی اطلاعات
-            |--------------------------------------------------------------------------
-            */
-
-        $otp->refresh();
-
-        /*
-            |--------------------------------------------------------------------------
-            | بررسی تعداد تلاش
-            |--------------------------------------------------------------------------
-            */
-
-        if ($otp->attempts >= 5) {
-
-            throw new OtpAttemptsExceededException();
-        }
-
-        /*
-            |--------------------------------------------------------------------------
-            | بررسی انقضا
-            |--------------------------------------------------------------------------
-            */
-
-        if ($otp->isExpired()) {
-
-            throw new ExpiredOtpException();
-        }
-
-        /*
-            |--------------------------------------------------------------------------
-            | بررسی استفاده شدن
-            |--------------------------------------------------------------------------
-            */
-
-        if ($otp->isUsed()) {
-
-            throw new OtpAlreadyUsedException();
-        }
-
-        /*
-            |--------------------------------------------------------------------------
-            | بررسی صحت کد
-            |--------------------------------------------------------------------------
-            */
-
-        if ($otp->code !== $code) {
-
-            $otp->incrementAttempts();
-
-            throw new InvalidOtpException();
-        }
-
-        /*
-            |--------------------------------------------------------------------------
-            | ایجاد یا دریافت کاربر
-            |--------------------------------------------------------------------------
-            */
-
-        $user = User::firstOrCreate(
-
-            [
-
-                'mobile' => $otp->mobile,
-
-            ],
-
-            [
+            $user->update([
 
                 'phone_verified_at' => now(),
 
-            ]
+                'last_login_at' => now(),
 
-        );
+            ]);
 
-        /*
-            |--------------------------------------------------------------------------
-            | ثبت اطلاعات ورود
-            |--------------------------------------------------------------------------
-            */
+            $otp->markAsVerified();
 
-        $user->update([
+            $otp->user_id = $user->id;
 
-            'phone_verified_at' => now(),
+            $otp->attempts = 0;
 
-            'last_login_at' => now(),
+            $otp->save();
 
-        ]);
+            return $user;
 
-        /*
-            |--------------------------------------------------------------------------
-            | ثبت اطلاعات OTP
-            |--------------------------------------------------------------------------
-            */
+        } catch (Throwable $e) {
 
-        $otp->markAsVerified();
+            Log::error('Verify OTP failed.', [
 
-        $otp->user_id = $user->id;
+                'login_token' => $loginToken,
 
-        $otp->attempts = 0;
+                'error' => $e->getMessage(),
 
-        $otp->save();
+            ]);
 
-        /*
-            |--------------------------------------------------------------------------
-            | بازگرداندن کاربر
-            |--------------------------------------------------------------------------
-            */
+            throw $e;
 
-        return $user;
+        }
     }
 
     /**
@@ -287,121 +226,85 @@ class OtpService
      */
     public function resendOtp(
         string $loginToken
-    ): array {
+    ): array
+    {
+        try {
 
-        /*
-            |--------------------------------------------------------------------------
-            | دریافت OTP قبلی
-            |--------------------------------------------------------------------------
-            */
+            $otp = $this->otpRepository
+                ->findByLoginToken(
+                    $loginToken
+                );
 
-        $otp = $this->otpRepository
-            ->findByLoginToken(
-                $loginToken
+            if (!$otp) {
+
+                throw new InvalidLoginTokenException();
+
+            }
+
+            if ($otp->isUsed()) {
+
+                throw new OtpAlreadyUsedException();
+
+            }
+
+            $otp->markAsUsed();
+
+            $newOtp = $this->generateOtp();
+
+            $newLoginToken = $this->generateLoginToken();
+
+            $this->otpRepository->create([
+
+                'user_id' => $otp->user_id,
+
+                'mobile' => $otp->mobile,
+
+                'code' => $newOtp,
+
+                'login_token' => $newLoginToken,
+
+                'purpose' => $otp->purpose,
+
+                'attempts' => 0,
+
+                'is_verified' => false,
+
+                'expires_at' => now()->addMinutes(2),
+
+                'ip_address' => request()->ip(),
+
+                'user_agent' => request()->userAgent(),
+
+            ]);
+
+            $this->smsService->sendOtp(
+
+                $otp->mobile,
+
+                $newOtp
+
             );
 
-        /*
-            |--------------------------------------------------------------------------
-            | بررسی معتبر بودن Login Token
-            |--------------------------------------------------------------------------
-            */
+            return [
 
-        if (!$otp) {
+                'login_token' => $newLoginToken,
 
-            throw new InvalidLoginTokenException();
+                'message' => 'کد تایید مجدداً ارسال شد.',
+
+            ];
+
+        } catch (Throwable $e) {
+
+            Log::error('Resend OTP failed.', [
+
+                'login_token' => $loginToken,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+
         }
-
-        /*
-            |--------------------------------------------------------------------------
-            | بررسی استفاده شدن
-            |--------------------------------------------------------------------------
-            */
-
-        if ($otp->isUsed()) {
-
-            throw new OtpAlreadyUsedException();
-        }
-
-        /*
-            |--------------------------------------------------------------------------
-            | غیرفعال کردن OTP قبلی
-            |--------------------------------------------------------------------------
-            */
-
-        $otp->markAsUsed();
-
-        /*
-            |--------------------------------------------------------------------------
-            | تولید OTP جدید
-            |--------------------------------------------------------------------------
-            */
-
-        $newOtp = $this->generateOtp();
-
-        /*
-            |--------------------------------------------------------------------------
-            | تولید Login Token جدید
-            |--------------------------------------------------------------------------
-            */
-
-        $newLoginToken = $this->generateLoginToken();
-
-        /*
-            |--------------------------------------------------------------------------
-            | ذخیره OTP جدید
-            |--------------------------------------------------------------------------
-            */
-
-        $this->otpRepository->create([
-
-            'user_id' => $otp->user_id,
-
-            'mobile' => $otp->mobile,
-
-            'code' => $newOtp,
-
-            'login_token' => $newLoginToken,
-
-            'purpose' => $otp->purpose,
-
-            'attempts' => 0,
-
-            'is_verified' => false,
-
-            'expires_at' => now()->addMinutes(2),
-
-            'ip_address' => request()->ip(),
-
-            'user_agent' => request()->userAgent(),
-
-        ]);
-
-        /*
-            |--------------------------------------------------------------------------
-            | ارسال پیامک
-            |--------------------------------------------------------------------------
-            */
-
-        $this->smsService->sendOtp(
-
-            $otp->mobile,
-
-            $newOtp
-
-        );
-
-        /*
-            |--------------------------------------------------------------------------
-            | بازگرداندن نتیجه
-            |--------------------------------------------------------------------------
-            */
-
-        return [
-
-            'login_token' => $newLoginToken,
-
-            'message' => 'کد تایید مجدداً ارسال شد.',
-
-        ];
     }
 }

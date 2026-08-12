@@ -1,176 +1,380 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
-use Throwable;
+use App\Jobs\ProcessVideoJob;
 use App\Models\Video;
+use Throwable;
+use RuntimeException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Repositories\Interfaces\VideoRepositoryInterface;
 
 class VideoService
 {
-    // Repository مربوط به ویدئو
-    protected VideoRepositoryInterface $videoRepository;
-
-    // سرویس مدیریت فایل
-    protected FileUploadService $fileUploadService;
-
     public function __construct(
-        VideoRepositoryInterface $videoRepository,
-        FileUploadService $fileUploadService
+        protected VideoRepositoryInterface $videoRepository,
+        protected FileUploadService $fileUploadService
     ) {
-        $this->videoRepository = $videoRepository;
-        $this->fileUploadService = $fileUploadService;
     }
 
-    // دریافت همه ویدئوها
+
     public function getAll(): Collection
     {
         return $this->videoRepository->getAll();
     }
 
-    // دریافت یک ویدئو
-    public function findById(int $id): ?Video
+
+    public function paginate(
+        int $perPage = 15
+    ): LengthAwarePaginator
+    {
+        return $this->videoRepository->paginate($perPage);
+    }
+
+
+    public function findById(
+        int $id
+    ): ?Video
     {
         return $this->videoRepository->findById($id);
     }
 
-    // ایجاد ویدئو
+
+    public function pending(): Collection
+    {
+        return $this->videoRepository->whereStatus('pending');
+    }
+
+
+    public function approved(): Collection
+    {
+        return $this->videoRepository->whereStatus('approved');
+    }
+
+
+    public function rejected(): Collection
+    {
+        return $this->videoRepository->whereStatus('rejected');
+    }
+
+
+
     public function create(
         array $data,
-        ?UploadedFile $videoFile
-    ): Video {
-
+        UploadedFile $videoFile
+    ): Video
+    {
         DB::beginTransaction();
 
         try {
 
-            if ($videoFile) {
+            $fileInfo = $this->fileUploadService->storeFromPath(
+                $videoFile,
+                'videos'
+            );
 
-                $fileInfo = $this->fileUploadService->upload(
-                    $videoFile,
-                    'videos'
+
+            $data = array_merge(
+                $data,
+                $fileInfo
+            );
+
+
+            $userId = Auth::id();
+
+
+            if (! $userId) {
+
+                throw new RuntimeException(
+                    'Authenticated user not found.'
                 );
 
-                $data['storage_disk'] = 'public';
-                $data['file_path'] = $fileInfo['file_path'];
-                $data['original_name'] = $fileInfo['original_name'];
-                $data['mime_type'] = $fileInfo['mime_type'];
-                $data['file_size'] = $fileInfo['file_size'];
             }
 
+
+            $data['uploaded_by'] = $userId;
             $data['duration'] = null;
+            $data['quality'] = null;
             $data['thumbnail_path'] = null;
             $data['views_count'] = 0;
+            $data['processing_status'] = 'pending';
+            $data['download_allowed'] ??= false;
+
 
             $video = $this->videoRepository->create($data);
 
+
             DB::commit();
 
-            return $video;
+
+            ProcessVideoJob::dispatch(
+                $video->id
+            )->afterCommit();
+
+
+            return $video->fresh([
+                'uploader',
+                'contentItem',
+            ]);
+
 
         } catch (Throwable $e) {
 
             DB::rollBack();
 
+
             Log::error(
-                'Create Video Error',
+                'Video creation failed.',
                 [
-                    'message' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
+                    'error' => $e->getMessage(),
                 ]
             );
+
 
             throw $e;
         }
     }
 
-    // بروزرسانی ویدئو
+
+
     public function update(
         Video $video,
         array $data,
         ?UploadedFile $videoFile
-    ): Video {
-
+    ): Video
+    {
         DB::beginTransaction();
 
         try {
 
+
             if ($videoFile) {
 
-                $fileInfo = $this->fileUploadService->replace(
+
+                $fileInfo = $this->fileUploadService->replaceFromPath(
                     $videoFile,
-                    $video->file_path,
+                    $video->directory,
+                    $video->filename,
                     'videos'
                 );
 
-                $data['storage_disk'] = 'public';
-                $data['file_path'] = $fileInfo['file_path'];
-                $data['original_name'] = $fileInfo['original_name'];
-                $data['mime_type'] = $fileInfo['mime_type'];
-                $data['file_size'] = $fileInfo['file_size'];
+
+                $data = array_merge(
+                    $data,
+                    $fileInfo
+                );
+
+
+                $data['processing_status'] = 'pending';
+                $data['duration'] = null;
+                $data['quality'] = null;
+                $data['thumbnail_path'] = null;
+                $data['approved_by'] = null;
+                $data['approved_at'] = null;
+                $data['rejected_reason'] = null;
+
             }
+
 
             $video = $this->videoRepository->update(
                 $video,
                 $data
             );
 
+
             DB::commit();
 
-            return $video;
+
+
+            if ($videoFile) {
+
+                ProcessVideoJob::dispatch(
+                    $video->id
+                )->afterCommit();
+
+            }
+
+
+
+            return $video->fresh([
+                'uploader',
+                'approver',
+                'contentItem',
+            ]);
+
+
 
         } catch (Throwable $e) {
 
+
             DB::rollBack();
 
+
             Log::error(
-                'Update Video Error',
+                'Video update failed.',
                 [
-                    'message' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
+                    'video_id' => $video->id,
+                    'error' => $e->getMessage(),
                 ]
             );
+
 
             throw $e;
         }
     }
 
-    // حذف ویدئو
-    public function delete(
-        Video $video
-    ): bool {
 
+
+    public function approve(
+        Video $video
+    ): Video
+    {
         DB::beginTransaction();
 
         try {
 
-            $this->fileUploadService->delete(
-                $video->file_path
+
+            $video = $this->videoRepository->update(
+                $video,
+                [
+                    'processing_status' => 'approved',
+                    'approved_by' => Auth::id(),
+                    'approved_at' => now(),
+                    'rejected_reason' => null,
+                ]
             );
 
-            $deleted = $this->videoRepository->delete(
-                $video
-            );
 
             DB::commit();
 
-            return $deleted;
+
+            return $video->fresh([
+                'uploader',
+                'approver',
+            ]);
+
 
         } catch (Throwable $e) {
 
+
             DB::rollBack();
 
+
             Log::error(
-                'Delete Video Error',
+                'Video approval failed.',
                 [
-                    'message' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
+                    'video_id' => $video->id,
+                    'error' => $e->getMessage(),
                 ]
             );
+
+
+            throw $e;
+        }
+    }
+
+
+
+    public function reject(
+        Video $video,
+        string $reason
+    ): Video
+    {
+        DB::beginTransaction();
+
+        try {
+
+
+            $video = $this->videoRepository->update(
+                $video,
+                [
+                    'processing_status' => 'rejected',
+                    'approved_by' => Auth::id(),
+                    'approved_at' => now(),
+                    'rejected_reason' => $reason,
+                ]
+            );
+
+
+            DB::commit();
+
+
+            return $video->fresh([
+                'uploader',
+                'approver',
+            ]);
+
+
+        } catch (Throwable $e) {
+
+
+            DB::rollBack();
+
+
+            Log::error(
+                'Video rejection failed.',
+                [
+                    'video_id' => $video->id,
+                    'error' => $e->getMessage(),
+                ]
+            );
+
+
+            throw $e;
+        }
+    }
+
+
+
+    public function delete(
+        Video $video
+    ): bool
+    {
+        DB::beginTransaction();
+
+        try {
+
+
+            $deleted = $this->videoRepository->delete($video);
+
+
+            if ($deleted) {
+
+                $this->fileUploadService->delete(
+                    $video->directory,
+                    $video->filename
+                );
+
+            }
+
+
+            DB::commit();
+
+
+            return $deleted;
+
+
+        } catch (Throwable $e) {
+
+
+            DB::rollBack();
+
+
+            Log::error(
+                'Video delete failed.',
+                [
+                    'video_id' => $video->id,
+                    'error' => $e->getMessage(),
+                ]
+            );
+
 
             throw $e;
         }

@@ -2,39 +2,144 @@
 
 namespace App\Services;
 
+use Throwable;
 use App\Models\Section;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Repositories\Interfaces\SectionRepositoryInterface;
 
 class SectionService
 {
+    /**
+     * Repository بخش‌ها
+     */
+    protected SectionRepositoryInterface $sectionRepository;
+
     public function __construct(
-        protected SectionRepositoryInterface $sectionRepository
+        SectionRepositoryInterface $sectionRepository
     ) {
+        $this->sectionRepository = $sectionRepository;
     }
 
+    /**
+     * دریافت همه بخش‌ها
+     */
     public function getAll(): Collection
     {
         return $this->sectionRepository->getAll();
     }
 
-    public function findById(int $id): ?Section
+    /**
+     * صفحه‌بندی بخش‌ها
+     */
+    public function paginate(
+        int $perPage = 15
+    ): LengthAwarePaginator
     {
-        return $this->sectionRepository->findById($id);
+        return $this->sectionRepository->paginate(
+            $perPage
+        );
     }
 
-    public function create(array $data): Section
+    /**
+     * دریافت یک بخش
+     */
+    public function findById(
+        int $id
+    ): ?Section
     {
-        return $this->sectionRepository->create($data);
+        return $this->sectionRepository->findById(
+            $id
+        );
     }
 
-    public function update(Section $section, array $data): Section
+    /**
+     * ایجاد بخش
+     */
+    public function create(
+        array $data
+    ): Section
     {
-        return $this->sectionRepository->update($section, $data);
+        try {
+
+            return $this->sectionRepository->create(
+                $data
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Section creation failed.', [
+
+                'data' => $data,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+
+        }
     }
 
-    public function delete(Section $section): bool
+    /**
+     * بروزرسانی بخش
+     */
+    public function update(
+        Section $section,
+        array $data
+    ): Section
     {
-        return $this->sectionRepository->delete($section);
+        try {
+
+            return $this->sectionRepository->update(
+
+                $section,
+
+                $data
+
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Section update failed.', [
+
+                'section_id' => $section->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+
+        }
+    }
+
+    /**
+     * حذف بخش
+     */
+    public function delete(
+        Section $section
+    ): bool
+    {
+        try {
+
+            return $this->sectionRepository->delete(
+                $section
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Section delete failed.', [
+
+                'section_id' => $section->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+
+        }
     }
 }

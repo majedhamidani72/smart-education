@@ -20,39 +20,128 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
-    public function panel(Panel $panel): Panel
-    {
+    /**
+     * تنظیمات پنل مدیریت
+     */
+    public function panel(
+        Panel $panel
+    ): Panel {
         return $panel
+
+            /*
+            |--------------------------------------------------------------------------
+            | اطلاعات پایه پنل
+            |--------------------------------------------------------------------------
+            */
+
             ->default()
+
             ->id('admin')
+
             ->path('admin')
-            ->login()
+
+            ->login(\App\Filament\Auth\Login::class)
+
+            /*
+            |--------------------------------------------------------------------------
+            | رنگ اصلی پنل
+            |--------------------------------------------------------------------------
+            */
+
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Blue,
             ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+
+            /*
+            |--------------------------------------------------------------------------
+            | Resources
+            |--------------------------------------------------------------------------
+            */
+
+            ->discoverResources(
+                in: app_path('Filament/Resources'),
+                for: 'App\\Filament\\Resources'
+            )
+
+            /*
+            |--------------------------------------------------------------------------
+            | Pages
+            |--------------------------------------------------------------------------
+            */
+
+            ->discoverPages(
+                in: app_path('Filament/Pages'),
+                for: 'App\\Filament\\Pages'
+            )
+
             ->pages([
                 Pages\Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
+
+            /*
+            |--------------------------------------------------------------------------
+            | Widgets
+            |--------------------------------------------------------------------------
+            */
+
+            ->discoverWidgets(
+                in: app_path('Filament/Widgets'),
+                for: 'App\\Filament\\Widgets'
+            )
+
             ->widgets([
+
+                /*
+                 | ویجت حساب کاربری
+                 */
+
                 Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+
+                /*
+                 | بعداً ویجت‌های اختصاصی پروژه
+                 | اضافه خواهند شد.
+                 */
+
             ])
+
+            /*
+            |--------------------------------------------------------------------------
+            | Middleware
+            |--------------------------------------------------------------------------
+            */
+
             ->middleware([
+
                 EncryptCookies::class,
+
                 AddQueuedCookiesToResponse::class,
+
                 StartSession::class,
+
                 AuthenticateSession::class,
+
                 ShareErrorsFromSession::class,
+
                 VerifyCsrfToken::class,
+
                 SubstituteBindings::class,
+
                 DisableBladeIconComponents::class,
+
                 DispatchServingFilamentEvent::class,
+
             ])
+
+            /*
+            |--------------------------------------------------------------------------
+            | Authentication Middleware
+            |--------------------------------------------------------------------------
+            */
+
             ->authMiddleware([
+
                 Authenticate::class,
+
             ]);
     }
 }

@@ -6,63 +6,12 @@ use App\Models\PaymentTransaction;
 use Illuminate\Database\Eloquent\Collection;
 use App\Repositories\Interfaces\PaymentTransactionRepositoryInterface;
 
-class PaymentTransactionRepository implements PaymentTransactionRepositoryInterface
+class PaymentTransactionRepository extends BaseRepository implements PaymentTransactionRepositoryInterface
 {
-    protected PaymentTransaction $model;
-
     public function __construct(
         PaymentTransaction $model
     ) {
-        $this->model = $model;
-    }
-
-    /**
-     * ایجاد تراکنش
-     */
-    public function create(
-        array $data
-    ): PaymentTransaction {
-
-        return $this->model->create(
-            $data
-        );
-
-    }
-
-    /**
-     * بروزرسانی تراکنش
-     */
-    public function update(
-        PaymentTransaction $transaction,
-        array $data
-    ): bool {
-
-        return $transaction->update(
-            $data
-        );
-
-    }
-
-    /**
-     * حذف تراکنش
-     */
-    public function delete(
-        PaymentTransaction $transaction
-    ): bool {
-
-        return $transaction->delete();
-
-    }
-
-    /**
-     * پیدا کردن با شناسه
-     */
-    public function findById(
-        int $id
-    ): ?PaymentTransaction {
-
-        return $this->model->find($id);
-
+        parent::__construct($model);
     }
 
     /**
@@ -73,7 +22,10 @@ class PaymentTransactionRepository implements PaymentTransactionRepositoryInterf
     ): ?PaymentTransaction {
 
         return $this->model
-            ->where('authority', $authority)
+            ->where(
+                'authority',
+                $authority
+            )
             ->first();
 
     }
@@ -86,7 +38,10 @@ class PaymentTransactionRepository implements PaymentTransactionRepositoryInterf
     ): ?PaymentTransaction {
 
         return $this->model
-            ->where('reference_id', $referenceId)
+            ->where(
+                'reference_id',
+                $referenceId
+            )
             ->first();
 
     }
@@ -99,7 +54,10 @@ class PaymentTransactionRepository implements PaymentTransactionRepositoryInterf
     ): Collection {
 
         return $this->model
-            ->where('user_id', $userId)
+            ->where(
+                'user_id',
+                $userId
+            )
             ->latest()
             ->get();
 
@@ -113,7 +71,10 @@ class PaymentTransactionRepository implements PaymentTransactionRepositoryInterf
     ): Collection {
 
         return $this->model
-            ->where('purchase_id', $purchaseId)
+            ->where(
+                'purchase_id',
+                $purchaseId
+            )
             ->latest()
             ->get();
 

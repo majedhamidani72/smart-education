@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Device;
+use Throwable;
 use App\Models\User;
+use App\Models\Device;
+use Illuminate\Support\Facades\Log;
 use App\Repositories\Interfaces\DeviceRepositoryInterface;
 
 class DeviceService
@@ -28,89 +30,106 @@ class DeviceService
     public function registerDevice(
         User $user,
         array $data
-    ): Device {
+    ): Device
+    {
+        try {
 
-        $device = $this->deviceRepository
-            ->findByIdentifier(
-                $data['device_identifier']
-            );
+            $device = $this->deviceRepository
+                ->findByIdentifier(
+                    $data['device_identifier']
+                );
 
-        /*
-        |--------------------------------------------------------------------------
-        | اگر دستگاه قبلاً ثبت شده باشد
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | اگر دستگاه قبلاً ثبت شده باشد
+            |--------------------------------------------------------------------------
+            */
 
-        if ($device) {
+            if ($device) {
 
-            $this->deviceRepository->update(
+                $this->deviceRepository->update(
 
-                $device,
+                    $device,
 
-                [
+                    [
 
-                    'user_id' => $user->id,
+                        'user_id' => $user->id,
 
-                    'device_name' => $data['device_name'],
+                        'device_name' => $data['device_name'],
 
-                    'manufacturer' => $data['manufacturer'] ?? null,
+                        'manufacturer' => $data['manufacturer'] ?? null,
 
-                    'model' => $data['model'] ?? null,
+                        'model' => $data['model'] ?? null,
 
-                    'platform' => $data['platform'],
+                        'platform' => $data['platform'],
 
-                    'os_version' => $data['os_version'] ?? null,
+                        'os_version' => $data['os_version'] ?? null,
 
-                    'app_version' => $data['app_version'] ?? null,
+                        'app_version' => $data['app_version'] ?? null,
 
-                    'fcm_token' => $data['fcm_token'] ?? null,
+                        'fcm_token' => $data['fcm_token'] ?? null,
 
-                    'last_ip' => request()->ip(),
+                        'last_ip' => request()->ip(),
 
-                    'last_login_at' => now(),
+                        'last_login_at' => now(),
 
-                    'is_active' => true,
+                        'is_active' => true,
 
-                ]
+                    ]
 
-            );
+                );
 
-            return $device->fresh();
+                $device->refresh();
+
+                return $device;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | ثبت دستگاه جدید
+            |--------------------------------------------------------------------------
+            */
+
+            return $this->deviceRepository->create([
+
+                'user_id' => $user->id,
+
+                'device_identifier' => $data['device_identifier'],
+
+                'device_name' => $data['device_name'],
+
+                'manufacturer' => $data['manufacturer'] ?? null,
+
+                'model' => $data['model'] ?? null,
+
+                'platform' => $data['platform'],
+
+                'os_version' => $data['os_version'] ?? null,
+
+                'app_version' => $data['app_version'] ?? null,
+
+                'fcm_token' => $data['fcm_token'] ?? null,
+
+                'last_ip' => request()->ip(),
+
+                'last_login_at' => now(),
+
+                'is_active' => true,
+
+            ]);
+
+        } catch (Throwable $e) {
+
+            Log::error('Device registration failed.', [
+
+                'user_id' => $user->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | ثبت دستگاه جدید
-        |--------------------------------------------------------------------------
-        */
-
-        return $this->deviceRepository->create([
-
-            'user_id' => $user->id,
-
-            'device_identifier' => $data['device_identifier'],
-
-            'device_name' => $data['device_name'],
-
-            'manufacturer' => $data['manufacturer'] ?? null,
-
-            'model' => $data['model'] ?? null,
-
-            'platform' => $data['platform'],
-
-            'os_version' => $data['os_version'] ?? null,
-
-            'app_version' => $data['app_version'] ?? null,
-
-            'fcm_token' => $data['fcm_token'] ?? null,
-
-            'last_ip' => request()->ip(),
-
-            'last_login_at' => now(),
-
-            'is_active' => true,
-
-        ]);
     }
 
     /**
@@ -118,7 +137,8 @@ class DeviceService
      */
     public function getUserDevices(
         User $user
-    ) {
+    )
+    {
         return $this->deviceRepository
             ->getUserDevices(
                 $user->id
@@ -130,7 +150,8 @@ class DeviceService
      */
     public function getActiveDevices(
         User $user
-    ) {
+    )
+    {
         return $this->deviceRepository
             ->getActiveUserDevices(
                 $user->id
@@ -142,12 +163,27 @@ class DeviceService
      */
     public function deactivateDevice(
         Device $device
-    ): bool {
+    ): bool
+    {
+        try {
 
-        return $this->deviceRepository
-            ->deactivate(
-                $device
-            );
+            return $this->deviceRepository
+                ->deactivate(
+                    $device
+                );
+
+        } catch (Throwable $e) {
+
+            Log::error('Device deactivation failed.', [
+
+                'device_id' => $device->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
@@ -155,12 +191,27 @@ class DeviceService
      */
     public function activateDevice(
         Device $device
-    ): bool {
+    ): bool
+    {
+        try {
 
-        return $this->deviceRepository
-            ->activate(
-                $device
-            );
+            return $this->deviceRepository
+                ->activate(
+                    $device
+                );
+
+        } catch (Throwable $e) {
+
+            Log::error('Device activation failed.', [
+
+                'device_id' => $device->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
@@ -169,13 +220,28 @@ class DeviceService
     public function updateFcmToken(
         Device $device,
         ?string $token
-    ): bool {
+    ): bool
+    {
+        try {
 
-        return $this->deviceRepository
-            ->updateFcmToken(
-                $device,
-                $token
-            );
+            return $this->deviceRepository
+                ->updateFcmToken(
+                    $device,
+                    $token
+                );
+
+        } catch (Throwable $e) {
+
+            Log::error('FCM token update failed.', [
+
+                'device_id' => $device->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
@@ -183,15 +249,29 @@ class DeviceService
      */
     public function updateLastLogin(
         Device $device
-    ): bool {
+    ): bool
+    {
+        try {
 
-        return $this->deviceRepository
-            ->updateLastLogin(
-                $device,
-                request()->ip()
-            );
+            return $this->deviceRepository
+                ->updateLastLogin(
+                    $device,
+                    request()->ip()
+                );
+
+        } catch (Throwable $e) {
+
+            Log::error('Update last login failed.', [
+
+                'device_id' => $device->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
-
 
     /**
      * بروزرسانی اطلاعات دستگاه
@@ -199,33 +279,48 @@ class DeviceService
     public function updateDevice(
         Device $device,
         array $data
-    ): bool {
+    ): Device
+    {
+        try {
 
-        return $this->deviceRepository
-            ->update(
+            return $this->deviceRepository
+                ->update(
 
-                $device,
+                    $device,
 
-                [
+                    [
 
-                    'device_name' => $data['device_name'] ?? $device->device_name,
+                        'device_name' => $data['device_name'] ?? $device->device_name,
 
-                    'manufacturer' => $data['manufacturer'] ?? $device->manufacturer,
+                        'manufacturer' => $data['manufacturer'] ?? $device->manufacturer,
 
-                    'model' => $data['model'] ?? $device->model,
+                        'model' => $data['model'] ?? $device->model,
 
-                    'platform' => $data['platform'] ?? $device->platform,
+                        'platform' => $data['platform'] ?? $device->platform,
 
-                    'os_version' => $data['os_version'] ?? $device->os_version,
+                        'os_version' => $data['os_version'] ?? $device->os_version,
 
-                    'app_version' => $data['app_version'] ?? $device->app_version,
+                        'app_version' => $data['app_version'] ?? $device->app_version,
 
-                    'fcm_token' => $data['fcm_token'] ?? $device->fcm_token,
+                        'fcm_token' => $data['fcm_token'] ?? $device->fcm_token,
 
-                    'is_active' => $data['is_active'] ?? $device->is_active,
+                        'is_active' => $data['is_active'] ?? $device->is_active,
 
-                ]
+                    ]
 
-            );
+                );
+
+        } catch (Throwable $e) {
+
+            Log::error('Device update failed.', [
+
+                'device_id' => $device->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 }

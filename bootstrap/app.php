@@ -21,11 +21,11 @@ return Application::configure(
 
     ->withRouting(
 
-        web: __DIR__.'/../routes/web.php',
+        web: __DIR__ . '/../routes/web.php',
 
-        api: __DIR__.'/../routes/api.php',
+        api: __DIR__ . '/../routes/api.php',
 
-        commands: __DIR__.'/../routes/console.php',
+        commands: __DIR__ . '/../routes/console.php',
 
         health: '/up',
 
@@ -57,10 +57,14 @@ return Application::configure(
 
         ) {
 
+            if (! $request->expectsJson()) {
+
+                return null;
+            }
+
             return ApiResponse::validation(
                 $e->errors()
             );
-
         });
 
         /*
@@ -76,9 +80,11 @@ return Application::configure(
             $request
 
         ) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
 
             return ApiResponse::unauthorized();
-
         });
 
         /*
@@ -94,9 +100,11 @@ return Application::configure(
             $request
 
         ) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
 
             return ApiResponse::forbidden();
-
         });
 
         /*
@@ -112,11 +120,13 @@ return Application::configure(
             $request
 
         ) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
 
             return ApiResponse::notFound(
                 'Resource not found.'
             );
-
         });
 
         /*
@@ -132,6 +142,9 @@ return Application::configure(
             $request
 
         ) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
 
             return ApiResponse::error(
 
@@ -142,7 +155,6 @@ return Application::configure(
                 404
 
             );
-
         });
 
         $exceptions->render(function (
@@ -152,6 +164,9 @@ return Application::configure(
             $request
 
         ) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
 
             return ApiResponse::error(
 
@@ -162,7 +177,6 @@ return Application::configure(
                 422
 
             );
-
         });
 
         $exceptions->render(function (
@@ -172,6 +186,9 @@ return Application::configure(
             $request
 
         ) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
 
             return ApiResponse::error(
 
@@ -182,7 +199,6 @@ return Application::configure(
                 410
 
             );
-
         });
 
         $exceptions->render(function (
@@ -192,6 +208,9 @@ return Application::configure(
             $request
 
         ) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
 
             return ApiResponse::error(
 
@@ -202,7 +221,6 @@ return Application::configure(
                 409
 
             );
-
         });
 
         $exceptions->render(function (
@@ -212,6 +230,9 @@ return Application::configure(
             $request
 
         ) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
 
             return ApiResponse::error(
 
@@ -222,7 +243,6 @@ return Application::configure(
                 429
 
             );
-
         });
 
         /*
@@ -238,19 +258,22 @@ return Application::configure(
             $request
 
         ) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
 
             return ApiResponse::error(
 
-                'Internal Server Error',
+                app()->hasDebugModeEnabled()
+                    ? $e->getMessage()
+                    : 'Internal Server Error',
 
                 null,
 
                 500
 
             );
-
         });
-
     })
 
     ->create();

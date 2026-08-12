@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Models\Quiz;
 use App\Helpers\ApiResponse;
+use App\Services\QuizService;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\QuizResource;
+use App\Http\Resources\QuizAttemptResource;
 use App\Http\Requests\Quiz\StoreQuizRequest;
 use App\Http\Requests\Quiz\UpdateQuizRequest;
-use App\Http\Resources\QuizResource;
-use App\Models\Quiz;
-use App\Services\QuizService;
+use Illuminate\Http\Request;
 
 class QuizController extends Controller
 {
     protected QuizService $quizService;
+
 
     public function __construct(
         QuizService $quizService
@@ -20,34 +23,78 @@ class QuizController extends Controller
         $this->quizService = $quizService;
     }
 
-    // لیست آزمون‌ها
+
+    /**
+     * لیست آزمون‌ها
+     */
     public function index()
     {
+        $quizzes = $this->quizService->paginate();
+
+
         return ApiResponse::success(
-            QuizResource::collection(
-                $this->quizService->getAll()
-            ),
+            QuizResource::collection($quizzes),
             'Quizzes retrieved successfully.'
         );
     }
 
-    // نمایش یک آزمون
+
+    /**
+     * نمایش یک آزمون
+     */
     public function show(
         Quiz $quiz
-    ) {
+    )
+    {
+        $quiz = $this->quizService->loadRelations($quiz);
+
+
         return ApiResponse::success(
             new QuizResource($quiz),
             'Quiz retrieved successfully.'
         );
     }
 
-    // ایجاد آزمون
+
+    /**
+     * شروع آزمون
+     */
+    public function start(
+        Request $request,
+        Quiz $quiz
+    )
+    {
+        $attempt = $this->quizService->start(
+            $quiz,
+            $request->user()
+        );
+
+
+        return ApiResponse::success(
+            new QuizAttemptResource($attempt),
+            'Quiz started successfully.',
+            201
+        );
+    }
+
+
+    /**
+     * ایجاد آزمون
+     */
     public function store(
         StoreQuizRequest $request
-    ) {
+    )
+    {
+        $this->authorize(
+            'create',
+            Quiz::class
+        );
+
+
         $quiz = $this->quizService->create(
             $request->validated()
         );
+
 
         return ApiResponse::success(
             new QuizResource($quiz),
@@ -56,15 +103,26 @@ class QuizController extends Controller
         );
     }
 
-    // بروزرسانی آزمون
+
+    /**
+     * بروزرسانی آزمون
+     */
     public function update(
         UpdateQuizRequest $request,
         Quiz $quiz
-    ) {
+    )
+    {
+        $this->authorize(
+            'update',
+            $quiz
+        );
+
+
         $quiz = $this->quizService->update(
             $quiz,
             $request->validated()
         );
+
 
         return ApiResponse::success(
             new QuizResource($quiz),
@@ -72,11 +130,24 @@ class QuizController extends Controller
         );
     }
 
-    // حذف آزمون
+
+    /**
+     * حذف آزمون
+     */
     public function destroy(
         Quiz $quiz
-    ) {
-        $this->quizService->delete($quiz);
+    )
+    {
+        $this->authorize(
+            'delete',
+            $quiz
+        );
+
+
+        $this->quizService->delete(
+            $quiz
+        );
+
 
         return ApiResponse::success(
             null,

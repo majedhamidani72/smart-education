@@ -7,6 +7,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class StepByStepPageResource extends JsonResource
 {
+    /**
+     * تبدیل مدل به خروجی API
+     */
     public function toArray(Request $request): array
     {
         return [
@@ -17,7 +20,9 @@ class StepByStepPageResource extends JsonResource
 
             'page_number' => $this->page_number,
 
-            'image' => asset($this->image),
+            'image' => $this->image
+                ? asset($this->image)
+                : null,
 
             'sort_order' => $this->sort_order,
 

@@ -5,30 +5,12 @@ namespace App\Repositories\Eloquent;
 use App\Models\OtpCode;
 use App\Repositories\Interfaces\OtpCodeRepositoryInterface;
 
-class OtpCodeRepository implements OtpCodeRepositoryInterface
+class OtpCodeRepository extends BaseRepository implements OtpCodeRepositoryInterface
 {
-    /**
-     * مدل
-     */
-    protected OtpCode $model;
-
     public function __construct(
         OtpCode $model
     ) {
-        $this->model = $model;
-    }
-
-    /**
-     * ایجاد OTP
-     */
-    public function create(
-        array $data
-    ): OtpCode {
-
-        return $this->model->create(
-            $data
-        );
-
+        parent::__construct($model);
     }
 
     /**
@@ -36,17 +18,14 @@ class OtpCodeRepository implements OtpCodeRepositoryInterface
      */
     public function findByLoginToken(
         string $loginToken
-    ): ?OtpCode {
-
+    ): ?OtpCode
+    {
         return $this->model
-
             ->where(
                 'login_token',
                 $loginToken
             )
-
             ->first();
-
     }
 
     /**
@@ -55,26 +34,20 @@ class OtpCodeRepository implements OtpCodeRepositoryInterface
     public function getActiveOtp(
         string $mobile,
         string $purpose
-    ): ?OtpCode {
-
+    ): ?OtpCode
+    {
         return $this->model
-
             ->active()
-
             ->where(
                 'mobile',
                 $mobile
             )
-
             ->where(
                 'purpose',
                 $purpose
             )
-
             ->latest()
-
             ->first();
-
     }
 
     /**
@@ -83,27 +56,22 @@ class OtpCodeRepository implements OtpCodeRepositoryInterface
     public function deactivateActiveOtps(
         string $mobile,
         string $purpose
-    ): void {
-
+    ): void
+    {
         $this->model
-
             ->active()
-
             ->where(
                 'mobile',
                 $mobile
             )
-
             ->where(
                 'purpose',
                 $purpose
             )
-
             ->update([
 
                 'used_at' => now(),
 
             ]);
-
     }
 }

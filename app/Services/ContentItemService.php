@@ -2,16 +2,25 @@
 
 namespace App\Services;
 
+use Throwable;
 use App\Models\ContentItem;
-use Illuminate\Database\Eloquent\Collection;
-use App\Repositories\Interfaces\ContentItemRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Repositories\Interfaces\ContentItemRepositoryInterface;
 
 class ContentItemService
 {
+    /**
+     * Repository مربوط به محتوا
+     */
+    protected ContentItemRepositoryInterface $contentItemRepository;
+
     public function __construct(
-        protected ContentItemRepositoryInterface $contentItemRepository
+        ContentItemRepositoryInterface $contentItemRepository
     ) {
+        $this->contentItemRepository = $contentItemRepository;
     }
 
     /**
@@ -23,21 +32,56 @@ class ContentItemService
     }
 
     /**
+     * صفحه‌بندی محتواها
+     */
+    public function paginate(
+        int $perPage = 15
+    ): LengthAwarePaginator
+    {
+        return $this->contentItemRepository->paginate(
+            $perPage
+        );
+    }
+
+    /**
      * دریافت یک محتوا
      */
-    public function findById(int $id): ?ContentItem
+    public function findById(
+        int $id
+    ): ?ContentItem
     {
-        return $this->contentItemRepository->findById($id);
+        return $this->contentItemRepository->findById(
+            $id
+        );
     }
 
     /**
      * ایجاد محتوا
      */
-    public function create(array $data): ContentItem
+    public function create(
+        array $data
+    ): ContentItem
     {
-        $data['status'] = 'draft';
+        try {
 
-        return $this->contentItemRepository->create($data);
+            $data['status'] = 'draft';
+
+            return $this->contentItemRepository->create(
+                $data
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Content item creation failed.', [
+
+                'data' => $data,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
@@ -48,8 +92,28 @@ class ContentItemService
         array $data
     ): ContentItem
     {
-        return $this->contentItemRepository
-            ->update($contentItem, $data);
+        try {
+
+            return $this->contentItemRepository->update(
+
+                $contentItem,
+
+                $data
+
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Content item update failed.', [
+
+                'content_item_id' => $contentItem->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
@@ -59,8 +123,24 @@ class ContentItemService
         ContentItem $contentItem
     ): bool
     {
-        return $this->contentItemRepository
-            ->delete($contentItem);
+        try {
+
+            return $this->contentItemRepository->delete(
+                $contentItem
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Content item delete failed.', [
+
+                'content_item_id' => $contentItem->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
@@ -70,14 +150,32 @@ class ContentItemService
         ContentItem $contentItem
     ): ContentItem
     {
-        return $this->contentItemRepository->update(
-            $contentItem,
-            [
+        try {
 
-                'status' => 'pending',
+            return $this->contentItemRepository->update(
 
-            ]
-        );
+                $contentItem,
+
+                [
+
+                    'status' => 'pending',
+
+                ]
+
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Submit content for review failed.', [
+
+                'content_item_id' => $contentItem->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
@@ -87,35 +185,74 @@ class ContentItemService
         ContentItem $contentItem
     ): ContentItem
     {
-        return $this->contentItemRepository->update(
-            $contentItem,
-            [
+        try {
 
-                'status' => 'approved',
+            return $this->contentItemRepository->update(
 
-                'reviewed_by' => Auth::id(),
+                $contentItem,
 
-            ]
-        );
+                [
+
+                    'status' => 'approved',
+
+                    'reviewed_by' => Auth::id(),
+
+                ]
+
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Content approval failed.', [
+
+                'content_item_id' => $contentItem->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
      * رد محتوا
      */
     public function reject(
-        ContentItem $contentItem
+        ContentItem $contentItem,
+        string $reason
     ): ContentItem
     {
-        return $this->contentItemRepository->update(
-            $contentItem,
-            [
+        try {
 
-                'status' => 'rejected',
+            return $this->contentItemRepository->update(
 
-                'reviewed_by' => Auth::id(),
+                $contentItem,
 
-            ]
-        );
+                [
+
+                    'status' => 'rejected',
+
+                    'reviewed_by' => Auth::id(),
+
+                    'rejection_reason' => $reason,
+
+                ]
+
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Content rejection failed.', [
+
+                'content_item_id' => $contentItem->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
@@ -125,15 +262,33 @@ class ContentItemService
         ContentItem $contentItem
     ): ContentItem
     {
-        return $this->contentItemRepository->update(
-            $contentItem,
-            [
+        try {
 
-                'status' => 'published',
+            return $this->contentItemRepository->update(
 
-                'published_at' => now(),
+                $contentItem,
 
-            ]
-        );
+                [
+
+                    'status' => 'published',
+
+                    'published_at' => now(),
+
+                ]
+
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Content publish failed.', [
+
+                'content_item_id' => $contentItem->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 }

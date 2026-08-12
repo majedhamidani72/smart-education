@@ -12,10 +12,17 @@ use App\Http\Requests\Book\UpdateBookRequest;
 
 class BookController extends Controller
 {
+    /**
+     * Service
+     */
     protected BookService $bookService;
 
-    public function __construct(BookService $bookService)
-    {
+    /**
+     * Constructor
+     */
+    public function __construct(
+        BookService $bookService
+    ) {
         $this->bookService = $bookService;
     }
 
@@ -24,7 +31,12 @@ class BookController extends Controller
      */
     public function index()
     {
-        $books = $this->bookService->getAll();
+        $this->authorize(
+            'viewAny',
+            Book::class
+        );
+
+        $books = $this->bookService->paginate();
 
         return ApiResponse::success(
             BookResource::collection($books),
@@ -35,8 +47,15 @@ class BookController extends Controller
     /**
      * نمایش یک کتاب
      */
-    public function show(Book $book)
+    public function show(
+        Book $book
+    )
     {
+        $this->authorize(
+            'view',
+            $book
+        );
+
         return ApiResponse::success(
             new BookResource($book),
             'Book retrieved successfully.'
@@ -46,8 +65,15 @@ class BookController extends Controller
     /**
      * ایجاد کتاب
      */
-    public function store(StoreBookRequest $request)
+    public function store(
+        StoreBookRequest $request
+    )
     {
+        $this->authorize(
+            'create',
+            Book::class
+        );
+
         $book = $this->bookService->create(
             $request->validated()
         );
@@ -65,7 +91,13 @@ class BookController extends Controller
     public function update(
         UpdateBookRequest $request,
         Book $book
-    ) {
+    )
+    {
+        $this->authorize(
+            'update',
+            $book
+        );
+
         $book = $this->bookService->update(
             $book,
             $request->validated()
@@ -80,9 +112,18 @@ class BookController extends Controller
     /**
      * حذف نرم کتاب
      */
-    public function destroy(Book $book)
+    public function destroy(
+        Book $book
+    )
     {
-        $this->bookService->delete($book);
+        $this->authorize(
+            'delete',
+            $book
+        );
+
+        $this->bookService->delete(
+            $book
+        );
 
         return ApiResponse::success(
             null,

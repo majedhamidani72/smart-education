@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use Throwable;
 use App\Models\Book;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Repositories\Interfaces\BookRepositoryInterface;
 
 class BookService
@@ -16,8 +19,9 @@ class BookService
     /**
      * تزریق Repository
      */
-    public function __construct(BookRepositoryInterface $bookRepository)
-    {
+    public function __construct(
+        BookRepositoryInterface $bookRepository
+    ) {
         $this->bookRepository = $bookRepository;
     }
 
@@ -30,34 +34,112 @@ class BookService
     }
 
     /**
+     * صفحه‌بندی کتاب‌ها
+     */
+    public function paginate(
+        int $perPage = 15
+    ): LengthAwarePaginator
+    {
+        return $this->bookRepository->paginate(
+            $perPage
+        );
+    }
+
+    /**
      * دریافت یک کتاب
      */
-    public function findById(int $id): ?Book
+    public function findById(
+        int $id
+    ): ?Book
     {
-        return $this->bookRepository->findById($id);
+        return $this->bookRepository->findById(
+            $id
+        );
     }
 
     /**
      * ایجاد کتاب جدید
      */
-    public function create(array $data): Book
+    public function create(
+        array $data
+    ): Book
     {
-        return $this->bookRepository->create($data);
+        try {
+
+            return $this->bookRepository->create(
+                $data
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Book creation failed.', [
+
+                'data' => $data,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
      * بروزرسانی کتاب
      */
-    public function update(Book $book, array $data): Book
+    public function update(
+        Book $book,
+        array $data
+    ): Book
     {
-        return $this->bookRepository->update($book, $data);
+        try {
+
+            return $this->bookRepository->update(
+
+                $book,
+
+                $data
+
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Book update failed.', [
+
+                'book_id' => $book->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
-     * حذف نرم کتاب
+     * حذف کتاب
      */
-    public function delete(Book $book): bool
+    public function delete(
+        Book $book
+    ): bool
     {
-        return $this->bookRepository->delete($book);
+        try {
+
+            return $this->bookRepository->delete(
+                $book
+            );
+
+        } catch (Throwable $e) {
+
+            Log::error('Book delete failed.', [
+
+                'book_id' => $book->id,
+
+                'error' => $e->getMessage(),
+
+            ]);
+
+            throw $e;
+        }
     }
 }

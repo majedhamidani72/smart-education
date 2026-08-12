@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class QuestionOptionResource extends JsonResource
 {
@@ -13,21 +14,38 @@ class QuestionOptionResource extends JsonResource
 
             'id' => $this->id,
 
-            'question_id' => $this->question_id,
-
             'option_text' => $this->option_text,
 
             'image_path' => $this->image_path
-                ? asset($this->image_path)
+                ? Storage::url($this->image_path)
                 : null,
 
-            'is_correct' => $this->is_correct,
+            /*
+            |----------------------------------------------------------------------
+            | فقط در شرایط مجاز نمایش داده می‌شود
+            | مثال:
+            | - پنل مدیریت
+            | - نمایش نتیجه آزمون
+            |----------------------------------------------------------------------
+            */
+
+            'is_correct' => $this->when(
+                $request->user()?->hasRole('admin'),
+                $this->is_correct
+            ),
+
 
             'sort_order' => $this->sort_order,
 
-            'created_at' => $this->created_at,
 
-            'updated_at' => $this->updated_at,
+            'created_at' => $this->created_at
+                ? $this->created_at->format('Y-m-d H:i:s')
+                : null,
+
+
+            'updated_at' => $this->updated_at
+                ? $this->updated_at->format('Y-m-d H:i:s')
+                : null,
 
         ];
     }

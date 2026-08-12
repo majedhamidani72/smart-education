@@ -41,7 +41,8 @@ return new class extends Migration
             // zibal
 
             $table->string('authority', 100)
-                ->nullable();
+                ->nullable()
+                ->unique();
             // TrackId / Authority
 
             $table->string('transaction_id', 100)
@@ -49,7 +50,8 @@ return new class extends Migration
             // شناسه داخلی درگاه
 
             $table->string('reference_id', 100)
-                ->nullable();
+                ->nullable()
+                ->unique();
             // شماره مرجع بانک
 
             /*
@@ -134,15 +136,9 @@ return new class extends Migration
             );
 
             $table->index(
-                ['authority'],
-                'payment_authority_index'
+                ['status', 'paid_at'],
+                'payment_status_paid_at_index'
             );
-
-            $table->index(
-                ['reference_id'],
-                'payment_reference_index'
-            );
-
         });
     }
 

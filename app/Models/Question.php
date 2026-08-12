@@ -5,69 +5,47 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Question extends Model
 {
     use HasFactory, SoftDeletes;
 
 
-
-    // فیلدهای قابل ذخیره
     protected $fillable = [
 
-        'created_by',
-        // سازنده سوال (معلم یا ادمین)
+        'content_item_id',
 
+        'question_topic_id',
+
+        'created_by',
 
         'reviewed_by',
-        // ادمین بررسی کننده
-
 
         'question_text',
-        // متن سوال
-
 
         'image_path',
-        // تصویر سوال
-
 
         'explanation',
-        // توضیح پاسخ صحیح
-
 
         'explanation_image_path',
-        // تصویر توضیح پاسخ
-
 
         'difficulty',
-        // سطح سختی سوال
-
 
         'default_score',
-        // امتیاز پیش فرض سوال
-
 
         'status',
-        // وضعیت سوال:
-        // draft
-        // pending
-        // approved
-        // rejected
-
 
         'rejection_reason',
-        // دلیل رد سوال
-
 
         'is_active',
-        // فعال یا غیرفعال بودن
 
     ];
 
 
 
-    // تبدیل نوع داده‌ها
     protected function casts(): array
     {
         return [
@@ -81,13 +59,43 @@ class Question extends Model
 
 
 
-    // =========================
-    // Relationships
-    // =========================
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
 
 
-    // سازنده سوال
-    public function creator()
+    /**
+     * محتوای آموزشی مربوط به سوال
+     */
+    public function contentItem(): BelongsTo
+    {
+        return $this->belongsTo(
+            ContentItem::class,
+            'content_item_id'
+        );
+    }
+
+
+
+    /**
+     * موضوع سوال
+     */
+    public function topic(): BelongsTo
+    {
+        return $this->belongsTo(
+            QuestionTopic::class,
+            'question_topic_id'
+        );
+    }
+
+
+
+    /**
+     * سازنده سوال
+     */
+    public function creator(): BelongsTo
     {
         return $this->belongsTo(
             User::class,
@@ -97,8 +105,10 @@ class Question extends Model
 
 
 
-    // ادمینی که سوال را بررسی کرده
-    public function reviewer()
+    /**
+     * مدیر بررسی کننده
+     */
+    public function reviewer(): BelongsTo
     {
         return $this->belongsTo(
             User::class,
@@ -108,22 +118,47 @@ class Question extends Model
 
 
 
-    // هر سوال می‌تواند در چند آزمون استفاده شود
-    public function quizzes()
+    /**
+     * آزمون‌هایی که این سوال داخل آن‌ها استفاده شده
+     */
+    public function quizzes(): BelongsToMany
     {
         return $this->belongsToMany(
             Quiz::class,
             'quiz_question'
-        )->withTimestamps();
+        )
+        ->withPivot([
+
+            'score',
+
+            'sort_order',
+
+        ])
+        ->withTimestamps();
     }
 
 
 
-    // گزینه‌های این سوال
-    public function options()
+    /**
+     * گزینه‌های سوال
+     */
+    public function options(): HasMany
     {
         return $this->hasMany(
             QuestionOption::class
         );
     }
+
+
+
+    /**
+     * پاسخ‌های ثبت شده دانش‌آموزان
+     */
+    public function questionAttempts(): HasMany
+    {
+        return $this->hasMany(
+            QuestionAttempt::class
+        );
+    }
+
 }

@@ -19,19 +19,57 @@ class QuestionAttemptResource extends JsonResource
 
             'question_option_id' => $this->question_option_id,
 
-            'is_correct' => $this->is_correct,
 
-            'score_awarded' => $this->score_awarded,
+            'result' => [
+
+                'is_correct' => $this->is_correct,
+
+                'score_awarded' => $this->score_awarded,
+
+            ],
+
 
             'question_snapshot' => $this->question_snapshot,
 
             'options_snapshot' => $this->options_snapshot,
 
-            'answered_at' => $this->answered_at,
 
-            'created_at' => $this->created_at,
+            'question' => $this->whenLoaded(
+                'question',
+                function () {
+                    return [
+                        'id' => $this->question->id,
+                        'text' => $this->question->question_text,
+                        'difficulty' => $this->question->difficulty,
+                    ];
+                }
+            ),
 
-            'updated_at' => $this->updated_at,
+
+            'selected_option' => $this->whenLoaded(
+                'selectedOption',
+                function () {
+                    return [
+                        'id' => $this->selectedOption->id,
+                        'text' => $this->selectedOption->option_text,
+                    ];
+                }
+            ),
+
+
+            'answered_at' => $this->answered_at
+                ? $this->answered_at->format('Y-m-d H:i:s')
+                : null,
+
+
+            'created_at' => $this->created_at
+                ? $this->created_at->format('Y-m-d H:i:s')
+                : null,
+
+
+            'updated_at' => $this->updated_at
+                ? $this->updated_at->format('Y-m-d H:i:s')
+                : null,
 
         ];
     }

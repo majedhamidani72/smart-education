@@ -13,16 +13,18 @@ return new class extends Migration
     {
         Schema::create('question_topics', function (Blueprint $table) {
 
-        $table->id(); // شناسه موضوع
+            $table->id(); // شناسه موضوع
 
-        $table->string('title'); // نام موضوع مثل کسرها، ضرب، تقسیم
+            $table->string('title'); // نام موضوع مثل کسرها، ضرب، تقسیم
 
-        $table->text('description')
-            ->nullable(); // توضیحات موضوع
+            $table->text('description')
+                ->nullable(); // توضیحات موضوع
 
-        $table->timestamps();
 
-    });
+            $table->softDeletes();
+
+            $table->timestamps();
+        });
     }
 
     /**

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Helpers\ApiResponse;
-use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use App\Models\Purchase;
 use App\Models\PaymentTransaction;
+use App\Helpers\ApiResponse;
+use App\Http\Controllers\Controller;
 use App\Services\Payment\PaymentService;
-use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
@@ -19,9 +19,7 @@ class PaymentController extends Controller
     public function __construct(
         PaymentService $paymentService
     ) {
-
         $this->paymentService = $paymentService;
-
     }
 
     /**
@@ -31,6 +29,10 @@ class PaymentController extends Controller
         Purchase $purchase
     )
     {
+        $this->authorize(
+            'view',
+            $purchase
+        );
 
         $transaction = $this->paymentService
             ->createTransaction(
@@ -49,7 +51,6 @@ class PaymentController extends Controller
             'لینک پرداخت با موفقیت ایجاد شد.'
 
         );
-
     }
 
     /**
@@ -60,7 +61,6 @@ class PaymentController extends Controller
         PaymentTransaction $transaction
     )
     {
-
         $result = $this->paymentService
             ->verifyPayment(
 
@@ -77,7 +77,6 @@ class PaymentController extends Controller
             'وضعیت پرداخت بررسی شد.'
 
         );
-
     }
 
     /**
@@ -87,6 +86,10 @@ class PaymentController extends Controller
         PaymentTransaction $transaction
     )
     {
+        $this->authorize(
+            'update',
+            $transaction
+        );
 
         $result = $this->paymentService
             ->refund(
@@ -100,6 +103,5 @@ class PaymentController extends Controller
             'درخواست بازگشت وجه ثبت شد.'
 
         );
-
     }
 }
