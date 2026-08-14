@@ -12,15 +12,42 @@ return new class extends Migration
 
             $table->id();
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | ارتباط با محتوای آموزشی
+            |--------------------------------------------------------------------------
+            |
+            | هر ویدئو متعلق به یک ContentItem است.
+            | ContentItem به Section، Chapter و Book متصل است.
+            |
+            */
+
             $table->foreignId('content_item_id')
                 ->constrained()
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
 
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | آپلود کننده
+            |--------------------------------------------------------------------------
+            */
+
             $table->foreignId('uploaded_by')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
+
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | تایید کننده
+            |--------------------------------------------------------------------------
+            */
 
             $table->foreignId('approved_by')
                 ->nullable()
@@ -28,36 +55,72 @@ return new class extends Migration
                 ->nullOnDelete();
 
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | اطلاعات فایل
+            |--------------------------------------------------------------------------
+            */
+
             $table->string('directory');
+
 
             $table->string('filename')
                 ->index();
 
+
             $table->string('original_name');
+
 
             $table->string('extension', 20);
 
+
             $table->string('mime_type', 100);
+
 
             $table->unsignedBigInteger('file_size');
 
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | اطلاعات ویدئو
+            |--------------------------------------------------------------------------
+            */
+
             $table->unsignedInteger('duration')
                 ->nullable();
 
+
             $table->string('quality', 30)
                 ->nullable();
+
 
             $table->string('thumbnail_path')
                 ->nullable();
 
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | آمار و دسترسی
+            |--------------------------------------------------------------------------
+            */
+
             $table->unsignedBigInteger('views_count')
                 ->default(0);
+
 
             $table->boolean('download_allowed')
                 ->default(false);
 
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | گردش تایید محتوا
+            |--------------------------------------------------------------------------
+            */
 
             $table->string('processing_status')
                 ->default('pending');
@@ -71,23 +134,39 @@ return new class extends Migration
                 ->nullable();
 
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | زمان‌ها
+            |--------------------------------------------------------------------------
+            */
+
             $table->timestamps();
+
 
             $table->softDeletes();
 
 
-            $table->index('processing_status');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
+            $table->index('content_item_id');
 
             $table->index('uploaded_by');
 
             $table->index('approved_by');
 
-            $table->index('views_count');
+            $table->index('processing_status');
 
-            $table->index('content_item_id');
+            $table->index('views_count');
 
         });
     }
+
 
 
     public function down(): void

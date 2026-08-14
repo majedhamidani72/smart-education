@@ -5,17 +5,15 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Throwable;
+use RuntimeException;
 use InvalidArgumentException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-
 class FileUploadService
 {
-
-
     private array $allowedFolders = [
 
         'videos',
@@ -37,25 +35,19 @@ class FileUploadService
     ];
 
 
-
-
-
-
-
-    /**
-     * آپلود مستقیم فایل
-     */
     public function upload(
         UploadedFile $file,
         string $folder
     ): array {
 
-
         $this->validateFolder($folder);
 
 
-
         try {
+
+            $this->validateUploadedFile(
+                $file
+            );
 
 
             $directory = $this->makeDirectory(
@@ -63,19 +55,9 @@ class FileUploadService
             );
 
 
-
-            $destination = public_path(
-                $directory
-            );
-
-
-
             $extension = strtolower(
-
                 $file->getClientOriginalExtension()
-
             );
-
 
 
             $filename = Str::orderedUuid()
@@ -83,29 +65,18 @@ class FileUploadService
                 . $extension;
 
 
-
-            $fileSize = $file->getSize();
-
-
-
-            $mimeType = $file->getMimeType();
-
-
-
-            $originalName = $file->getClientOriginalName();
-
-
-
-
             $file->move(
 
-                $destination,
+                public_path($directory),
 
                 $filename
 
             );
 
 
+            $path = public_path(
+                $directory . '/' . $filename
+            );
 
 
             return [
@@ -114,13 +85,16 @@ class FileUploadService
 
                 'filename' => $filename,
 
-                'original_name' => $originalName,
+                'original_name' =>
+                $file->getClientOriginalName(),
 
                 'extension' => $extension,
 
-                'mime_type' => $mimeType,
+                'mime_type' =>
+                File::mimeType($path),
 
-                'file_size' => $fileSize,
+                'file_size' =>
+                File::size($path),
 
             ];
         } catch (Throwable $e) {
@@ -132,12 +106,12 @@ class FileUploadService
 
                 [
 
-                    'error' => $e->getMessage(),
+                    'error' =>
+                    $e->getMessage(),
 
                 ]
 
             );
-
 
 
             throw $e;
@@ -146,27 +120,18 @@ class FileUploadService
 
 
 
-
-
-
-
-    /**
-     * انتقال فایل موقت Filament به مسیر اصلی
-     */
     public function storeFromPath(
         string $path,
         string $folder
     ): array {
 
 
-
-        $this->validateFolder($folder);
-
-
+        $this->validateFolder(
+            $folder
+        );
 
 
         try {
-
 
 
             $source = storage_path(
@@ -177,36 +142,27 @@ class FileUploadService
 
 
 
-
             if (! File::exists($source)) {
 
 
-                throw new \RuntimeException(
+                throw new RuntimeException(
 
-                    'Temporary uploaded file not found: ' . $source
+                    'Temporary file not found: ' . $source
 
                 );
             }
 
 
 
+            $this->validateFile(
+                $source
+            );
+
 
 
             $directory = $this->makeDirectory(
-
                 $folder
-
             );
-
-
-
-
-            $destination = public_path(
-
-                $directory
-
-            );
-
 
 
 
@@ -218,7 +174,6 @@ class FileUploadService
 
 
 
-
             $filename = Str::orderedUuid()
 
                 . '.'
@@ -227,14 +182,11 @@ class FileUploadService
 
 
 
+            $target = public_path(
 
-            $target = $destination
+                $directory . '/' . $filename
 
-                . DIRECTORY_SEPARATOR
-
-                . $filename;
-
-
+            );
 
 
 
@@ -245,8 +197,6 @@ class FileUploadService
                 $target
 
             );
-
-
 
 
 
@@ -270,7 +220,7 @@ class FileUploadService
 
             Log::error(
 
-                'Store temp file failed.',
+                'Store temporary file failed.',
 
                 [
 
@@ -283,13 +233,9 @@ class FileUploadService
             );
 
 
-
             throw $e;
         }
     }
-    /**
-     * جایگزینی فایل Filament
-     */
     public function replaceFromPath(
         string $path,
         ?string $directory,
@@ -297,25 +243,16 @@ class FileUploadService
         string $folder
     ): array {
 
-
         $newFile = $this->storeFromPath(
-
             $path,
-
             $folder
-
         );
-
 
 
         $this->delete(
-
             $directory,
-
             $filename
-
         );
-
 
 
         return $newFile;
@@ -324,19 +261,16 @@ class FileUploadService
 
 
 
-
-
-
-    /**
-     * حذف فایل
-     */
     public function delete(
         ?string $directory,
         ?string $filename
     ): void {
 
 
-        if (! $directory || ! $filename) {
+        if (
+            blank($directory) ||
+            blank($filename)
+        ) {
 
             return;
         }
@@ -347,18 +281,13 @@ class FileUploadService
 
 
             $path = $this->fullPath(
-
                 $directory,
-
                 $filename
-
             );
 
 
 
-
             if (File::exists($path)) {
-
 
                 File::delete($path);
             }
@@ -375,12 +304,12 @@ class FileUploadService
 
                     'filename' => $filename,
 
-                    'error' => $e->getMessage(),
+                    'error' =>
+                    $e->getMessage(),
 
                 ]
 
             );
-
 
 
             throw $e;
@@ -390,12 +319,153 @@ class FileUploadService
 
 
 
+    private function validateUploadedFile(
+        UploadedFile $file
+    ): void {
+
+
+        $maxSize = config(
+            'video.max_size',
+            524288000
+        );
 
 
 
-    /**
-     * ساخت مسیر ذخیره
-     */
+        if (
+            $file->getSize() > $maxSize
+        ) {
+
+
+            throw new RuntimeException(
+                'File size is too large.'
+            );
+        }
+
+
+
+        $extension = strtolower(
+
+            $file->getClientOriginalExtension()
+
+        );
+
+
+
+        $allowed = config(
+
+            'video.allowed_extensions',
+
+            [
+                'mp4',
+                'webm',
+                'mkv',
+            ]
+
+        );
+
+
+
+        if (
+            ! in_array(
+                $extension,
+                $allowed,
+                true
+            )
+        ) {
+
+
+            throw new RuntimeException(
+                'Invalid file extension.'
+            );
+        }
+    }
+
+
+
+
+    private function validateFile(
+        string $path
+    ): void {
+
+
+        $maxSize = config(
+
+            'video.max_size',
+
+            524288000
+
+        );
+
+
+
+        if (
+
+            File::size($path) > $maxSize
+
+        ) {
+
+
+            throw new RuntimeException(
+
+                'File size is too large.'
+
+            );
+        }
+
+
+
+        $extension = strtolower(
+
+            File::extension($path)
+
+        );
+
+
+
+        $allowed = config(
+
+            'video.allowed_extensions',
+
+            [
+
+                'mp4',
+
+                'webm',
+
+                'mkv',
+
+            ]
+
+        );
+
+
+
+        if (
+
+            ! in_array(
+
+                $extension,
+
+                $allowed,
+
+                true
+
+            )
+
+        ) {
+
+
+            throw new RuntimeException(
+
+                'Invalid file extension.'
+
+            );
+        }
+    }
+
+
+
+
     private function makeDirectory(
         string $folder
     ): string {
@@ -416,11 +486,8 @@ class FileUploadService
 
 
         $path = public_path(
-
             $directory
-
         );
-
 
 
 
@@ -446,28 +513,24 @@ class FileUploadService
 
 
 
-
-
-
-    /**
-     * بررسی پوشه مجاز
-     */
     private function validateFolder(
         string $folder
     ): void {
 
 
+        if (
 
-        if (! in_array(
+            ! in_array(
 
-            $folder,
+                $folder,
 
-            $this->allowedFolders,
+                $this->allowedFolders,
 
-            true
+                true
 
-        )) {
+            )
 
+        ) {
 
 
             throw new InvalidArgumentException(
@@ -481,12 +544,6 @@ class FileUploadService
 
 
 
-
-
-
-    /**
-     * مسیر کامل فایل
-     */
     public function fullPath(
         string $directory,
         string $filename

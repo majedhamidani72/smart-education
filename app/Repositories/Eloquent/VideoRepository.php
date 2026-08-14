@@ -10,9 +10,6 @@ use App\Repositories\Interfaces\VideoRepositoryInterface;
 
 class VideoRepository extends BaseRepository implements VideoRepositoryInterface
 {
-    /**
-     * Constructor
-     */
     public function __construct(
         Video $model
     ) {
@@ -20,23 +17,30 @@ class VideoRepository extends BaseRepository implements VideoRepositoryInterface
     }
 
 
-    /**
-     * دریافت ویدئوها بر اساس وضعیت
-     *
-     * pending
-     * approved
-     * rejected
-     */
+
     public function whereStatus(
         string $status
-    ): Collection
-    {
+    ): Collection {
+
         return $this->model
+
+            ->with([
+
+                'contentItem.section.chapter.book',
+
+                'uploader',
+
+                'approver',
+
+            ])
+
             ->where(
                 'processing_status',
                 $status
             )
+
             ->latest()
+
             ->get();
     }
 }

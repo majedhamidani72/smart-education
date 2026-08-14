@@ -1,0 +1,132 @@
+<?php
+
+namespace App\Models;
+
+
+use Illuminate\Database\Eloquent\Model;
+
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+
+
+class TeacherAssignment extends Model
+{
+
+    use HasFactory;
+
+    use SoftDeletes;
+
+
+
+    protected $fillable = [
+
+        'teacher_id',
+
+        'book_id',
+
+        'assigned_by',
+
+        'is_active',
+
+    ];
+
+
+
+
+    protected function casts(): array
+    {
+
+        return [
+
+            'is_active' => 'boolean',
+
+        ];
+
+    }
+
+
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Teacher
+    |--------------------------------------------------------------------------
+    |
+    | معلمی که این کتاب به او اختصاص داده شده
+    |
+    */
+
+
+    public function teacher(): BelongsTo
+    {
+
+        return $this->belongsTo(
+
+            User::class,
+
+            'teacher_id'
+
+        );
+
+    }
+
+
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Book
+    |--------------------------------------------------------------------------
+    |
+    | کتابی که معلم اجازه مدیریت آن را دارد
+    |
+    */
+
+
+    public function book(): BelongsTo
+    {
+
+        return $this->belongsTo(
+
+            Book::class
+
+        );
+
+    }
+
+
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Assigned By
+    |--------------------------------------------------------------------------
+    |
+    | ادمین یا سوپرادمینی که این دسترسی را ایجاد کرده
+    |
+    */
+
+
+    public function assignedBy(): BelongsTo
+    {
+
+        return $this->belongsTo(
+
+            User::class,
+
+            'assigned_by'
+
+        );
+
+    }
+
+
+
+}

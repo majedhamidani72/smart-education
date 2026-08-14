@@ -2,37 +2,39 @@
 
 namespace App\Providers\Filament;
 
+use App\Http\Middleware\CheckPasswordChange;
+
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
+
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
+
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
+
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+
 use Illuminate\Routing\Middleware\SubstituteBindings;
+
 use Illuminate\Session\Middleware\StartSession;
+
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+
 
 class AdminPanelProvider extends PanelProvider
 {
-    /**
-     * تنظیمات پنل مدیریت
-     */
     public function panel(
         Panel $panel
     ): Panel {
-        return $panel
 
-            /*
-            |--------------------------------------------------------------------------
-            | اطلاعات پایه پنل
-            |--------------------------------------------------------------------------
-            */
+        return $panel
 
             ->default()
 
@@ -40,75 +42,45 @@ class AdminPanelProvider extends PanelProvider
 
             ->path('admin')
 
-            ->login(\App\Filament\Auth\Login::class)
+            ->login(
+                \App\Filament\Auth\Login::class
+            )
 
-            /*
-            |--------------------------------------------------------------------------
-            | رنگ اصلی پنل
-            |--------------------------------------------------------------------------
-            */
 
             ->colors([
                 'primary' => Color::Blue,
             ])
 
-            /*
-            |--------------------------------------------------------------------------
-            | Resources
-            |--------------------------------------------------------------------------
-            */
 
             ->discoverResources(
                 in: app_path('Filament/Resources'),
                 for: 'App\\Filament\\Resources'
             )
 
-            /*
-            |--------------------------------------------------------------------------
-            | Pages
-            |--------------------------------------------------------------------------
-            */
 
             ->discoverPages(
                 in: app_path('Filament/Pages'),
                 for: 'App\\Filament\\Pages'
             )
 
+
             ->pages([
                 Pages\Dashboard::class,
             ])
 
-            /*
-            |--------------------------------------------------------------------------
-            | Widgets
-            |--------------------------------------------------------------------------
-            */
 
             ->discoverWidgets(
                 in: app_path('Filament/Widgets'),
                 for: 'App\\Filament\\Widgets'
             )
 
-            ->widgets([
 
-                /*
-                 | ویجت حساب کاربری
-                 */
+            ->widgets([
 
                 Widgets\AccountWidget::class,
 
-                /*
-                 | بعداً ویجت‌های اختصاصی پروژه
-                 | اضافه خواهند شد.
-                 */
-
             ])
 
-            /*
-            |--------------------------------------------------------------------------
-            | Middleware
-            |--------------------------------------------------------------------------
-            */
 
             ->middleware([
 
@@ -132,16 +104,14 @@ class AdminPanelProvider extends PanelProvider
 
             ])
 
-            /*
-            |--------------------------------------------------------------------------
-            | Authentication Middleware
-            |--------------------------------------------------------------------------
-            */
 
             ->authMiddleware([
 
                 Authenticate::class,
 
+                CheckPasswordChange::class,
+
             ]);
+
     }
 }

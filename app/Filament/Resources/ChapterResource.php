@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ChapterResource\Pages;
 use App\Models\Chapter;
+use App\Traits\FiltersByTeacherAssignment;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -22,6 +23,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ChapterResource extends Resource
 {
+    use FiltersByTeacherAssignment;
+
     protected static ?string $model = Chapter::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-queue-list';
@@ -35,6 +38,7 @@ class ChapterResource extends Resource
     protected static ?string $pluralModelLabel = 'فصل‌ها';
 
     protected static ?int $navigationSort = 4;
+
 
     public static function form(Form $form): Form
     {
@@ -80,6 +84,7 @@ class ChapterResource extends Resource
 
         ]);
     }
+
 
     public static function table(Table $table): Table
     {
@@ -156,10 +161,12 @@ class ChapterResource extends Resource
             ]);
     }
 
+
     public static function getRelations(): array
     {
         return [];
     }
+
 
     public static function getPages(): array
     {
@@ -174,14 +181,20 @@ class ChapterResource extends Resource
         ];
     }
 
+
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $query = parent::getEloquentQuery()
 
             ->withoutGlobalScopes([
 
                 SoftDeletingScope::class,
 
             ]);
+
+        return static::applyTeacherFilter(
+            $query,
+            'book.teacherAssignments'
+        );
     }
 }

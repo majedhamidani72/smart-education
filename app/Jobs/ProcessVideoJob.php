@@ -24,30 +24,25 @@ class ProcessVideoJob implements ShouldQueue
 
     public int $tries = 3;
 
-
     public int $timeout = 300;
-
 
 
     public function __construct(
         public int $videoId
-    ) {}
-
+    ) {
+    }
 
 
     public function handle(
         VideoProcessingService $videoProcessingService
     ): void {
 
-
         $video = Video::find(
             $this->videoId
         );
 
 
-
         if (! $video) {
-
 
             Log::warning(
                 'Video not found for processing.',
@@ -56,16 +51,11 @@ class ProcessVideoJob implements ShouldQueue
                 ]
             );
 
-
             return;
-
         }
 
 
-
-
         try {
-
 
             $videoProcessingService->process(
                 $video
@@ -73,7 +63,6 @@ class ProcessVideoJob implements ShouldQueue
 
 
         } catch (Throwable $e) {
-
 
             Log::error(
                 'Video processing error.',
@@ -85,40 +74,32 @@ class ProcessVideoJob implements ShouldQueue
 
 
             throw $e;
-
         }
-
     }
-
-
 
 
     public function failed(
         ?Throwable $exception
     ): void {
 
-
         $video = Video::find(
             $this->videoId
         );
 
 
-
         if ($video) {
-
 
             $video->update([
 
                 'processing_status' => 'rejected',
 
-                'rejected_reason' => $exception?->getMessage()
-                    ?? 'Unknown processing error.',
+                'rejected_reason' =>
+                    $exception?->getMessage()
+                    ??
+                    'Unknown processing error.',
 
             ]);
-
         }
-
-
 
 
         Log::error(
@@ -127,9 +108,7 @@ class ProcessVideoJob implements ShouldQueue
                 'video_id' => $this->videoId,
 
                 'error' => $exception?->getMessage(),
-
             ]
         );
-
     }
 }

@@ -2,16 +2,13 @@
 
 return [
 
-
     'default' => env(
         'FILESYSTEM_DISK',
         'local'
     ),
 
 
-
     'disks' => [
-
 
 
         'local' => [
@@ -32,22 +29,30 @@ return [
 
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Public Files
+        |--------------------------------------------------------------------------
+        | فایل‌های پروژه مستقیم داخل public ذخیره می‌شوند
+        |--------------------------------------------------------------------------
+        */
 
         'public' => [
 
             'driver' => 'local',
 
-            'root' => storage_path(
-                'app/public'
-            ),
+            'root' => public_path(),
 
             'url' => rtrim(
+
                 env(
                     'APP_URL',
                     'http://localhost'
                 ),
+
                 '/'
-            ) . '/storage',
+
+            ),
 
             'visibility' => 'public',
 
@@ -56,7 +61,6 @@ return [
             'report' => false,
 
         ],
-
 
 
 
@@ -99,10 +103,7 @@ return [
 
         ],
 
-
     ],
-
-
 
 
 
@@ -113,6 +114,5 @@ return [
         ),
 
     ],
-
 
 ];

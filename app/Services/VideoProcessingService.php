@@ -29,7 +29,10 @@ class VideoProcessingService
         );
 
 
-        if (! $this->ffmpegPath || ! File::exists($this->ffmpegPath)) {
+        if (
+            ! $this->ffmpegPath ||
+            ! File::exists($this->ffmpegPath)
+        ) {
 
             throw new RuntimeException(
                 'FFmpeg path is invalid.'
@@ -37,7 +40,10 @@ class VideoProcessingService
         }
 
 
-        if (! $this->ffprobePath || ! File::exists($this->ffprobePath)) {
+        if (
+            ! $this->ffprobePath ||
+            ! File::exists($this->ffprobePath)
+        ) {
 
             throw new RuntimeException(
                 'FFprobe path is invalid.'
@@ -57,11 +63,10 @@ class VideoProcessingService
             $videoPath = $video->fullPath();
 
 
-
             if (! File::exists($videoPath)) {
 
                 throw new RuntimeException(
-                    'Video file not found: ' . $videoPath
+                    'Video file not found.'
                 );
             }
 
@@ -75,9 +80,37 @@ class VideoProcessingService
 
 
 
+            $this->validateFileSize(
+                $videoPath
+            );
+
+
+
             $duration = $this->getDuration(
                 $videoPath
             );
+
+
+
+            $optimizedPath = $this->optimizeVideo(
+                $video
+            );
+
+
+
+            if ($optimizedPath) {
+
+
+                File::delete(
+                    $videoPath
+                );
+
+
+                File::move(
+                    $optimizedPath,
+                    $videoPath
+                );
+            }
 
 
 
@@ -116,14 +149,17 @@ class VideoProcessingService
 
                 'processing_status' => 'rejected',
 
-                'rejected_reason' => $e->getMessage(),
+                'rejected_reason' =>
+                $e->getMessage(),
 
             ]);
 
 
 
             Log::error(
+
                 'Video processing failed.',
+
                 [
 
                     'video_id' => $video->id,
@@ -131,6 +167,7 @@ class VideoProcessingService
                     'error' => $e->getMessage(),
 
                 ]
+
             );
 
 
@@ -142,6 +179,139 @@ class VideoProcessingService
 
 
 
+
+    private function validateFileSize(
+        string $path
+    ): void {
+
+
+        $maxSize = (int) config(
+
+            'video.max_size',
+
+            524288000
+
+        );
+
+
+
+        if (
+            File::size($path) > $maxSize
+        ) {
+
+            throw new RuntimeException(
+                'Video size is too large.'
+            );
+        }
+    }
+
+
+
+
+
+    private function optimizeVideo(
+        Video $video
+    ): string {
+
+
+        $input = $video->fullPath();
+
+
+        $output = public_path(
+
+            $video->directory
+                .
+                '/optimized_'
+                .
+                $video->filename
+
+        );
+
+
+
+        $process = new Process([
+
+            $this->ffmpegPath,
+
+
+            '-i',
+
+            $input,
+
+
+            '-vf',
+
+            'scale=w=1280:h=720:force_original_aspect_ratio=decrease',
+
+
+            '-c:v',
+
+            'libx264',
+
+
+            '-preset',
+
+            'medium',
+
+
+            '-crf',
+
+            '28',
+
+
+            '-pix_fmt',
+
+            'yuv420p',
+
+
+            '-c:a',
+
+            'aac',
+
+
+            '-b:a',
+
+            '128k',
+
+
+            '-movflags',
+
+            '+faststart',
+
+
+            '-y',
+
+
+            $output,
+
+        ]);
+
+
+
+        $process->setTimeout(
+            900
+        );
+
+
+        $process->run();
+
+
+
+        if (! $process->isSuccessful()) {
+
+
+            throw new RuntimeException(
+
+                'Video optimization failed: ' .
+                    $process->getErrorOutput()
+
+            );
+        }
+
+
+
+        return $output;
+    }
     public function getDuration(
         string $path
     ): int {
@@ -169,7 +339,9 @@ class VideoProcessingService
 
 
 
-        $process->setTimeout(120);
+        $process->setTimeout(
+            120
+        );
 
 
         $process->run();
@@ -194,6 +366,12 @@ class VideoProcessingService
 
         );
     }
+
+
+
+
+
+
     public function getQuality(
         string $path
     ): ?string {
@@ -201,23 +379,33 @@ class VideoProcessingService
 
         $process = new Process([
 
+
             $this->ffprobePath,
+
 
             '-v',
 
             'error',
 
+
+
             '-select_streams',
 
             'v:0',
 
+
+
             '-show_entries',
 
-            'stream=height',
+            'stream=width,height',
+
+
 
             '-of',
 
             'csv=s=x:p=0',
+
+
 
             $path,
 
@@ -225,7 +413,9 @@ class VideoProcessingService
 
 
 
-        $process->setTimeout(120);
+        $process->setTimeout(
+            120
+        );
 
 
 
@@ -240,7 +430,7 @@ class VideoProcessingService
 
 
 
-        $height = (int) trim(
+        $resolution = trim(
 
             $process->getOutput()
 
@@ -248,19 +438,46 @@ class VideoProcessingService
 
 
 
+        if (! $resolution) {
+
+            return null;
+        }
+
+
+
+        [$width, $height] = array_map(
+
+            'intval',
+
+            explode(
+                'x',
+                $resolution
+            )
+
+        );
+
+
+
         return match (true) {
+
 
             $height >= 2160 => '4K',
 
+
             $height >= 1080 => '1080p',
+
 
             $height >= 720 => '720p',
 
+
             $height >= 480 => '480p',
+
 
             $height >= 360 => '360p',
 
-            default => null,
+
+            default =>
+            $width . 'x' . $height,
         };
     }
 
@@ -275,13 +492,17 @@ class VideoProcessingService
     ): string {
 
 
-        $directory = $video->directory . '/thumbnails';
+        $directory =
+            $video->directory
+            .
+            '/thumbnails';
 
 
 
-        $thumbnailDirectory = public_path(
-            $directory
-        );
+        $thumbnailDirectory =
+            public_path(
+                $directory
+            );
 
 
 
@@ -301,44 +522,86 @@ class VideoProcessingService
 
 
 
-        $filename = 'thumb_' . uniqid() . '.jpg';
+        $filename =
+            'thumb_'
+            .
+            uniqid()
+            .
+            '.jpg';
 
 
 
-        $output = $thumbnailDirectory . DIRECTORY_SEPARATOR . $filename;
+        $output =
+            $thumbnailDirectory
+            .
+            DIRECTORY_SEPARATOR
+            .
+            $filename;
+
+
 
 
 
         $process = new Process([
 
+
             $this->ffmpegPath,
+
 
             '-i',
 
+
             $video->fullPath(),
+
+
 
             '-ss',
 
+
             (string) config(
+
                 'video.thumbnail_second',
+
                 3
+
             ),
+
+
 
             '-frames:v',
 
+
             '1',
+
+
+
+            '-vf',
+
+
+            'scale=640:-2',
+
+
 
             '-q:v',
 
+
             '2',
 
+
+
+            '-y',
+
+
             $output,
+
 
         ]);
 
 
 
-        $process->setTimeout(180);
+        $process->setTimeout(
+            180
+        );
 
 
 
@@ -351,8 +614,8 @@ class VideoProcessingService
 
             throw new RuntimeException(
 
-                'Thumbnail generation failed: ' .
-
+                'Thumbnail generation failed: '
+                    .
                     $process->getErrorOutput()
 
             );

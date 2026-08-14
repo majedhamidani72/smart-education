@@ -3,30 +3,29 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\VideoResource\Pages;
+use App\Models\Book;
+use App\Models\Chapter;
+use App\Models\Section;
 use App\Models\Video;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class VideoResource extends Resource
 {
     protected static ?string $model = Video::class;
 
-
     protected static ?string $navigationIcon = 'heroicon-o-video-camera';
-
 
     protected static ?string $navigationGroup = 'مدیریت آموزش';
 
-
     protected static ?string $navigationLabel = 'ویدئوها';
 
-
     protected static ?string $modelLabel = 'ویدئو';
-
 
     protected static ?string $pluralModelLabel = 'ویدئوها';
 
@@ -34,366 +33,536 @@ class VideoResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
+        return $form->schema([
 
 
-                Forms\Components\Select::make('content_item_id')
+            Forms\Components\Select::make('book_id')
+                ->label('کتاب')
+                ->options(function () {
 
-                    ->label('محتوای آموزشی')
+                    $user = Auth::user();
 
-                    ->relationship(
-                        'contentItem',
-                        'title'
+
+                    if (
+                        $user &&
+                        $user->hasRole('Teacher')
+                    ) {
+
+                        return Book::whereHas(
+                            'teacherAssignments',
+                            fn($query) =>
+                            $query
+                                ->where(
+                                    'teacher_id',
+                                    $user->id
+                                )
+                                ->where(
+                                    'is_active',
+                                    true
+                                )
+                        )
+                            ->where(
+                                'is_active',
+                                true
+                            )
+                            ->pluck(
+                                'title',
+                                'id'
+                            );
+                    }
+
+
+                    return Book::where(
+                        'is_active',
+                        true
                     )
-
-                    ->searchable()
-
-                    ->preload()
-
-                    ->required()
-                    ,
-
-
-
-
-
-                Forms\Components\FileUpload::make('video_file')
-
-                    ->label('فایل ویدئو')
-
-                    ->disk('local')
-
-                    ->directory('livewire-tmp')
-
-                    ->visibility('private')
-
-                    ->acceptedFileTypes([
-
-                        'video/mp4',
-
-                        'video/webm',
-
-                        'video/x-matroska',
-
-                    ])
-
-                    ->maxSize(512000)
-
-                    ->required()
-
-                    ->preserveFilenames(false)
-
-                    ->storeFileNamesIn('original_name')
-
-                    ->columnSpanFull(),
+                        ->pluck(
+                            'title',
+                            'id'
+                        );
+                })
+                ->searchable()
+                ->preload()
+                ->live()
+                ->required(),
 
 
 
 
+            Forms\Components\Select::make('chapter_id')
+                ->label('فصل')
+                ->options(function (Forms\Get $get) {
 
-                Forms\Components\TextInput::make('quality')
-
-                    ->label('کیفیت')
-
-                    ->maxLength(30),
-
+                    $bookId = $get('book_id');
 
 
+                    if (! $bookId) {
+
+                        return [];
+                    }
 
 
-                Forms\Components\Toggle::make('download_allowed')
+                    return Chapter::where(
+                        'book_id',
+                        $bookId
+                    )
+                        ->where(
+                            'is_active',
+                            true
+                        )
+                        ->orderBy(
+                            'sort_order'
+                        )
+                        ->pluck(
+                            'title',
+                            'id'
+                        );
+                })
+                ->searchable()
+                ->live()
+                ->required()
 
-                    ->label('اجازه دانلود')
+                ->createOptionForm([
 
-                    ->default(false),
-                Forms\Components\Select::make('processing_status')
+                    Forms\Components\TextInput::make('title')
+                        ->label('عنوان فصل')
+                        ->required(),
 
-                    ->label('وضعیت پردازش')
+                ])
 
-                    ->options([
+                ->createOptionUsing(function (array $data, Forms\Get $get) {
 
-                        'pending' => 'در انتظار بررسی',
+                    return Chapter::create([
 
-                        'processing' => 'در حال پردازش',
+                        'book_id' =>
+                        $get('book_id'),
 
-                        'approved' => 'تأیید شده',
+                        'title' =>
+                        $data['title'],
 
-                        'rejected' => 'رد شده',
+                        'slug' =>
+                        Str::slug(
+                            $data['title']
+                        ),
 
-                    ])
+                        'is_active' =>
+                        true,
 
-                    ->disabled()
+                        'sort_order' =>
+                        1,
 
-                    ->dehydrated(false),
+                    ])->id;
+                }),
 
 
 
 
+            Forms\Components\Select::make('section_id')
+                ->label('بخش')
+                ->options(function (Forms\Get $get) {
 
-                Forms\Components\Textarea::make('rejected_reason')
+                    $chapterId = $get('chapter_id');
 
-                    ->label('دلیل رد')
 
-                    ->rows(4)
+                    if (! $chapterId) {
 
-                    ->columnSpanFull(),
+                        return [];
+                    }
 
-            ]);
+
+                    return Section::where(
+                        'chapter_id',
+                        $chapterId
+                    )
+                        ->where(
+                            'is_active',
+                            true
+                        )
+                        ->orderBy(
+                            'sort_order'
+                        )
+                        ->pluck(
+                            'title',
+                            'id'
+                        );
+                })
+                ->searchable()
+                ->required()
+
+                ->createOptionForm([
+
+                    Forms\Components\TextInput::make('title')
+                        ->label('عنوان بخش')
+                        ->required(),
+
+                ])
+
+                ->createOptionUsing(function (array $data, Forms\Get $get) {
+
+                    return Section::create([
+
+                        'chapter_id' =>
+                        $get('chapter_id'),
+
+                        'title' =>
+                        $data['title'],
+
+                        'slug' =>
+                        Str::slug(
+                            $data['title']
+                        ),
+
+                        'is_active' =>
+                        true,
+
+                        'sort_order' =>
+                        1,
+
+                    ])->id;
+                }),
+
+
+
+
+            Forms\Components\TextInput::make('title')
+                ->label('عنوان محتوا')
+                ->required()
+                ->maxLength(255),
+
+
+
+            Forms\Components\TextInput::make('page_number')
+                ->label('شماره صفحه')
+                ->numeric(),
+            Forms\Components\FileUpload::make('video_file')
+                ->label('فایل ویدئو')
+
+                ->disk('public')
+
+                ->directory('uploads/videos')
+
+                ->visibility('public')
+
+                ->acceptedFileTypes([
+
+                    'video/mp4',
+
+                    'video/webm',
+
+                    'video/x-matroska',
+
+                ])
+
+                ->maxSize(204800)
+
+                ->required(
+                    fn(string $operation) =>
+                    $operation === 'create'
+                )
+
+                ->preserveFilenames(false)
+
+                ->storeFileNamesIn('original_name')
+
+                ->dehydrated(
+                    fn($state) =>
+                    filled($state)
+                )
+
+                ->columnSpanFull(),
+
+
+
+
+            Forms\Components\Toggle::make('download_allowed')
+                ->label('اجازه دانلود')
+                ->default(false),
+
+
+
+
+            Forms\Components\Select::make('processing_status')
+                ->label('وضعیت پردازش')
+                ->options([
+
+                    'pending' =>
+                    'در انتظار بررسی',
+
+                    'processing' =>
+                    'در حال پردازش',
+
+                    'approved' =>
+                    'تایید شده',
+
+                    'rejected' =>
+                    'رد شده',
+
+                ])
+                ->default('pending'),
+
+
+
+
+            Forms\Components\Textarea::make('rejected_reason')
+                ->label('دلیل رد شدن')
+                ->rows(4)
+                ->columnSpanFull(),
+
+        ]);
     }
 
 
 
 
 
-    public static function table(Table $table): Table
-    {
+
+    public static function mutateFormDataBeforeFill(
+        array $data
+    ): array {
+
+
+        $video = Video::with([
+
+            'contentItem.section.chapter.book',
+
+        ])
+            ->find(
+                request()->route('record')
+            );
+
+
+
+        if (! $video) {
+
+            return $data;
+        }
+
+
+
+        $contentItem = $video->contentItem;
+
+
+
+        if ($contentItem) {
+
+
+            $data['title'] =
+                $contentItem->title;
+
+
+
+            $data['page_number'] =
+                $contentItem->page_number;
+
+
+
+            if ($contentItem->section) {
+
+
+                $data['section_id'] =
+                    $contentItem->section_id;
+
+
+
+                $data['chapter_id'] =
+                    $contentItem
+                    ->section
+                    ->chapter_id;
+
+
+
+                $data['book_id'] =
+                    $contentItem
+                    ->section
+                    ->chapter
+                    ->book_id;
+            }
+        }
+
+
+
+
+        $data['download_allowed'] =
+            $video->download_allowed;
+
+
+
+        $data['processing_status'] =
+            $video->processing_status;
+
+
+
+        $data['rejected_reason'] =
+            $video->rejected_reason;
+
+
+
+        if (
+
+            $video->directory
+
+            &&
+
+            $video->filename
+
+        ) {
+
+
+            $data['video_file'] = [
+
+                $video->directory
+                    .
+                    '/'
+                    .
+                    $video->filename,
+
+            ];
+        }
+
+
+
+
+        return $data;
+    }
+
+
+
+
+
+
+    public static function table(
+        Table $table
+    ): Table {
+
         return $table
+
+            ->defaultSort(
+                'created_at',
+                'desc'
+            )
 
             ->columns([
 
 
-
                 Tables\Columns\TextColumn::make('id')
-
                     ->label('#')
-
                     ->sortable(),
 
 
 
+                Tables\Columns\TextColumn::make(
+                    'contentItem.section.chapter.book.title'
+                )
+                    ->label('کتاب')
+                    ->searchable(),
 
 
-                Tables\Columns\TextColumn::make('contentItem.title')
 
-                    ->label('محتوا')
+                Tables\Columns\TextColumn::make(
+                    'contentItem.section.chapter.title'
+                )
+                    ->label('فصل')
+                    ->searchable(),
 
+
+
+                Tables\Columns\TextColumn::make(
+                    'contentItem.section.title'
+                )
+                    ->label('بخش')
+                    ->searchable(),
+
+
+
+                Tables\Columns\TextColumn::make(
+                    'contentItem.title'
+                )
+                    ->label('عنوان')
                     ->searchable()
-
                     ->sortable(),
 
 
 
-
-
-                Tables\Columns\TextColumn::make('uploader.name')
-
-                    ->label('آپلودکننده')
-
-                    ->searchable(),
+                Tables\Columns\TextColumn::make(
+                    'contentItem.page_number'
+                )
+                    ->label('صفحه'),
 
 
 
-
-
-                Tables\Columns\TextColumn::make('original_name')
-
-                    ->label('نام فایل')
-
-                    ->limit(40)
-
-                    ->searchable(),
+                Tables\Columns\TextColumn::make(
+                    'uploader.name'
+                )
+                    ->label('آپلود کننده'),
 
 
 
-
-
-                Tables\Columns\BadgeColumn::make('processing_status')
-
+                Tables\Columns\BadgeColumn::make(
+                    'processing_status'
+                )
                     ->label('وضعیت')
-
                     ->colors([
 
-                        'warning' => 'pending',
+                        'warning' =>
+                        'pending',
 
-                        'info' => 'processing',
+                        'info' =>
+                        'processing',
 
-                        'success' => 'approved',
+                        'success' =>
+                        'approved',
 
-                        'danger' => 'rejected',
+                        'danger' =>
+                        'rejected',
 
                     ]),
 
 
 
 
-
-                Tables\Columns\TextColumn::make('file_size')
-
+                Tables\Columns\TextColumn::make(
+                    'file_size'
+                )
                     ->label('حجم')
-
                     ->formatStateUsing(
-
-                        fn($state) => $state
-
-                            ? round($state / 1024 / 1024, 2) . ' MB'
-
+                        fn($state) =>
+                        $state
+                            ? round(
+                                $state / 1024 / 1024,
+                                2
+                            )
+                            . ' MB'
                             : '-'
-
                     ),
 
 
 
 
-
-                Tables\Columns\TextColumn::make('duration')
-
+                Tables\Columns\TextColumn::make(
+                    'duration'
+                )
                     ->label('مدت زمان')
-
                     ->formatStateUsing(
-
-                        fn($state) => $state
-
-                            ? gmdate('H:i:s', $state)
-
+                        fn($state) =>
+                        $state
+                            ? gmdate(
+                                'H:i:s',
+                                $state
+                            )
                             : '-'
-
                     ),
 
-
-
-
-
-                Tables\Columns\TextColumn::make('created_at')
-
-                    ->label('تاریخ')
-
-                    ->dateTime(),
-
             ])
-
-
-
-
-
-            ->filters([
-
-
-
-                Tables\Filters\SelectFilter::make('processing_status')
-
-                    ->label('وضعیت')
-
-                    ->options([
-
-                        'pending' => 'در انتظار بررسی',
-
-                        'processing' => 'در حال پردازش',
-
-                        'approved' => 'تأیید شده',
-
-                        'rejected' => 'رد شده',
-
-                    ]),
-
-            ])
-
-
-
-
 
             ->actions([
 
-
-
                 Tables\Actions\EditAction::make(),
-
-
-
-
-
-                Tables\Actions\Action::make('approve')
-
-                    ->label('تأیید')
-
-                    ->color('success')
-
-                    ->requiresConfirmation()
-
-                    ->visible(
-
-                        fn(Video $record) =>
-
-                        $record->processing_status === 'pending'
-
-                    )
-
-                    ->action(
-
-                        fn(Video $record) =>
-
-                        app(\App\Services\VideoService::class)
-
-                            ->approve($record)
-
-                    ),
-
-
-
-
-
-                Tables\Actions\Action::make('reject')
-
-                    ->label('رد')
-
-                    ->color('danger')
-
-                    ->form([
-
-                        Forms\Components\Textarea::make('reason')
-
-                            ->label('دلیل رد')
-
-                            ->required(),
-
-                    ])
-
-                    ->visible(
-
-                        fn(Video $record) =>
-
-                        $record->processing_status === 'pending'
-
-                    )
-
-                    ->action(
-
-                        fn(Video $record, array $data) =>
-
-                        app(\App\Services\VideoService::class)
-
-                            ->reject(
-
-                                $record,
-
-                                $data['reason']
-
-                            )
-
-                    ),
-
-
-
-
 
                 Tables\Actions\DeleteAction::make(),
 
-            ])
-
-
-
-
-
-            ->bulkActions([
-
-                Tables\Actions\BulkActionGroup::make([
-
-                    Tables\Actions\DeleteBulkAction::make(),
-
-                ]),
-
             ]);
     }
+
 
 
 
@@ -408,15 +577,20 @@ class VideoResource extends Resource
 
 
 
+
     public static function getPages(): array
     {
+
         return [
 
-            'index'  => Pages\ListVideos::route('/'),
+            'index' =>
+            Pages\ListVideos::route('/'),
 
-            'create' => Pages\CreateVideo::route('/create'),
+            'create' =>
+            Pages\CreateVideo::route('/create'),
 
-            'edit'   => Pages\EditVideo::route('/{record}/edit'),
+            'edit' =>
+            Pages\EditVideo::route('/{record}/edit'),
 
         ];
     }

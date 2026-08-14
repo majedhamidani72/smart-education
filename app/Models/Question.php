@@ -61,14 +61,11 @@ class Question extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Relationships
+    | Relations
     |--------------------------------------------------------------------------
     */
 
 
-    /**
-     * محتوای آموزشی مربوط به سوال
-     */
     public function contentItem(): BelongsTo
     {
         return $this->belongsTo(
@@ -79,9 +76,6 @@ class Question extends Model
 
 
 
-    /**
-     * موضوع سوال
-     */
     public function topic(): BelongsTo
     {
         return $this->belongsTo(
@@ -92,9 +86,6 @@ class Question extends Model
 
 
 
-    /**
-     * سازنده سوال
-     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(
@@ -105,9 +96,6 @@ class Question extends Model
 
 
 
-    /**
-     * مدیر بررسی کننده
-     */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(
@@ -118,9 +106,6 @@ class Question extends Model
 
 
 
-    /**
-     * آزمون‌هایی که این سوال داخل آن‌ها استفاده شده
-     */
     public function quizzes(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -139,9 +124,6 @@ class Question extends Model
 
 
 
-    /**
-     * گزینه‌های سوال
-     */
     public function options(): HasMany
     {
         return $this->hasMany(
@@ -151,14 +133,53 @@ class Question extends Model
 
 
 
-    /**
-     * پاسخ‌های ثبت شده دانش‌آموزان
-     */
     public function questionAttempts(): HasMany
     {
         return $this->hasMany(
             QuestionAttempt::class
         );
+    }
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Helpers
+    |--------------------------------------------------------------------------
+    */
+
+
+
+    /**
+     * دریافت کتاب مربوط به سوال
+     *
+     * Question
+     *  |
+     * ContentItem
+     *  |
+     * Section
+     *  |
+     * Chapter
+     *  |
+     * Book
+     */
+    public function getBookAttribute(): ?Book
+    {
+
+        return $this->contentItem
+            ?->section
+            ?->chapter
+            ?->book;
+
+    }
+
+
+    /**
+     * دریافت شناسه کتاب
+     */
+    public function getBookIdAttribute(): ?int
+    {
+        return $this->book?->id;
     }
 
 }

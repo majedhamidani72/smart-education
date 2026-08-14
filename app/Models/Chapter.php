@@ -5,11 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Chapter extends Model
 {
     use HasFactory, SoftDeletes;
-
 
 
     protected $fillable = [
@@ -43,8 +44,10 @@ class Chapter extends Model
 
 
 
-    // هر فصل متعلق به یک کتاب است
-    public function book()
+    /**
+     * فصل متعلق به یک کتاب است
+     */
+    public function book(): BelongsTo
     {
         return $this->belongsTo(
             Book::class
@@ -53,12 +56,13 @@ class Chapter extends Model
 
 
 
-    // هر فصل چند بخش دارد
-    public function sections()
+    /**
+     * فصل دارای چند بخش است
+     */
+    public function sections(): HasMany
     {
         return $this->hasMany(
             Section::class
         );
     }
-
 }

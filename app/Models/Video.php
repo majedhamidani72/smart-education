@@ -10,14 +10,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-
 class Video extends Model
 {
-
-    use HasFactory;
-    use SoftDeletes;
-
-
+    use HasFactory, SoftDeletes;
 
 
     protected $fillable = [
@@ -60,9 +55,6 @@ class Video extends Model
 
 
 
-
-
-
     protected function casts(): array
     {
         return [
@@ -82,10 +74,6 @@ class Video extends Model
 
 
 
-
-
-
-
     /*
     |--------------------------------------------------------------------------
     | Relationships
@@ -93,6 +81,9 @@ class Video extends Model
     */
 
 
+    /**
+     * اطلاعات آموزشی ویدئو
+     */
     public function contentItem(): BelongsTo
     {
         return $this->belongsTo(
@@ -102,8 +93,9 @@ class Video extends Model
 
 
 
-
-
+    /**
+     * معلم یا کاربر آپلود کننده
+     */
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(
@@ -114,8 +106,9 @@ class Video extends Model
 
 
 
-
-
+    /**
+     * تایید کننده محتوا
+     */
     public function approver(): BelongsTo
     {
         return $this->belongsTo(
@@ -123,10 +116,6 @@ class Video extends Model
             'approved_by'
         );
     }
-
-
-
-
 
 
 
@@ -141,18 +130,17 @@ class Video extends Model
     {
         return Attribute::make(
 
-            get: fn () => $this->directory && $this->filename
+            get: fn () =>
+                $this->directory && $this->filename
 
-                ? asset(
-                    $this->directory . '/' . $this->filename
-                )
+                    ? asset(
+                        $this->directory.'/'.$this->filename
+                    )
 
-                : null
+                    : null
 
         );
     }
-
-
 
 
 
@@ -160,16 +148,17 @@ class Video extends Model
     {
         return Attribute::make(
 
-            get: fn () => $this->thumbnail_path
+            get: fn () =>
+                $this->thumbnail_path
 
-                ? asset($this->thumbnail_path)
+                    ? asset(
+                        $this->thumbnail_path
+                    )
 
-                : null
+                    : null
 
         );
     }
-
-
 
 
 
@@ -179,7 +168,6 @@ class Video extends Model
 
             get: function () {
 
-
                 if (! $this->file_size) {
 
                     return null;
@@ -187,24 +175,15 @@ class Video extends Model
                 }
 
 
-
                 return round(
-
                     $this->file_size / 1024 / 1024,
-
                     2
-
-                ) . ' MB';
-
+                ).' MB';
 
             }
 
         );
     }
-
-
-
-
 
 
 
@@ -218,13 +197,10 @@ class Video extends Model
     public function fullPath(): string
     {
         return public_path(
-
-            $this->directory
-            . '/'
-            . $this->filename
-
+            $this->directory.'/'.$this->filename
         );
     }
+
 
 
     public function isApproved(): bool
@@ -233,15 +209,16 @@ class Video extends Model
     }
 
 
+
     public function isPending(): bool
     {
         return $this->processing_status === 'pending';
     }
 
 
+
     public function isRejected(): bool
     {
         return $this->processing_status === 'rejected';
     }
-
 }

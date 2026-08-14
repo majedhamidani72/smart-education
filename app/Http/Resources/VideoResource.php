@@ -9,22 +9,99 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class VideoResource extends JsonResource
 {
-    /**
-     * تبدیل مدل به خروجی API
-     */
     public function toArray(Request $request): array
     {
         return [
 
+            'id' => $this->id,
+
+
             /*
             |--------------------------------------------------------------------------
-            | Basic
+            | Educational Structure
             |--------------------------------------------------------------------------
             */
 
-            'id' => $this->id,
+            'content_item' => [
 
-            'content_item_id' => $this->content_item_id,
+                'id' => $this->whenLoaded(
+                    'contentItem',
+                    fn () => $this->contentItem?->id
+                ),
+
+
+                'title' => $this->whenLoaded(
+                    'contentItem',
+                    fn () => $this->contentItem?->title
+                ),
+
+
+                'page_number' => $this->whenLoaded(
+                    'contentItem',
+                    fn () => $this->contentItem?->page_number
+                ),
+
+
+                'section' => $this->whenLoaded(
+                    'contentItem',
+                    fn () => $this->contentItem?->section
+                        ? [
+
+                            'id' =>
+                                $this->contentItem
+                                    ->section
+                                    ->id,
+
+
+                            'title' =>
+                                $this->contentItem
+                                    ->section
+                                    ->title,
+
+
+                            'chapter' => [
+
+                                'id' =>
+                                    $this->contentItem
+                                        ->section
+                                        ->chapter
+                                        ?->id,
+
+
+                                'title' =>
+                                    $this->contentItem
+                                        ->section
+                                        ->chapter
+                                        ?->title,
+
+
+                                'book' => [
+
+                                    'id' =>
+                                        $this->contentItem
+                                            ->section
+                                            ->chapter
+                                            ?->book
+                                            ?->id,
+
+
+                                    'title' =>
+                                        $this->contentItem
+                                            ->section
+                                            ->chapter
+                                            ?->book
+                                            ?->title,
+
+                                ],
+
+                            ],
+
+                        ]
+                        : null
+                ),
+
+            ],
+
 
 
             /*
@@ -33,31 +110,35 @@ class VideoResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
+
             'uploader' => [
 
                 'id' => $this->whenLoaded(
                     'uploader',
-                    fn() => $this->uploader?->id
+                    fn () => $this->uploader?->id
                 ),
+
 
                 'name' => $this->whenLoaded(
                     'uploader',
-                    fn() => $this->uploader?->name
+                    fn () => $this->uploader?->name
                 ),
 
             ],
+
 
 
             'approver' => [
 
                 'id' => $this->whenLoaded(
                     'approver',
-                    fn() => $this->approver?->id
+                    fn () => $this->approver?->id
                 ),
+
 
                 'name' => $this->whenLoaded(
                     'approver',
-                    fn() => $this->approver?->name
+                    fn () => $this->approver?->name
                 ),
 
             ],
@@ -70,7 +151,9 @@ class VideoResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
+
             'directory' => $this->directory,
+
 
             'filename' => $this->filename,
 
@@ -84,11 +167,15 @@ class VideoResource extends JsonResource
                 : null,
 
 
+
             'original_name' => $this->original_name,
+
 
             'extension' => $this->extension,
 
+
             'mime_type' => $this->mime_type,
+
 
             'file_size' => $this->file_size,
 
@@ -100,7 +187,9 @@ class VideoResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
+
             'duration' => $this->duration,
+
 
             'quality' => $this->quality,
 
@@ -119,7 +208,9 @@ class VideoResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
+
             'views_count' => $this->views_count,
+
 
             'download_allowed' => $this->download_allowed,
 
@@ -127,13 +218,16 @@ class VideoResource extends JsonResource
 
             /*
             |--------------------------------------------------------------------------
-            | Approval Workflow
+            | Approval
             |--------------------------------------------------------------------------
             */
 
+
             'processing_status' => $this->processing_status,
 
+
             'approved_at' => $this->approved_at,
+
 
             'rejected_reason' => $this->rejected_reason,
 
@@ -145,7 +239,9 @@ class VideoResource extends JsonResource
             |--------------------------------------------------------------------------
             */
 
+
             'created_at' => $this->created_at,
+
 
             'updated_at' => $this->updated_at,
 

@@ -102,6 +102,9 @@ use App\Repositories\Interfaces\PaymentTransactionRepositoryInterface;
 use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Services\Payment\Providers\ZibalProvider;
 
+use App\Repositories\Eloquent\TeacherAssignmentRepository;
+use App\Repositories\Interfaces\TeacherAssignmentRepositoryInterface;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -241,6 +244,12 @@ class AppServiceProvider extends ServiceProvider
             PaymentTransactionRepository::class
         );
 
+        // Teacher Assignment
+        $this->app->singleton(
+            TeacherAssignmentRepositoryInterface::class,
+            TeacherAssignmentRepository::class
+        );
+
 
 
 
@@ -261,7 +270,7 @@ class AppServiceProvider extends ServiceProvider
             SmsProviderInterface::class,
             MockSmsProvider::class
         );
-        
+
 
         /*|--------------------------------------------------------------------------
         | Payment Gateway

@@ -22,6 +22,8 @@ use App\Models\Subscription;
 use App\Models\Video;
 use App\Models\Device;
 use App\Models\OtpCode;
+use App\Models\TeacherAssignment;
+use App\Policies\TeacherAssignmentPolicy;
 
 use App\Policies\DevicePolicy;
 use App\Policies\OtpCodePolicy;
@@ -95,6 +97,9 @@ class AuthServiceProvider extends ServiceProvider
 
         OtpCode::class => OtpCodePolicy::class,
 
+        TeacherAssignment::class => TeacherAssignmentPolicy::class,
+
+        
     ];
 
     /**

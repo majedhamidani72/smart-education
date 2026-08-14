@@ -9,7 +9,9 @@ class GradeSubject extends Model
 {
     use HasFactory;
 
+
     protected $table = 'grade_subject';
+
 
     protected $fillable = [
         'grade_id',
@@ -18,6 +20,7 @@ class GradeSubject extends Model
         'sort_order',
     ];
 
+
     protected function casts(): array
     {
         return [
@@ -25,27 +28,27 @@ class GradeSubject extends Model
         ];
     }
 
-    /**
-     * پایه
-     */
+
     public function grade()
     {
-        return $this->belongsTo(Grade::class);
+        return $this->belongsTo(
+            Grade::class
+        );
     }
 
-    /**
-     * درس
-     */
+
     public function subject()
     {
-        return $this->belongsTo(Subject::class);
+        return $this->belongsTo(
+            Subject::class
+        );
     }
 
-    /**
-     * کتاب‌های این پایه و درس
-     */
+
     public function books()
     {
-        return $this->hasMany(Book::class);
+        return $this->hasMany(
+            Book::class
+        );
     }
 }

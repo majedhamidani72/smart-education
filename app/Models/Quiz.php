@@ -82,7 +82,7 @@ class Quiz extends Model
 
 
     /**
-     * ارتباط آزمون با بخش، فصل یا کتاب
+     * ارتباط چندریختی آزمون
      */
     public function quizable()
     {
@@ -105,7 +105,7 @@ class Quiz extends Model
 
 
     /**
-     * مدیر بررسی کننده
+     * بررسی کننده
      */
     public function reviewer()
     {
@@ -139,13 +139,90 @@ class Quiz extends Model
 
 
     /**
-     * شرکت‌های کاربران در آزمون
+     * تلاش‌های کاربران
      */
     public function attempts()
     {
         return $this->hasMany(
             QuizAttempt::class
         );
+    }
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Helpers
+    |--------------------------------------------------------------------------
+    */
+
+
+
+    /**
+     * دریافت کتاب مربوط به آزمون
+     *
+     * آزمون می‌تواند:
+     *
+     * Book
+     * Chapter
+     * Section
+     *
+     * باشد.
+     */
+    public function getBookAttribute(): ?Book
+    {
+
+        if ($this->quizable instanceof Book) {
+
+            return $this->quizable;
+
+        }
+
+
+
+        if ($this->quizable instanceof Chapter) {
+
+            return $this->quizable->book;
+
+        }
+
+
+
+        if ($this->quizable instanceof Section) {
+
+            return $this->quizable
+                ->chapter
+                ->book;
+
+        }
+
+
+
+        return null;
+    }
+
+
+
+    /**
+     * بررسی نوع آزمون
+     */
+    public function isBookQuiz(): bool
+    {
+        return $this->quizable_type === Book::class;
+    }
+
+
+
+    public function isChapterQuiz(): bool
+    {
+        return $this->quizable_type === Chapter::class;
+    }
+
+
+
+    public function isSectionQuiz(): bool
+    {
+        return $this->quizable_type === Section::class;
     }
 
 }
