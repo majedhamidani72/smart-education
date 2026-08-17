@@ -67,13 +67,10 @@ class TeacherAssignmentResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()
-            &&
-            (
-                auth()->user()->hasRole('SuperAdmin')
-                ||
-                auth()->user()->hasRole('Admin')
-            );
+        // این Resource دیگر در منو نمایش داده نمی‌شود. اختصاص
+        // کتاب به معلم حالا مستقیماً داخل فرم TeacherResource
+        // (همان لحظه‌ی ساخت/ویرایش معلم) انجام می‌گیرد.
+        return false;
     }
 
 
@@ -125,11 +122,11 @@ class TeacherAssignmentResource extends Resource
 
                     fn($record) =>
 
-                    $record->gradeSubject->grade->title
+                    $record->appGradeSubject->grade->title
 
                         . ' - ' .
 
-                        $record->gradeSubject->subject->title
+                        $record->appGradeSubject->subject->title
 
                         . ' - ' .
 
@@ -210,7 +207,7 @@ class TeacherAssignmentResource extends Resource
 
 
                 Tables\Columns\TextColumn::make(
-                    'book.gradeSubject.grade.title'
+                    'book.appGradeSubject.grade.title'
                 )
 
                     ->label('پایه')
@@ -221,7 +218,7 @@ class TeacherAssignmentResource extends Resource
 
 
                 Tables\Columns\TextColumn::make(
-                    'book.gradeSubject.subject.title'
+                    'book.appGradeSubject.subject.title'
                 )
 
                     ->label('درس')

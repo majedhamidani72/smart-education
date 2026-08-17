@@ -18,6 +18,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -140,16 +141,31 @@ class ContentItemResource extends Resource
                                 ])
                                 ->createOptionUsing(function (array $data) {
 
+                                    // اگر اپلیکیشنی با همین عنوان (و در
+                                    // نتیجه همین slug) از قبل ساخته
+                                    // شده باشد، به‌جای خطای یکتایی یا
+                                    // ساخت رکورد تکراری، به کاربر
+                                    // اطلاع می‌دهیم که از قبل وجود
+                                    // دارد و همان انتخاب می‌شود.
+                                    $slug = Str::slug($data['title']);
+
+                                    $existing = App::where('slug', $slug)->first();
+
+                                    if ($existing) {
+
+                                        Notification::make()
+                                            ->title('این اپلیکیشن از قبل وجود دارد و انتخاب شد.')
+                                            ->warning()
+                                            ->send();
+
+                                        return $existing->id;
+                                    }
+
                                     $app = App::create([
-
                                         'title' => $data['title'],
-
-                                        'slug' => Str::slug($data['title']),
-
+                                        'slug' => $slug,
                                         'is_active' => $data['is_active'],
-
                                         'sort_order' => 1,
-
                                     ]);
 
                                     return $app->id;
@@ -236,18 +252,33 @@ class ContentItemResource extends Resource
                                 ])
                                 ->createOptionUsing(function (array $data) {
 
+                                    // پایه ممکن است قبلاً برای اپلیکیشن
+                                    // دیگری ساخته شده باشد. شماره‌ی
+                                    // پایه (grade_number) و slug هر دو
+                                    // در دیتابیس یکتا هستند، پس هر دو
+                                    // را بررسی می‌کنیم.
+                                    $slug = Str::slug($data['title']);
+
+                                    $existing = Grade::where('grade_number', $data['grade_number'])
+                                        ->orWhere('slug', $slug)
+                                        ->first();
+
+                                    if ($existing) {
+
+                                        Notification::make()
+                                            ->title('این پایه از قبل وجود دارد و انتخاب شد.')
+                                            ->warning()
+                                            ->send();
+
+                                        return $existing->id;
+                                    }
+
                                     $grade = Grade::create([
-
                                         'title' => $data['title'],
-
-                                        'slug' => Str::slug($data['title']),
-
+                                        'slug' => $slug,
                                         'grade_number' => $data['grade_number'],
-
                                         'sort_order' => $data['grade_number'],
-
                                         'is_active' => true,
-
                                     ]);
 
                                     // توجه: این پایه هنوز به هیچ اپلیکیشنی
@@ -341,17 +372,26 @@ class ContentItemResource extends Resource
                                 ->createOptionUsing(function (array $data, Get $get) {
 
                                     // درس ممکن است بین چند اپلیکیشن/پایه
-                                    // مشترک باشد، برای همین اول بررسی
-                                    // می‌کنیم که آیا با همین عنوان از
-                                    // قبل وجود دارد یا باید ساخته شود.
-                                    $subject = Subject::firstOrCreate(
-                                        ['title' => $data['title']],
-                                        [
-                                            'slug' => Str::slug($data['title']),
-                                            'sort_order' => 1,
-                                            'is_active' => true,
-                                        ]
-                                    );
+                                    // مشترک باشد؛ بر اساس slug بررسی
+                                    // می‌کنیم که آیا از قبل وجود دارد.
+                                    $slug = Str::slug($data['title']);
+
+                                    $existingSubject = Subject::where('slug', $slug)->first();
+
+                                    if ($existingSubject) {
+
+                                        Notification::make()
+                                            ->title('این درس از قبل وجود دارد و انتخاب شد.')
+                                            ->warning()
+                                            ->send();
+                                    }
+
+                                    $subject = $existingSubject ?? Subject::create([
+                                        'title' => $data['title'],
+                                        'slug' => $slug,
+                                        'sort_order' => 1,
+                                        'is_active' => true,
+                                    ]);
 
                                     // این همان لحظه‌ای‌ست که پیوند
                                     // سه‌طرفه‌ی اپلیکیشن+پایه+درس کامل
@@ -454,18 +494,30 @@ class ContentItemResource extends Resource
                                         ->where('subject_id', $get('subject_id'))
                                         ->first();
 
+                                    // یکتایی کتاب بر اساس ترکیب
+                                    // app_grade_subject_id + slug است.
+                                    $slug = Str::slug($data['title']);
+
+                                    $existing = Book::where('app_grade_subject_id', $appGradeSubject->id)
+                                        ->where('slug', $slug)
+                                        ->first();
+
+                                    if ($existing) {
+
+                                        Notification::make()
+                                            ->title('این کتاب از قبل وجود دارد و انتخاب شد.')
+                                            ->warning()
+                                            ->send();
+
+                                        return $existing->id;
+                                    }
+
                                     $book = Book::create([
-
                                         'app_grade_subject_id' => $appGradeSubject->id,
-
                                         'title' => $data['title'],
-
-                                        'slug' => Str::slug($data['title']),
-
+                                        'slug' => $slug,
                                         'sort_order' => $data['sort_order'],
-
                                         'is_active' => $data['is_active'],
-
                                     ]);
 
                                     return $book->id;
@@ -519,13 +571,29 @@ class ContentItemResource extends Resource
                         ])
                         ->createOptionUsing(function (array $data, Get $get) {
 
+                            $slug = Str::slug($data['title']);
+
+                            $existing = Chapter::where('book_id', $get('book_id'))
+                                ->where('slug', $slug)
+                                ->first();
+
+                            if ($existing) {
+
+                                Notification::make()
+                                    ->title('این فصل از قبل وجود دارد و انتخاب شد.')
+                                    ->warning()
+                                    ->send();
+
+                                return $existing->id;
+                            }
+
                             $chapter = Chapter::create([
 
                                 'book_id' => $get('book_id'),
 
                                 'title' => $data['title'],
 
-                                'slug' => Str::slug($data['title']),
+                                'slug' => $slug,
 
                                 'sort_order' => $data['sort_order'],
 
@@ -574,13 +642,29 @@ class ContentItemResource extends Resource
                         ])
                         ->createOptionUsing(function (array $data, Get $get) {
 
+                            $slug = Str::slug($data['title']);
+
+                            $existing = Section::where('chapter_id', $get('chapter_id'))
+                                ->where('slug', $slug)
+                                ->first();
+
+                            if ($existing) {
+
+                                Notification::make()
+                                    ->title('این بخش از قبل وجود دارد و انتخاب شد.')
+                                    ->warning()
+                                    ->send();
+
+                                return $existing->id;
+                            }
+
                             $section = Section::create([
 
                                 'chapter_id' => $get('chapter_id'),
 
                                 'title' => $data['title'],
 
-                                'slug' => Str::slug($data['title']),
+                                'slug' => $slug,
 
                                 'sort_order' => $data['sort_order'],
 
