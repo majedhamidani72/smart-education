@@ -658,7 +658,7 @@ class ContentItemResource extends Resource
 
                             return ContentType::query()
                                 ->whereKey($get('content_type_id'))
-                                ->value('slug') === 'video';
+                                ->value('slug') === 'teaching';
                         }),
 
                     Forms\Components\FileUpload::make('video.video_file')
@@ -676,7 +676,7 @@ class ContentItemResource extends Resource
 
                             return ContentType::query()
                                 ->whereKey($get('content_type_id'))
-                                ->value('slug') === 'video';
+                                ->value('slug') === 'teaching';
                         }),
 
                     /*
@@ -737,7 +737,7 @@ class ContentItemResource extends Resource
 
                             return ContentType::query()
                                 ->whereKey($get('content_type_id'))
-                                ->value('slug') === 'sample_question';
+                                ->value('slug') === 'sample_questions';
                         }),
 
                     Forms\Components\FileUpload::make('pdfFile.file')
@@ -758,7 +758,7 @@ class ContentItemResource extends Resource
 
                             return ContentType::query()
                                 ->whereKey($get('content_type_id'))
-                                ->value('slug') === 'sample_question';
+                                ->value('slug') === 'sample_questions';
                         }),
 
                 ]),

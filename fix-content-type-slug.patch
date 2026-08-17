@@ -1,0 +1,40 @@
+diff --git a/app/Filament/Resources/ContentItemResource.php b/app/Filament/Resources/ContentItemResource.php
+index 939812e..1ead2db 100644
+--- a/app/Filament/Resources/ContentItemResource.php
++++ b/app/Filament/Resources/ContentItemResource.php
+@@ -664,7 +664,7 @@ public static function form(Form $form): Form
+ 
+                             return ContentType::query()
+                                 ->whereKey($get('content_type_id'))
+-                                ->value('slug') === 'video';
++                                ->value('slug') === 'teaching';
+                         }),
+ 
+                     Forms\Components\FileUpload::make('video.video_file')
+@@ -682,7 +682,7 @@ public static function form(Form $form): Form
+ 
+                             return ContentType::query()
+                                 ->whereKey($get('content_type_id'))
+-                                ->value('slug') === 'video';
++                                ->value('slug') === 'teaching';
+                         }),
+ 
+                     /*
+@@ -743,7 +743,7 @@ public static function form(Form $form): Form
+ 
+                             return ContentType::query()
+                                 ->whereKey($get('content_type_id'))
+-                                ->value('slug') === 'sample_question';
++                                ->value('slug') === 'sample_questions';
+                         }),
+ 
+                     Forms\Components\FileUpload::make('pdfFile.file')
+@@ -764,7 +764,7 @@ public static function form(Form $form): Form
+ 
+                             return ContentType::query()
+                                 ->whereKey($get('content_type_id'))
+-                                ->value('slug') === 'sample_question';
++                                ->value('slug') === 'sample_questions';
+                         }),
+ 
+                 ]),
