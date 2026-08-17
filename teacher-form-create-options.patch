@@ -1,0 +1,227 @@
+diff --git a/app/Filament/Resources/TeacherResource.php b/app/Filament/Resources/TeacherResource.php
+index 022fe24..523625f 100644
+--- a/app/Filament/Resources/TeacherResource.php
++++ b/app/Filament/Resources/TeacherResource.php
+@@ -13,11 +13,13 @@
+ use Filament\Forms\Form;
+ use Filament\Forms\Get;
+ use Filament\Forms\Set;
++use Filament\Notifications\Notification;
+ use Filament\Resources\Resource;
+ use Filament\Tables;
+ use Filament\Tables\Table;
+ use Illuminate\Database\Eloquent\Builder;
+ use Illuminate\Database\Eloquent\SoftDeletingScope;
++use Illuminate\Support\Str;
+ 
+ /**
+  * مدیریت معلمان
+@@ -33,10 +35,11 @@
+  * ذخیره می‌شود یک رکورد TeacherAssignment است (نگاه کنید به
+  * Pages\CreateTeacher و Pages\EditTeacher).
+  *
+- * برخلاف فرم «ایجاد محتوا»، اینجا امکان «ایجاد» اپلیکیشن/پایه/
+- * درس/کتاب جدید وجود ندارد — چون طبق تصمیم پروژه، ساختار
+- * آموزشی را فقط سوپرادمین/ادمین از داخل «ایجاد محتوا» می‌سازد؛
+- * این فرم فقط از میان ساختار از قبل موجود انتخاب می‌کند.
++ * برخلاف فرم «ایجاد محتوا»، اینجا هم امکان «ایجاد» اپلیکیشن/
++ * پایه/درس/کتاب جدید وجود دارد (چون این فرم هم فقط در اختیار
++ * سوپرادمین/ادمین است، نه معلم). اگر چیزی که کاربر می‌خواهد
++ * بسازد از قبل موجود باشد، به‌جای خطای یکتایی، یک پیام هشدار
++ * نشان داده می‌شود و همان رکورد موجود انتخاب می‌شود.
+  */
+ class TeacherResource extends Resource
+ {
+@@ -131,6 +134,42 @@ public static function form(Form $form): Form
+                         ->live()
+                         ->dehydrated(false)
+                         ->required()
++                        ->createOptionForm([
++
++                            Forms\Components\TextInput::make('title')
++                                ->label('عنوان اپلیکیشن')
++                                ->required(),
++
++                            Forms\Components\Toggle::make('is_active')
++                                ->label('فعال')
++                                ->default(true),
++
++                        ])
++                        ->createOptionUsing(function (array $data) {
++
++                            $slug = Str::slug($data['title']);
++
++                            $existing = App::where('slug', $slug)->first();
++
++                            if ($existing) {
++
++                                Notification::make()
++                                    ->title('این اپلیکیشن از قبل وجود دارد و انتخاب شد.')
++                                    ->warning()
++                                    ->send();
++
++                                return $existing->id;
++                            }
++
++                            $app = App::create([
++                                'title' => $data['title'],
++                                'slug' => $slug,
++                                'is_active' => $data['is_active'],
++                                'sort_order' => 1,
++                            ]);
++
++                            return $app->id;
++                        })
+                         ->afterStateUpdated(function (Set $set) {
+ 
+                             $set('grade_id', null);
+@@ -159,6 +198,49 @@ public static function form(Form $form): Form
+                         ->live()
+                         ->dehydrated(false)
+                         ->required()
++                        ->createOptionForm([
++
++                            Forms\Components\TextInput::make('title')
++                                ->label('عنوان پایه')
++                                ->required(),
++
++                            Forms\Components\TextInput::make('grade_number')
++                                ->label('شماره پایه')
++                                ->numeric()
++                                ->required(),
++
++                        ])
++                        ->createOptionUsing(function (array $data) {
++
++                            $slug = Str::slug($data['title']);
++
++                            $existing = Grade::where('grade_number', $data['grade_number'])
++                                ->orWhere('slug', $slug)
++                                ->first();
++
++                            if ($existing) {
++
++                                Notification::make()
++                                    ->title('این پایه از قبل وجود دارد و انتخاب شد.')
++                                    ->warning()
++                                    ->send();
++
++                                return $existing->id;
++                            }
++
++                            $grade = Grade::create([
++                                'title' => $data['title'],
++                                'slug' => $slug,
++                                'grade_number' => $data['grade_number'],
++                                'sort_order' => $data['grade_number'],
++                                'is_active' => true,
++                            ]);
++
++                            // توجه: این پایه هنوز به هیچ اپلیکیشنی متصل
++                            // نیست؛ اتصال (app_grade_subjects) در مرحله‌ی
++                            // انتخاب/ایجاد «درس» کامل می‌شود.
++                            return $grade->id;
++                        })
+                         ->afterStateUpdated(function (Set $set) {
+ 
+                             $set('subject_id', null);
+@@ -188,6 +270,44 @@ public static function form(Form $form): Form
+                         ->live()
+                         ->dehydrated(false)
+                         ->required()
++                        ->createOptionForm([
++
++                            Forms\Components\TextInput::make('title')
++                                ->label('عنوان درس')
++                                ->required(),
++
++                        ])
++                        ->createOptionUsing(function (array $data, Get $get) {
++
++                            $slug = Str::slug($data['title']);
++
++                            $existingSubject = Subject::where('slug', $slug)->first();
++
++                            if ($existingSubject) {
++
++                                Notification::make()
++                                    ->title('این درس از قبل وجود دارد و انتخاب شد.')
++                                    ->warning()
++                                    ->send();
++                            }
++
++                            $subject = $existingSubject ?? Subject::create([
++                                'title' => $data['title'],
++                                'slug' => $slug,
++                                'sort_order' => 1,
++                                'is_active' => true,
++                            ]);
++
++                            // پیوند سه‌طرفه‌ی اپلیکیشن+پایه+درس همین‌جا
++                            // کامل می‌شود.
++                            AppGradeSubject::firstOrCreate([
++                                'app_id' => $get('app_id'),
++                                'grade_id' => $get('grade_id'),
++                                'subject_id' => $subject->id,
++                            ]);
++
++                            return $subject->id;
++                        })
+                         ->afterStateUpdated(function (Set $set) {
+ 
+                             $set('book_id', null);
+@@ -220,6 +340,54 @@ public static function form(Form $form): Form
+                         ->searchable()
+                         ->preload()
+                         ->required()
++                        ->createOptionForm([
++
++                            Forms\Components\TextInput::make('title')
++                                ->label('عنوان کتاب')
++                                ->required(),
++
++                            Forms\Components\TextInput::make('sort_order')
++                                ->numeric()
++                                ->default(1),
++
++                            Forms\Components\Toggle::make('is_active')
++                                ->default(true),
++
++                        ])
++                        ->createOptionUsing(function (array $data, Get $get) {
++
++                            $appGradeSubject = AppGradeSubject::query()
++                                ->where('app_id', $get('app_id'))
++                                ->where('grade_id', $get('grade_id'))
++                                ->where('subject_id', $get('subject_id'))
++                                ->first();
++
++                            $slug = Str::slug($data['title']);
++
++                            $existing = Book::where('app_grade_subject_id', $appGradeSubject->id)
++                                ->where('slug', $slug)
++                                ->first();
++
++                            if ($existing) {
++
++                                Notification::make()
++                                    ->title('این کتاب از قبل وجود دارد و انتخاب شد.')
++                                    ->warning()
++                                    ->send();
++
++                                return $existing->id;
++                            }
++
++                            $book = Book::create([
++                                'app_grade_subject_id' => $appGradeSubject->id,
++                                'title' => $data['title'],
++                                'slug' => $slug,
++                                'sort_order' => $data['sort_order'],
++                                'is_active' => $data['is_active'],
++                            ]);
++
++                            return $book->id;
++                        })
+                         ->helperText('معلم فقط به کتابی که اینجا مشخص می‌شود دسترسی خواهد داشت.'),
+ 
+                 ]),
