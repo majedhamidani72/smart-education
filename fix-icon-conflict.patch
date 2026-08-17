@@ -1,0 +1,187 @@
+diff --git a/app/Providers/Filament/AdminPanelProvider.php b/app/Providers/Filament/AdminPanelProvider.php
+index acba3fc..617ea4b 100644
+--- a/app/Providers/Filament/AdminPanelProvider.php
++++ b/app/Providers/Filament/AdminPanelProvider.php
+@@ -42,25 +42,27 @@ public function panel(
+ 
+             ->navigationGroups([
+ 
+-                // ترتیب و آیکون گروه‌های اصلی منو
++                // ترتیب گروه‌های اصلی منو
+                 // این آرایه فقط ترتیب نمایش را کنترل می‌کند؛
+                 // هر Resource با ملکیت navigationGroup خودش
+                 // به یکی از این گروه‌ها متصل می‌شود.
++                //
++                // نکته مهم: در Filament، یا گروه می‌تواند آیکون
++                // داشته باشد یا آیتم‌های داخل آن (Resourceها) —
++                // نه هر دو با هم. چون هر Resource همین حالا
++                // navigationIcon مخصوص به خودش را دارد،
++                // اینجا از icon() روی گروه استفاده نمی‌کنیم.
+ 
+                 NavigationGroup::make('مدیریت آموزش')
+-                    ->icon('heroicon-o-academic-cap')
+                     ->collapsed(false),
+ 
+                 NavigationGroup::make('آزمون آنلاین')
+-                    ->icon('heroicon-o-clipboard-document-check')
+                     ->collapsed(false),
+ 
+                 NavigationGroup::make('مدیریت کاربران')
+-                    ->icon('heroicon-o-users')
+                     ->collapsed(false),
+ 
+                 NavigationGroup::make('مدیریت سیستم')
+-                    ->icon('heroicon-o-cog-6-tooth')
+                     ->collapsed(false),
+ 
+             ])
+diff --git a/menu-reorg.patch b/menu-reorg.patch
+deleted file mode 100644
+index b970c7f..0000000
+--- a/menu-reorg.patch
++++ /dev/null
+@@ -1,144 +0,0 @@
+-diff --git a/app/Filament/Resources/BookResource.php b/app/Filament/Resources/BookResource.php
+-index 2df9d6f..cbffa61 100644
+---- a/app/Filament/Resources/BookResource.php
+-+++ b/app/Filament/Resources/BookResource.php
+-@@ -36,7 +36,7 @@ class BookResource extends Resource
+- 
+-     protected static ?string $pluralModelLabel = 'کتاب‌ها';
+- 
+--    protected static ?int $navigationSort = 3;
+-+    protected static ?int $navigationSort = 4;
+- 
+-     public static function form(Form $form): Form
+-     {
+-diff --git a/app/Filament/Resources/ChapterResource.php b/app/Filament/Resources/ChapterResource.php
+-index cdbf5c9..c2c4212 100644
+---- a/app/Filament/Resources/ChapterResource.php
+-+++ b/app/Filament/Resources/ChapterResource.php
+-@@ -37,7 +37,7 @@ class ChapterResource extends Resource
+- 
+-     protected static ?string $pluralModelLabel = 'فصل‌ها';
+- 
+--    protected static ?int $navigationSort = 4;
+-+    protected static ?int $navigationSort = 5;
+- 
+-     public static function form(Form $form): Form
+-     {
+-diff --git a/app/Filament/Resources/GradeResource.php b/app/Filament/Resources/GradeResource.php
+-index 6f759f5..63e9b40 100644
+---- a/app/Filament/Resources/GradeResource.php
+-+++ b/app/Filament/Resources/GradeResource.php
+-@@ -28,7 +28,7 @@ class GradeResource extends Resource
+- 
+-     protected static ?string $pluralModelLabel = 'پایه‌ها';
+- 
+--    protected static ?int $navigationSort = 1;
+-+    protected static ?int $navigationSort = 2;
+- 
+-     public static function form(Form $form): Form
+-     {
+-diff --git a/app/Filament/Resources/QuestionTopicResource.php b/app/Filament/Resources/QuestionTopicResource.php
+-index 50885b8..d8d2336 100644
+---- a/app/Filament/Resources/QuestionTopicResource.php
+-+++ b/app/Filament/Resources/QuestionTopicResource.php
+-@@ -18,7 +18,7 @@ class QuestionTopicResource extends Resource
+- 
+-     protected static ?string $navigationIcon = 'heroicon-o-tag';
+- 
+--    protected static ?string $navigationGroup = 'مدیریت آزمون';
+-+    protected static ?string $navigationGroup = 'آزمون آنلاین';
+- 
+-     protected static ?string $navigationLabel = 'موضوعات سوال';
+- 
+-@@ -26,6 +26,8 @@ class QuestionTopicResource extends Resource
+- 
+-     protected static ?string $pluralModelLabel = 'موضوعات سوال';
+- 
+-+    protected static ?int $navigationSort = 2;
+-+
+- 
+-     public static function form(Form $form): Form
+-     {
+-diff --git a/app/Filament/Resources/QuizResource.php b/app/Filament/Resources/QuizResource.php
+-index 08bdfe0..1598700 100644
+---- a/app/Filament/Resources/QuizResource.php
+-+++ b/app/Filament/Resources/QuizResource.php
+-@@ -45,7 +45,7 @@ class QuizResource extends Resource
+- 
+- 
+-     protected static ?string $navigationGroup =
+--    'مدیریت آزمون';
+-+    'آزمون آنلاین';
+- 
+- 
+- 
+-diff --git a/app/Filament/Resources/SectionResource.php b/app/Filament/Resources/SectionResource.php
+-index 9b32f32..f19f84a 100644
+---- a/app/Filament/Resources/SectionResource.php
+-+++ b/app/Filament/Resources/SectionResource.php
+-@@ -38,7 +38,7 @@ class SectionResource extends Resource
+- 
+-     protected static ?string $pluralModelLabel = 'بخش‌ها';
+- 
+--    protected static ?int $navigationSort = 5;
+-+    protected static ?int $navigationSort = 6;
+- 
+-     public static function form(Form $form): Form
+-     {
+-diff --git a/app/Filament/Resources/SubjectResource.php b/app/Filament/Resources/SubjectResource.php
+-index 93fd06f..f50766c 100644
+---- a/app/Filament/Resources/SubjectResource.php
+-+++ b/app/Filament/Resources/SubjectResource.php
+-@@ -31,7 +31,7 @@ class SubjectResource extends Resource
+- 
+-     protected static ?string $pluralModelLabel = 'درس‌ها';
+- 
+--    protected static ?int $navigationSort = 2;
+-+    protected static ?int $navigationSort = 3;
+- 
+-     public static function form(Form $form): Form
+-     {
+-diff --git a/app/Providers/Filament/AdminPanelProvider.php b/app/Providers/Filament/AdminPanelProvider.php
+-index a802aeb..acba3fc 100644
+---- a/app/Providers/Filament/AdminPanelProvider.php
+-+++ b/app/Providers/Filament/AdminPanelProvider.php
+-@@ -7,6 +7,7 @@
+- use Filament\Http\Middleware\AuthenticateSession;
+- use Filament\Http\Middleware\DisableBladeIconComponents;
+- use Filament\Http\Middleware\DispatchServingFilamentEvent;
+-+use Filament\Navigation\NavigationGroup;
+- use Filament\Pages;
+- use Filament\Panel;
+- use Filament\PanelProvider;
+-@@ -39,6 +40,31 @@ public function panel(
+-                 'primary' => Color::Blue,
+-             ])
+- 
+-+            ->navigationGroups([
+-+
+-+                // ترتیب و آیکون گروه‌های اصلی منو
+-+                // این آرایه فقط ترتیب نمایش را کنترل می‌کند؛
+-+                // هر Resource با ملکیت navigationGroup خودش
+-+                // به یکی از این گروه‌ها متصل می‌شود.
+-+
+-+                NavigationGroup::make('مدیریت آموزش')
+-+                    ->icon('heroicon-o-academic-cap')
+-+                    ->collapsed(false),
+-+
+-+                NavigationGroup::make('آزمون آنلاین')
+-+                    ->icon('heroicon-o-clipboard-document-check')
+-+                    ->collapsed(false),
+-+
+-+                NavigationGroup::make('مدیریت کاربران')
+-+                    ->icon('heroicon-o-users')
+-+                    ->collapsed(false),
+-+
+-+                NavigationGroup::make('مدیریت سیستم')
+-+                    ->icon('heroicon-o-cog-6-tooth')
+-+                    ->collapsed(false),
+-+
+-+            ])
+-+
+-             ->discoverResources(
+-                 in: app_path('Filament/Resources'),
+-                 for: 'App\\Filament\\Resources'

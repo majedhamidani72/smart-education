@@ -42,25 +42,27 @@ class AdminPanelProvider extends PanelProvider
 
             ->navigationGroups([
 
-                // ترتیب و آیکون گروه‌های اصلی منو
+                // ترتیب گروه‌های اصلی منو
                 // این آرایه فقط ترتیب نمایش را کنترل می‌کند؛
                 // هر Resource با ملکیت navigationGroup خودش
                 // به یکی از این گروه‌ها متصل می‌شود.
+                //
+                // نکته مهم: در Filament، یا گروه می‌تواند آیکون
+                // داشته باشد یا آیتم‌های داخل آن (Resourceها) —
+                // نه هر دو با هم. چون هر Resource همین حالا
+                // navigationIcon مخصوص به خودش را دارد،
+                // اینجا از icon() روی گروه استفاده نمی‌کنیم.
 
                 NavigationGroup::make('مدیریت آموزش')
-                    ->icon('heroicon-o-academic-cap')
                     ->collapsed(false),
 
                 NavigationGroup::make('آزمون آنلاین')
-                    ->icon('heroicon-o-clipboard-document-check')
                     ->collapsed(false),
 
                 NavigationGroup::make('مدیریت کاربران')
-                    ->icon('heroicon-o-users')
                     ->collapsed(false),
 
                 NavigationGroup::make('مدیریت سیستم')
-                    ->icon('heroicon-o-cog-6-tooth')
                     ->collapsed(false),
 
             ])
