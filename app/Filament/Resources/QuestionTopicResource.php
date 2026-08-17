@@ -18,13 +18,15 @@ class QuestionTopicResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
-    protected static ?string $navigationGroup = 'مدیریت آزمون';
+    protected static ?string $navigationGroup = 'آزمون آنلاین';
 
     protected static ?string $navigationLabel = 'موضوعات سوال';
 
     protected static ?string $modelLabel = 'موضوع سوال';
 
     protected static ?string $pluralModelLabel = 'موضوعات سوال';
+
+    protected static ?int $navigationSort = 2;
 
 
     public static function form(Form $form): Form

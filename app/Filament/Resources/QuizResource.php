@@ -45,7 +45,7 @@ class QuizResource extends Resource
 
 
     protected static ?string $navigationGroup =
-    'مدیریت آزمون';
+    'آزمون آنلاین';
 
 
 
