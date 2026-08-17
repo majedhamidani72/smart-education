@@ -22,3 +22,6 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# فایل‌های پچ موقتی (اعمال می‌شن و نباید توی گیت بمونن)
+*.patch
