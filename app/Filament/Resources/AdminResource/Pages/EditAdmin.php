@@ -47,6 +47,11 @@ class EditAdmin extends EditRecord
         $this->record->syncRoles(['Admin']);
     }
 
+    protected function getRedirectUrl(): string
+    {
+        return AdminResource::getUrl('index');
+    }
+
     protected function getSavedNotificationTitle(): ?string
     {
         return 'اطلاعات ادمین با موفقیت ویرایش شد.';

@@ -16,4 +16,9 @@ class EditQuestionTopic extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return QuestionTopicResource::getUrl('index');
+    }
 }

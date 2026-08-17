@@ -103,6 +103,11 @@ class EditTeacher extends EditRecord
         );
     }
 
+    protected function getRedirectUrl(): string
+    {
+        return TeacherResource::getUrl('index');
+    }
+
     protected function getSavedNotificationTitle(): ?string
     {
         return 'اطلاعات معلم با موفقیت ویرایش شد.';
