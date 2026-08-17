@@ -33,6 +33,16 @@ class ChapterResource extends Resource
 
     protected static ?string $navigationLabel = 'فصل‌ها';
 
+    /**
+     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود.
+     * ایجاد/ویرایش فصل از داخل فرم «ایجاد محتوای آموزشی»
+     * (ContentItemResource) انجام می‌گیرد.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     protected static ?string $modelLabel = 'فصل';
 
     protected static ?string $pluralModelLabel = 'فصل‌ها';

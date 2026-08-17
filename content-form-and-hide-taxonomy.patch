@@ -1,0 +1,511 @@
+diff --git a/app/Filament/Resources/BookResource.php b/app/Filament/Resources/BookResource.php
+index cbffa61..3dc15cf 100644
+--- a/app/Filament/Resources/BookResource.php
++++ b/app/Filament/Resources/BookResource.php
+@@ -32,6 +32,16 @@ class BookResource extends Resource
+ 
+     protected static ?string $navigationLabel = 'کتاب‌ها';
+ 
++    /**
++     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود.
++     * ایجاد/ویرایش کتاب از داخل فرم «ایجاد محتوای آموزشی»
++     * (ContentItemResource) انجام می‌گیرد.
++     */
++    public static function shouldRegisterNavigation(): bool
++    {
++        return false;
++    }
++
+     protected static ?string $modelLabel = 'کتاب';
+ 
+     protected static ?string $pluralModelLabel = 'کتاب‌ها';
+diff --git a/app/Filament/Resources/ChapterResource.php b/app/Filament/Resources/ChapterResource.php
+index c2c4212..6c0d260 100644
+--- a/app/Filament/Resources/ChapterResource.php
++++ b/app/Filament/Resources/ChapterResource.php
+@@ -33,6 +33,16 @@ class ChapterResource extends Resource
+ 
+     protected static ?string $navigationLabel = 'فصل‌ها';
+ 
++    /**
++     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود.
++     * ایجاد/ویرایش فصل از داخل فرم «ایجاد محتوای آموزشی»
++     * (ContentItemResource) انجام می‌گیرد.
++     */
++    public static function shouldRegisterNavigation(): bool
++    {
++        return false;
++    }
++
+     protected static ?string $modelLabel = 'فصل';
+ 
+     protected static ?string $pluralModelLabel = 'فصل‌ها';
+diff --git a/app/Filament/Resources/ContentItemResource.php b/app/Filament/Resources/ContentItemResource.php
+index 36a06f0..b50081e 100644
+--- a/app/Filament/Resources/ContentItemResource.php
++++ b/app/Filament/Resources/ContentItemResource.php
+@@ -12,6 +12,7 @@
+ use App\Models\Grade;
+ use App\Models\Section;
+ use App\Models\Subject;
++use App\Models\TeacherAssignment;
+ use App\Traits\FiltersByTeacherAssignment;
+ use Filament\Forms;
+ use Filament\Forms\Form;
+@@ -42,10 +43,40 @@ class ContentItemResource extends Resource
+ 
+     protected static ?int $navigationSort = 1;
+ 
++    /**
++     * کتاب‌هایی که معلم فعلی به آن‌ها دسترسی دارد.
++     *
++     * این لیست از روی TeacherAssignmentهای فعالِ معلم خوانده
++     * می‌شود (چیزی که سوپرادمین/ادمین در «مدیریت معلمان» برای
++     * او مشخص کرده). خروجی، دامنه‌ی مجاز فیلدهای اپلیکیشن،
++     * پایه، درس و کتاب را در فرم ایجاد محتوا محدود می‌کند —
++     * معلم فقط اجازه‌ی «انتخاب» از این دامنه را دارد،
++     * نه «ایجاد» گزینه‌ی جدید.
++     */
++    protected static function teacherAssignedBooks(): \Illuminate\Support\Collection
++    {
++        $bookIds = TeacherAssignment::query()
++            ->where('teacher_id', auth()->id())
++            ->where('is_active', true)
++            ->pluck('book_id');
++
++        return Book::query()
++            ->whereIn('id', $bookIds)
++            ->where('is_active', true)
++            ->with('appGradeSubject')
++            ->get();
++    }
++
+     public static function form(Form $form): Form
+     {
+         $isTeacher = auth()->user()?->hasRole('Teacher');
+ 
++        // دامنه‌ی مجاز معلم؛ برای ادمین/سوپرادمین همیشه خالی
++        // می‌ماند چون آن‌ها به کل ساختار آموزشی دسترسی دارند.
++        $teacherBooks = $isTeacher
++            ? static::teacherAssignedBooks()
++            : collect();
++
+         return $form->schema([
+ 
+             Forms\Components\Section::make('اطلاعات آموزشی')
+@@ -56,17 +87,74 @@ public static function form(Form $form): Form
+ 
+                     Forms\Components\Select::make('app_id')
+                         ->label('اپلیکیشن')
+-                        ->options(
+-                            App::query()
++                        ->options(function () use ($isTeacher, $teacherBooks) {
++
++                            if ($isTeacher) {
++                                return $teacherBooks
++                                    ->pluck('appGradeSubject.app_id')
++                                    ->unique()
++                                    ->mapWithKeys(fn($appId) => [
++                                        $appId => App::find($appId)?->title,
++                                    ]);
++                            }
++
++                            return App::query()
+                                 ->where('is_active', true)
+                                 ->orderBy('sort_order')
+-                                ->pluck('title', 'id')
+-                        )
++                                ->pluck('title', 'id');
++                        })
+                         ->searchable()
+                         ->preload()
+                         ->live()
+                         ->dehydrated(false)
+                         ->required()
++                        ->default(function () use ($isTeacher, $teacherBooks) {
++
++                            // اگر معلم فقط یک اپلیکیشن در اختیار دارد،
++                            // به‌صورت خودکار همان انتخاب می‌شود.
++                            if (! $isTeacher) {
++                                return null;
++                            }
++
++                            $appIds = $teacherBooks
++                                ->pluck('appGradeSubject.app_id')
++                                ->unique();
++
++                            return $appIds->count() === 1
++                                ? $appIds->first()
++                                : null;
++                        })
++                        ->when(
++                            ! $isTeacher,
++                            fn(Forms\Components\Select $field) => $field
++                                ->createOptionForm([
++
++                                    Forms\Components\TextInput::make('title')
++                                        ->label('عنوان اپلیکیشن')
++                                        ->required(),
++
++                                    Forms\Components\Toggle::make('is_active')
++                                        ->label('فعال')
++                                        ->default(true),
++
++                                ])
++                                ->createOptionUsing(function (array $data) {
++
++                                    $app = App::create([
++
++                                        'title' => $data['title'],
++
++                                        'slug' => Str::slug($data['title']),
++
++                                        'is_active' => $data['is_active'],
++
++                                        'sort_order' => 1,
++
++                                    ]);
++
++                                    return $app->id;
++                                })
++                        )
+                         ->afterStateUpdated(function (Set $set) {
+ 
+                             $set('grade_id', null);
+@@ -78,12 +166,25 @@ public static function form(Form $form): Form
+ 
+                     Forms\Components\Select::make('grade_id')
+                         ->label('پایه')
+-                        ->options(function (Get $get) {
++                        ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
+ 
+                             if (! $get('app_id')) {
+                                 return [];
+                             }
+ 
++                            if ($isTeacher) {
++                                return $teacherBooks
++                                    ->filter(
++                                        fn($book) =>
++                                        $book->appGradeSubject?->app_id == $get('app_id')
++                                    )
++                                    ->pluck('appGradeSubject.grade_id')
++                                    ->unique()
++                                    ->mapWithKeys(fn($gradeId) => [
++                                        $gradeId => Grade::find($gradeId)?->title,
++                                    ]);
++                            }
++
+                             return Grade::query()
+                                 ->whereHas(
+                                     'appGradeSubjects',
+@@ -104,6 +205,60 @@ public static function form(Form $form): Form
+                         ->live()
+                         ->dehydrated(false)
+                         ->required()
++                        ->default(function () use ($isTeacher, $teacherBooks) {
++
++                            if (! $isTeacher) {
++                                return null;
++                            }
++
++                            $gradeIds = $teacherBooks
++                                ->pluck('appGradeSubject.grade_id')
++                                ->unique();
++
++                            return $gradeIds->count() === 1
++                                ? $gradeIds->first()
++                                : null;
++                        })
++                        ->when(
++                            ! $isTeacher,
++                            fn(Forms\Components\Select $field) => $field
++                                ->createOptionForm([
++
++                                    Forms\Components\TextInput::make('title')
++                                        ->label('عنوان پایه')
++                                        ->required(),
++
++                                    Forms\Components\TextInput::make('grade_number')
++                                        ->label('شماره پایه')
++                                        ->numeric()
++                                        ->required(),
++
++                                ])
++                                ->createOptionUsing(function (array $data) {
++
++                                    $grade = Grade::create([
++
++                                        'title' => $data['title'],
++
++                                        'slug' => Str::slug($data['title']),
++
++                                        'grade_number' => $data['grade_number'],
++
++                                        'sort_order' => $data['grade_number'],
++
++                                        'is_active' => true,
++
++                                    ]);
++
++                                    // توجه: این پایه هنوز به هیچ اپلیکیشنی
++                                    // متصل نیست. اتصال (app_grade_subjects)
++                                    // در مرحله‌ی انتخاب/ایجاد «درس» انجام
++                                    // می‌شود، چون پیوند سه‌طرفه‌ی
++                                    // اپلیکیشن+پایه+درس در همان لحظه کامل
++                                    // می‌شود.
++                                    return $grade->id;
++                                })
++                        )
+                         ->afterStateUpdated(function (Set $set) {
+ 
+                             $set('subject_id', null);
+@@ -114,12 +269,26 @@ public static function form(Form $form): Form
+ 
+                     Forms\Components\Select::make('subject_id')
+                         ->label('درس')
+-                        ->options(function (Get $get) {
++                        ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
+ 
+                             if (! $get('grade_id')) {
+                                 return [];
+                             }
+ 
++                            if ($isTeacher) {
++                                return $teacherBooks
++                                    ->filter(
++                                        fn($book) =>
++                                        $book->appGradeSubject?->app_id == $get('app_id')
++                                        && $book->appGradeSubject?->grade_id == $get('grade_id')
++                                    )
++                                    ->pluck('appGradeSubject.subject_id')
++                                    ->unique()
++                                    ->mapWithKeys(fn($subjectId) => [
++                                        $subjectId => Subject::find($subjectId)?->title,
++                                    ]);
++                            }
++
+                             return Subject::query()
+                                 ->whereHas(
+                                     'appGradeSubjects',
+@@ -145,6 +314,62 @@ public static function form(Form $form): Form
+                         ->live()
+                         ->dehydrated(false)
+                         ->required()
++                        ->default(function () use ($isTeacher, $teacherBooks) {
++
++                            if (! $isTeacher) {
++                                return null;
++                            }
++
++                            $subjectIds = $teacherBooks
++                                ->pluck('appGradeSubject.subject_id')
++                                ->unique();
++
++                            return $subjectIds->count() === 1
++                                ? $subjectIds->first()
++                                : null;
++                        })
++                        ->when(
++                            ! $isTeacher,
++                            fn(Forms\Components\Select $field) => $field
++                                ->createOptionForm([
++
++                                    Forms\Components\TextInput::make('title')
++                                        ->label('عنوان درس')
++                                        ->required(),
++
++                                ])
++                                ->createOptionUsing(function (array $data, Get $get) {
++
++                                    // درس ممکن است بین چند اپلیکیشن/پایه
++                                    // مشترک باشد، برای همین اول بررسی
++                                    // می‌کنیم که آیا با همین عنوان از
++                                    // قبل وجود دارد یا باید ساخته شود.
++                                    $subject = Subject::firstOrCreate(
++                                        ['title' => $data['title']],
++                                        [
++                                            'slug' => Str::slug($data['title']),
++                                            'sort_order' => 1,
++                                            'is_active' => true,
++                                        ]
++                                    );
++
++                                    // این همان لحظه‌ای‌ست که پیوند
++                                    // سه‌طرفه‌ی اپلیکیشن+پایه+درس کامل
++                                    // می‌شود و «درس» زیر همین اپلیکیشن
++                                    // و پایه قابل مشاهده خواهد شد.
++                                    AppGradeSubject::firstOrCreate([
++
++                                        'app_id' => $get('app_id'),
++
++                                        'grade_id' => $get('grade_id'),
++
++                                        'subject_id' => $subject->id,
++
++                                    ]);
++
++                                    return $subject->id;
++                                })
++                        )
+                         ->afterStateUpdated(function (Set $set) {
+ 
+                             $set('book_id', null);
+@@ -154,12 +379,23 @@ public static function form(Form $form): Form
+ 
+                     Forms\Components\Select::make('book_id')
+                         ->label('کتاب')
+-                        ->options(function (Get $get) {
++                        ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
+ 
+                             if (! $get('subject_id')) {
+                                 return [];
+                             }
+ 
++                            if ($isTeacher) {
++                                return $teacherBooks
++                                    ->filter(
++                                        fn($book) =>
++                                        $book->appGradeSubject?->app_id == $get('app_id')
++                                        && $book->appGradeSubject?->grade_id == $get('grade_id')
++                                        && $book->appGradeSubject?->subject_id == $get('subject_id')
++                                    )
++                                    ->pluck('title', 'id');
++                            }
++
+                             $appGradeSubject = AppGradeSubject::query()
+                                 ->where('app_id', $get('app_id'))
+                                 ->where('grade_id', $get('grade_id'))
+@@ -187,6 +423,54 @@ public static function form(Form $form): Form
+                         ->live()
+                         ->dehydrated(false)
+                         ->required()
++                        ->default(function () use ($isTeacher, $teacherBooks) {
++
++                            return $isTeacher && $teacherBooks->count() === 1
++                                ? $teacherBooks->first()->id
++                                : null;
++                        })
++                        ->when(
++                            ! $isTeacher,
++                            fn(Forms\Components\Select $field) => $field
++                                ->createOptionForm([
++
++                                    Forms\Components\TextInput::make('title')
++                                        ->label('عنوان کتاب')
++                                        ->required(),
++
++                                    Forms\Components\TextInput::make('sort_order')
++                                        ->numeric()
++                                        ->default(1),
++
++                                    Forms\Components\Toggle::make('is_active')
++                                        ->default(true),
++
++                                ])
++                                ->createOptionUsing(function (array $data, Get $get) {
++
++                                    $appGradeSubject = AppGradeSubject::query()
++                                        ->where('app_id', $get('app_id'))
++                                        ->where('grade_id', $get('grade_id'))
++                                        ->where('subject_id', $get('subject_id'))
++                                        ->first();
++
++                                    $book = Book::create([
++
++                                        'app_grade_subject_id' => $appGradeSubject->id,
++
++                                        'title' => $data['title'],
++
++                                        'slug' => Str::slug($data['title']),
++
++                                        'sort_order' => $data['sort_order'],
++
++                                        'is_active' => $data['is_active'],
++
++                                    ]);
++
++                                    return $book->id;
++                                })
++                        )
+                         ->afterStateUpdated(function (Set $set) {
+ 
+                             $set('chapter_id', null);
+@@ -200,6 +484,12 @@ public static function form(Form $form): Form
+                                 return [];
+                             }
+ 
++                            // فصل و بخش برای معلم هم انتخاب‌شدنی و
++                            // هم قابل‌ایجادند (بر خلاف اپلیکیشن/پایه/
++                            // درس/کتاب که فقط سوپرادمین/ادمین می‌سازند)
++                            // چون معلم باید بتواند داخل همان کتابِ
++                            // اختصاص‌داده‌شده، فصل و بخش تازه اضافه کند.
++
+                             return Chapter::query()
+                                 ->where('book_id', $get('book_id'))
+                                 ->where('is_active', true)
+diff --git a/app/Filament/Resources/GradeResource.php b/app/Filament/Resources/GradeResource.php
+index 63e9b40..30b2fd1 100644
+--- a/app/Filament/Resources/GradeResource.php
++++ b/app/Filament/Resources/GradeResource.php
+@@ -24,6 +24,18 @@ class GradeResource extends Resource
+ 
+     protected static ?string $navigationLabel = 'پایه‌ها';
+ 
++    /**
++     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود.
++     * ایجاد/ویرایش پایه از داخل فرم «ایجاد محتوای آموزشی»
++     * (ContentItemResource) انجام می‌گیرد. صفحات این Resource
++     * همچنان در دسترس‌اند (برای لینک‌های داخلی احتمالی)، فقط
++     * از سایدبار حذف شده‌اند.
++     */
++    public static function shouldRegisterNavigation(): bool
++    {
++        return false;
++    }
++
+     protected static ?string $modelLabel = 'پایه';
+ 
+     protected static ?string $pluralModelLabel = 'پایه‌ها';
+diff --git a/app/Filament/Resources/SectionResource.php b/app/Filament/Resources/SectionResource.php
+index f19f84a..e76f3d6 100644
+--- a/app/Filament/Resources/SectionResource.php
++++ b/app/Filament/Resources/SectionResource.php
+@@ -34,6 +34,16 @@ class SectionResource extends Resource
+ 
+     protected static ?string $navigationLabel = 'بخش‌ها';
+ 
++    /**
++     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود.
++     * ایجاد/ویرایش بخش از داخل فرم «ایجاد محتوای آموزشی»
++     * (ContentItemResource) انجام می‌گیرد.
++     */
++    public static function shouldRegisterNavigation(): bool
++    {
++        return false;
++    }
++
+     protected static ?string $modelLabel = 'بخش';
+ 
+     protected static ?string $pluralModelLabel = 'بخش‌ها';
+diff --git a/app/Filament/Resources/SubjectResource.php b/app/Filament/Resources/SubjectResource.php
+index f50766c..e9d62f3 100644
+--- a/app/Filament/Resources/SubjectResource.php
++++ b/app/Filament/Resources/SubjectResource.php
+@@ -27,6 +27,16 @@ class SubjectResource extends Resource
+ 
+     protected static ?string $navigationLabel = 'درس‌ها';
+ 
++    /**
++     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود.
++     * ایجاد/ویرایش درس از داخل فرم «ایجاد محتوای آموزشی»
++     * (ContentItemResource) انجام می‌گیرد.
++     */
++    public static function shouldRegisterNavigation(): bool
++    {
++        return false;
++    }
++
+     protected static ?string $modelLabel = 'درس';
+ 
+     protected static ?string $pluralModelLabel = 'درس‌ها';

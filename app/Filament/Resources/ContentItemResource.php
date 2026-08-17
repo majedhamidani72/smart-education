@@ -12,6 +12,7 @@ use App\Models\ContentType;
 use App\Models\Grade;
 use App\Models\Section;
 use App\Models\Subject;
+use App\Models\TeacherAssignment;
 use App\Traits\FiltersByTeacherAssignment;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -42,9 +43,39 @@ class ContentItemResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    /**
+     * کتاب‌هایی که معلم فعلی به آن‌ها دسترسی دارد.
+     *
+     * این لیست از روی TeacherAssignmentهای فعالِ معلم خوانده
+     * می‌شود (چیزی که سوپرادمین/ادمین در «مدیریت معلمان» برای
+     * او مشخص کرده). خروجی، دامنه‌ی مجاز فیلدهای اپلیکیشن،
+     * پایه، درس و کتاب را در فرم ایجاد محتوا محدود می‌کند —
+     * معلم فقط اجازه‌ی «انتخاب» از این دامنه را دارد،
+     * نه «ایجاد» گزینه‌ی جدید.
+     */
+    protected static function teacherAssignedBooks(): \Illuminate\Support\Collection
+    {
+        $bookIds = TeacherAssignment::query()
+            ->where('teacher_id', auth()->id())
+            ->where('is_active', true)
+            ->pluck('book_id');
+
+        return Book::query()
+            ->whereIn('id', $bookIds)
+            ->where('is_active', true)
+            ->with('appGradeSubject')
+            ->get();
+    }
+
     public static function form(Form $form): Form
     {
         $isTeacher = auth()->user()?->hasRole('Teacher');
+
+        // دامنه‌ی مجاز معلم؛ برای ادمین/سوپرادمین همیشه خالی
+        // می‌ماند چون آن‌ها به کل ساختار آموزشی دسترسی دارند.
+        $teacherBooks = $isTeacher
+            ? static::teacherAssignedBooks()
+            : collect();
 
         return $form->schema([
 
@@ -56,17 +87,74 @@ class ContentItemResource extends Resource
 
                     Forms\Components\Select::make('app_id')
                         ->label('اپلیکیشن')
-                        ->options(
-                            App::query()
+                        ->options(function () use ($isTeacher, $teacherBooks) {
+
+                            if ($isTeacher) {
+                                return $teacherBooks
+                                    ->pluck('appGradeSubject.app_id')
+                                    ->unique()
+                                    ->mapWithKeys(fn($appId) => [
+                                        $appId => App::find($appId)?->title,
+                                    ]);
+                            }
+
+                            return App::query()
                                 ->where('is_active', true)
                                 ->orderBy('sort_order')
-                                ->pluck('title', 'id')
-                        )
+                                ->pluck('title', 'id');
+                        })
                         ->searchable()
                         ->preload()
                         ->live()
                         ->dehydrated(false)
                         ->required()
+                        ->default(function () use ($isTeacher, $teacherBooks) {
+
+                            // اگر معلم فقط یک اپلیکیشن در اختیار دارد،
+                            // به‌صورت خودکار همان انتخاب می‌شود.
+                            if (! $isTeacher) {
+                                return null;
+                            }
+
+                            $appIds = $teacherBooks
+                                ->pluck('appGradeSubject.app_id')
+                                ->unique();
+
+                            return $appIds->count() === 1
+                                ? $appIds->first()
+                                : null;
+                        })
+                        ->when(
+                            ! $isTeacher,
+                            fn(Forms\Components\Select $field) => $field
+                                ->createOptionForm([
+
+                                    Forms\Components\TextInput::make('title')
+                                        ->label('عنوان اپلیکیشن')
+                                        ->required(),
+
+                                    Forms\Components\Toggle::make('is_active')
+                                        ->label('فعال')
+                                        ->default(true),
+
+                                ])
+                                ->createOptionUsing(function (array $data) {
+
+                                    $app = App::create([
+
+                                        'title' => $data['title'],
+
+                                        'slug' => Str::slug($data['title']),
+
+                                        'is_active' => $data['is_active'],
+
+                                        'sort_order' => 1,
+
+                                    ]);
+
+                                    return $app->id;
+                                })
+                        )
                         ->afterStateUpdated(function (Set $set) {
 
                             $set('grade_id', null);
@@ -78,10 +166,23 @@ class ContentItemResource extends Resource
 
                     Forms\Components\Select::make('grade_id')
                         ->label('پایه')
-                        ->options(function (Get $get) {
+                        ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
                             if (! $get('app_id')) {
                                 return [];
+                            }
+
+                            if ($isTeacher) {
+                                return $teacherBooks
+                                    ->filter(
+                                        fn($book) =>
+                                        $book->appGradeSubject?->app_id == $get('app_id')
+                                    )
+                                    ->pluck('appGradeSubject.grade_id')
+                                    ->unique()
+                                    ->mapWithKeys(fn($gradeId) => [
+                                        $gradeId => Grade::find($gradeId)?->title,
+                                    ]);
                             }
 
                             return Grade::query()
@@ -104,6 +205,60 @@ class ContentItemResource extends Resource
                         ->live()
                         ->dehydrated(false)
                         ->required()
+                        ->default(function () use ($isTeacher, $teacherBooks) {
+
+                            if (! $isTeacher) {
+                                return null;
+                            }
+
+                            $gradeIds = $teacherBooks
+                                ->pluck('appGradeSubject.grade_id')
+                                ->unique();
+
+                            return $gradeIds->count() === 1
+                                ? $gradeIds->first()
+                                : null;
+                        })
+                        ->when(
+                            ! $isTeacher,
+                            fn(Forms\Components\Select $field) => $field
+                                ->createOptionForm([
+
+                                    Forms\Components\TextInput::make('title')
+                                        ->label('عنوان پایه')
+                                        ->required(),
+
+                                    Forms\Components\TextInput::make('grade_number')
+                                        ->label('شماره پایه')
+                                        ->numeric()
+                                        ->required(),
+
+                                ])
+                                ->createOptionUsing(function (array $data) {
+
+                                    $grade = Grade::create([
+
+                                        'title' => $data['title'],
+
+                                        'slug' => Str::slug($data['title']),
+
+                                        'grade_number' => $data['grade_number'],
+
+                                        'sort_order' => $data['grade_number'],
+
+                                        'is_active' => true,
+
+                                    ]);
+
+                                    // توجه: این پایه هنوز به هیچ اپلیکیشنی
+                                    // متصل نیست. اتصال (app_grade_subjects)
+                                    // در مرحله‌ی انتخاب/ایجاد «درس» انجام
+                                    // می‌شود، چون پیوند سه‌طرفه‌ی
+                                    // اپلیکیشن+پایه+درس در همان لحظه کامل
+                                    // می‌شود.
+                                    return $grade->id;
+                                })
+                        )
                         ->afterStateUpdated(function (Set $set) {
 
                             $set('subject_id', null);
@@ -114,10 +269,24 @@ class ContentItemResource extends Resource
 
                     Forms\Components\Select::make('subject_id')
                         ->label('درس')
-                        ->options(function (Get $get) {
+                        ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
                             if (! $get('grade_id')) {
                                 return [];
+                            }
+
+                            if ($isTeacher) {
+                                return $teacherBooks
+                                    ->filter(
+                                        fn($book) =>
+                                        $book->appGradeSubject?->app_id == $get('app_id')
+                                        && $book->appGradeSubject?->grade_id == $get('grade_id')
+                                    )
+                                    ->pluck('appGradeSubject.subject_id')
+                                    ->unique()
+                                    ->mapWithKeys(fn($subjectId) => [
+                                        $subjectId => Subject::find($subjectId)?->title,
+                                    ]);
                             }
 
                             return Subject::query()
@@ -145,6 +314,62 @@ class ContentItemResource extends Resource
                         ->live()
                         ->dehydrated(false)
                         ->required()
+                        ->default(function () use ($isTeacher, $teacherBooks) {
+
+                            if (! $isTeacher) {
+                                return null;
+                            }
+
+                            $subjectIds = $teacherBooks
+                                ->pluck('appGradeSubject.subject_id')
+                                ->unique();
+
+                            return $subjectIds->count() === 1
+                                ? $subjectIds->first()
+                                : null;
+                        })
+                        ->when(
+                            ! $isTeacher,
+                            fn(Forms\Components\Select $field) => $field
+                                ->createOptionForm([
+
+                                    Forms\Components\TextInput::make('title')
+                                        ->label('عنوان درس')
+                                        ->required(),
+
+                                ])
+                                ->createOptionUsing(function (array $data, Get $get) {
+
+                                    // درس ممکن است بین چند اپلیکیشن/پایه
+                                    // مشترک باشد، برای همین اول بررسی
+                                    // می‌کنیم که آیا با همین عنوان از
+                                    // قبل وجود دارد یا باید ساخته شود.
+                                    $subject = Subject::firstOrCreate(
+                                        ['title' => $data['title']],
+                                        [
+                                            'slug' => Str::slug($data['title']),
+                                            'sort_order' => 1,
+                                            'is_active' => true,
+                                        ]
+                                    );
+
+                                    // این همان لحظه‌ای‌ست که پیوند
+                                    // سه‌طرفه‌ی اپلیکیشن+پایه+درس کامل
+                                    // می‌شود و «درس» زیر همین اپلیکیشن
+                                    // و پایه قابل مشاهده خواهد شد.
+                                    AppGradeSubject::firstOrCreate([
+
+                                        'app_id' => $get('app_id'),
+
+                                        'grade_id' => $get('grade_id'),
+
+                                        'subject_id' => $subject->id,
+
+                                    ]);
+
+                                    return $subject->id;
+                                })
+                        )
                         ->afterStateUpdated(function (Set $set) {
 
                             $set('book_id', null);
@@ -154,10 +379,21 @@ class ContentItemResource extends Resource
 
                     Forms\Components\Select::make('book_id')
                         ->label('کتاب')
-                        ->options(function (Get $get) {
+                        ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
                             if (! $get('subject_id')) {
                                 return [];
+                            }
+
+                            if ($isTeacher) {
+                                return $teacherBooks
+                                    ->filter(
+                                        fn($book) =>
+                                        $book->appGradeSubject?->app_id == $get('app_id')
+                                        && $book->appGradeSubject?->grade_id == $get('grade_id')
+                                        && $book->appGradeSubject?->subject_id == $get('subject_id')
+                                    )
+                                    ->pluck('title', 'id');
                             }
 
                             $appGradeSubject = AppGradeSubject::query()
@@ -187,6 +423,54 @@ class ContentItemResource extends Resource
                         ->live()
                         ->dehydrated(false)
                         ->required()
+                        ->default(function () use ($isTeacher, $teacherBooks) {
+
+                            return $isTeacher && $teacherBooks->count() === 1
+                                ? $teacherBooks->first()->id
+                                : null;
+                        })
+                        ->when(
+                            ! $isTeacher,
+                            fn(Forms\Components\Select $field) => $field
+                                ->createOptionForm([
+
+                                    Forms\Components\TextInput::make('title')
+                                        ->label('عنوان کتاب')
+                                        ->required(),
+
+                                    Forms\Components\TextInput::make('sort_order')
+                                        ->numeric()
+                                        ->default(1),
+
+                                    Forms\Components\Toggle::make('is_active')
+                                        ->default(true),
+
+                                ])
+                                ->createOptionUsing(function (array $data, Get $get) {
+
+                                    $appGradeSubject = AppGradeSubject::query()
+                                        ->where('app_id', $get('app_id'))
+                                        ->where('grade_id', $get('grade_id'))
+                                        ->where('subject_id', $get('subject_id'))
+                                        ->first();
+
+                                    $book = Book::create([
+
+                                        'app_grade_subject_id' => $appGradeSubject->id,
+
+                                        'title' => $data['title'],
+
+                                        'slug' => Str::slug($data['title']),
+
+                                        'sort_order' => $data['sort_order'],
+
+                                        'is_active' => $data['is_active'],
+
+                                    ]);
+
+                                    return $book->id;
+                                })
+                        )
                         ->afterStateUpdated(function (Set $set) {
 
                             $set('chapter_id', null);
@@ -199,6 +483,12 @@ class ContentItemResource extends Resource
                             if (! $get('book_id')) {
                                 return [];
                             }
+
+                            // فصل و بخش برای معلم هم انتخاب‌شدنی و
+                            // هم قابل‌ایجادند (بر خلاف اپلیکیشن/پایه/
+                            // درس/کتاب که فقط سوپرادمین/ادمین می‌سازند)
+                            // چون معلم باید بتواند داخل همان کتابِ
+                            // اختصاص‌داده‌شده، فصل و بخش تازه اضافه کند.
 
                             return Chapter::query()
                                 ->where('book_id', $get('book_id'))

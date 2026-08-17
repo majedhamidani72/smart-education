@@ -24,6 +24,18 @@ class GradeResource extends Resource
 
     protected static ?string $navigationLabel = 'پایه‌ها';
 
+    /**
+     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود.
+     * ایجاد/ویرایش پایه از داخل فرم «ایجاد محتوای آموزشی»
+     * (ContentItemResource) انجام می‌گیرد. صفحات این Resource
+     * همچنان در دسترس‌اند (برای لینک‌های داخلی احتمالی)، فقط
+     * از سایدبار حذف شده‌اند.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     protected static ?string $modelLabel = 'پایه';
 
     protected static ?string $pluralModelLabel = 'پایه‌ها';

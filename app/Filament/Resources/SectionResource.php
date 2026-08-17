@@ -34,6 +34,16 @@ class SectionResource extends Resource
 
     protected static ?string $navigationLabel = 'بخش‌ها';
 
+    /**
+     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود.
+     * ایجاد/ویرایش بخش از داخل فرم «ایجاد محتوای آموزشی»
+     * (ContentItemResource) انجام می‌گیرد.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     protected static ?string $modelLabel = 'بخش';
 
     protected static ?string $pluralModelLabel = 'بخش‌ها';

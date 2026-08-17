@@ -32,6 +32,16 @@ class BookResource extends Resource
 
     protected static ?string $navigationLabel = 'کتاب‌ها';
 
+    /**
+     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود.
+     * ایجاد/ویرایش کتاب از داخل فرم «ایجاد محتوای آموزشی»
+     * (ContentItemResource) انجام می‌گیرد.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     protected static ?string $modelLabel = 'کتاب';
 
     protected static ?string $pluralModelLabel = 'کتاب‌ها';

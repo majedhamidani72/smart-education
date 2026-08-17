@@ -27,6 +27,16 @@ class SubjectResource extends Resource
 
     protected static ?string $navigationLabel = 'درس‌ها';
 
+    /**
+     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود.
+     * ایجاد/ویرایش درس از داخل فرم «ایجاد محتوای آموزشی»
+     * (ContentItemResource) انجام می‌گیرد.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     protected static ?string $modelLabel = 'درس';
 
     protected static ?string $pluralModelLabel = 'درس‌ها';
