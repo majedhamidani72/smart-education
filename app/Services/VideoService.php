@@ -21,17 +21,18 @@ class VideoService
     public function __construct(
         protected VideoRepositoryInterface $videoRepository,
         protected FileUploadService $fileUploadService
-    ) {
-    }
+    ) {}
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | Read
+    |--------------------------------------------------------------------------
+    */
 
     public function getAll(): Collection
     {
         return $this->videoRepository->getAll();
     }
-
-
 
     public function paginate(
         int $perPage = 15
@@ -42,8 +43,6 @@ class VideoService
         );
     }
 
-
-
     public function findById(
         int $id
     ): ?Video {
@@ -53,16 +52,12 @@ class VideoService
         );
     }
 
-
-
     public function pending(): Collection
     {
         return $this->videoRepository->whereStatus(
             'pending'
         );
     }
-
-
 
     public function approved(): Collection
     {
@@ -71,8 +66,6 @@ class VideoService
         );
     }
 
-
-
     public function rejected(): Collection
     {
         return $this->videoRepository->whereStatus(
@@ -80,85 +73,99 @@ class VideoService
         );
     }
 
-
-
-
+    /*
+    |--------------------------------------------------------------------------
+    | Create
+    |--------------------------------------------------------------------------
+    */
 
     public function create(
         array $data,
-        UploadedFile|string $videoFile
+        UploadedFile $videoFile
     ): Video {
 
         DB::beginTransaction();
 
-
         try {
 
+            /*
+            |--------------------------------------------------------------------------
+            | Upload Video
+            |--------------------------------------------------------------------------
+            */
 
-            $fileInfo = $this->fileUploadService->storeFromPath(
+            $fileInfo = $this->fileUploadService->upload(
+
                 $videoFile,
+
                 'videos'
+
             );
-
-
 
             $data = array_merge(
+
                 $data,
+
                 $fileInfo
+
             );
 
-
+            /*
+            |--------------------------------------------------------------------------
+            | Current User
+            |--------------------------------------------------------------------------
+            */
 
             $userId = Auth::id();
-
 
             if (! $userId) {
 
                 throw new RuntimeException(
                     'Authenticated user not found.'
                 );
-
             }
 
-
+            /*
+            |--------------------------------------------------------------------------
+            | Default Values
+            |--------------------------------------------------------------------------
+            */
 
             $data['uploaded_by'] = $userId;
 
-
             $data['duration'] = null;
-
 
             $data['quality'] = null;
 
-
             $data['thumbnail_path'] = null;
-
 
             $data['views_count'] = 0;
 
-
             $data['processing_status'] = 'pending';
-
 
             $data['download_allowed'] ??= false;
 
-
+            /*
+            |--------------------------------------------------------------------------
+            | Create Video
+            |--------------------------------------------------------------------------
+            */
 
             $video = $this->videoRepository->create(
                 $data
             );
 
-
-
             DB::commit();
 
-
+            /*
+            |--------------------------------------------------------------------------
+            | Queue Processing
+            |--------------------------------------------------------------------------
+            */
 
             ProcessVideoJob::dispatch(
                 $video->id
             )->afterCommit();
-
-
 
             return $video->fresh([
 
@@ -169,97 +176,81 @@ class VideoService
                 'contentItem.section.chapter.book',
 
             ]);
-
-
-
         } catch (Throwable $e) {
-
 
             DB::rollBack();
 
-
             Log::error(
+
                 'Video creation failed.',
+
                 [
+
                     'error' => $e->getMessage(),
+
                 ]
+
             );
 
-
             throw $e;
-
         }
     }
-
-
-
-
-
+    /*
+    |--------------------------------------------------------------------------
+    | Update
+    |--------------------------------------------------------------------------
+    */
 
     public function update(
         Video $video,
         array $data,
-        UploadedFile|string|null $videoFile
+        ?UploadedFile $videoFile = null
     ): Video {
-
 
         DB::beginTransaction();
 
-
-
         try {
 
+            if ($videoFile instanceof UploadedFile) {
 
-
-            if ($videoFile) {
-
-
-                $fileInfo = $this->fileUploadService->replaceFromPath(
+                $fileInfo = $this->fileUploadService->upload(
 
                     $videoFile,
-
-                    $video->directory,
-
-                    $video->filename,
 
                     'videos'
 
                 );
 
+                $this->fileUploadService->delete(
 
+                    $video->directory,
 
-                $data = array_merge(
-                    $data,
-                    $fileInfo
+                    $video->filename
+
                 );
 
+                $data = array_merge(
 
+                    $data,
+
+                    $fileInfo
+
+                );
 
                 $data['processing_status'] = 'pending';
 
-
                 $data['duration'] = null;
-
 
                 $data['quality'] = null;
 
-
                 $data['thumbnail_path'] = null;
-
 
                 $data['approved_by'] = null;
 
-
                 $data['approved_at'] = null;
 
-
                 $data['rejected_reason'] = null;
-
             }
-
-
-
-
 
             $video = $this->videoRepository->update(
 
@@ -269,25 +260,14 @@ class VideoService
 
             );
 
-
-
             DB::commit();
 
-
-
-
-            if ($videoFile) {
-
+            if ($videoFile instanceof UploadedFile) {
 
                 ProcessVideoJob::dispatch(
                     $video->id
                 )->afterCommit();
-
             }
-
-
-
-
 
             return $video->fresh([
 
@@ -298,17 +278,9 @@ class VideoService
                 'contentItem.section.chapter.book',
 
             ]);
-
-
-
-
         } catch (Throwable $e) {
 
-
-
             DB::rollBack();
-
-
 
             Log::error(
 
@@ -324,30 +296,23 @@ class VideoService
 
             );
 
-
-
             throw $e;
-
         }
     }
 
-
-
-
-
+    /*
+    |--------------------------------------------------------------------------
+    | Approve
+    |--------------------------------------------------------------------------
+    */
 
     public function approve(
         Video $video
     ): Video {
 
-
         DB::beginTransaction();
 
-
-
         try {
-
-
 
             $video = $this->videoRepository->update(
 
@@ -367,12 +332,7 @@ class VideoService
 
             );
 
-
-
             DB::commit();
-
-
-
 
             return $video->fresh([
 
@@ -383,17 +343,9 @@ class VideoService
                 'contentItem.section.chapter.book',
 
             ]);
-
-
-
-
         } catch (Throwable $e) {
 
-
-
             DB::rollBack();
-
-
 
             Log::error(
 
@@ -409,31 +361,24 @@ class VideoService
 
             );
 
-
-
             throw $e;
-
         }
     }
 
-
-
-
-
+    /*
+    |--------------------------------------------------------------------------
+    | Reject
+    |--------------------------------------------------------------------------
+    */
 
     public function reject(
         Video $video,
         string $reason
     ): Video {
 
-
         DB::beginTransaction();
 
-
-
         try {
-
-
 
             $video = $this->videoRepository->update(
 
@@ -453,12 +398,7 @@ class VideoService
 
             );
 
-
-
             DB::commit();
-
-
-
 
             return $video->fresh([
 
@@ -469,17 +409,9 @@ class VideoService
                 'contentItem.section.chapter.book',
 
             ]);
-
-
-
-
         } catch (Throwable $e) {
 
-
-
             DB::rollBack();
-
-
 
             Log::error(
 
@@ -495,39 +427,29 @@ class VideoService
 
             );
 
-
-
             throw $e;
-
         }
     }
 
-
-
-
-
+    /*
+    |--------------------------------------------------------------------------
+    | Delete
+    |--------------------------------------------------------------------------
+    */
 
     public function delete(
         Video $video
     ): bool {
 
-
         DB::beginTransaction();
 
-
-
         try {
-
-
 
             $deleted = $this->videoRepository->delete(
                 $video
             );
 
-
-
             if ($deleted) {
-
 
                 $this->fileUploadService->delete(
 
@@ -536,26 +458,14 @@ class VideoService
                     $video->filename
 
                 );
-
             }
-
-
 
             DB::commit();
 
-
-
             return $deleted;
-
-
-
         } catch (Throwable $e) {
 
-
-
             DB::rollBack();
-
-
 
             Log::error(
 
@@ -571,10 +481,7 @@ class VideoService
 
             );
 
-
-
             throw $e;
-
         }
     }
 }

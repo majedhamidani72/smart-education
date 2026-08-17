@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('content_items', function (Blueprint $table) {
 
-            $table->id(); // شناسه محتوا
+            $table->id();
 
             /*
             |--------------------------------------------------------------------------
@@ -41,7 +41,7 @@ return new class extends Migration
 
             /*
             |--------------------------------------------------------------------------
-            | Content
+            | Content Information
             |--------------------------------------------------------------------------
             */
 
@@ -51,34 +51,47 @@ return new class extends Migration
 
             $table->text('description')->nullable();
 
-            $table->unsignedSmallInteger('page_number')->nullable();
+            $table->unsignedSmallInteger('page_number')
+                ->nullable();
 
-            $table->string('thumbnail')->nullable();
+            $table->string('thumbnail')
+                ->nullable();
 
-            $table->boolean('is_free')->default(false);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Status
-            |--------------------------------------------------------------------------
-            */
-
-            $table->string('status', 30)->default('draft');
-
-            $table->text('rejection_reason')->nullable();
-
-            
-
-            // زمان انتشار
-            $table->timestamp('published_at')->nullable();
+            $table->boolean('is_free')
+                ->default(false);
 
             /*
             |--------------------------------------------------------------------------
-            | Sort
+            | Workflow
             |--------------------------------------------------------------------------
             */
 
-            $table->unsignedSmallInteger('sort_order')->default(1);
+            $table->string('status', 30)
+                ->default('pending');
+
+            $table->text('rejection_reason')
+                ->nullable();
+
+            $table->timestamp('published_at')
+                ->nullable();
+
+            $table->timestamp('reviewed_at')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sorting
+            |--------------------------------------------------------------------------
+            */
+
+            $table->unsignedSmallInteger('sort_order')
+                ->default(1);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Timestamps
+            |--------------------------------------------------------------------------
+            */
 
             $table->timestamps();
 
@@ -91,23 +104,36 @@ return new class extends Migration
             */
 
             $table->unique(
-                ['section_id', 'slug'],
+                [
+                    'section_id',
+                    'slug',
+                ],
                 'content_section_slug_unique'
             );
 
             $table->index(
-                ['section_id', 'content_type_id', 'status'],
+                [
+                    'section_id',
+                    'sort_order',
+                ],
+                'content_section_sort_index'
+            );
+
+            $table->index(
+                [
+                    'section_id',
+                    'content_type_id',
+                    'status',
+                ],
                 'content_filter_index'
             );
 
             $table->index(
-                ['is_free', 'status'],
+                [
+                    'is_free',
+                    'status',
+                ],
                 'content_access_index'
-            );
-
-            $table->index(
-                ['section_id', 'sort_order'],
-                'content_section_sort_index'
             );
         });
     }

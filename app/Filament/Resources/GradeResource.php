@@ -6,16 +6,13 @@ use App\Filament\Resources\GradeResource\Pages;
 use App\Models\Grade;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\TernaryFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
 
 class GradeResource extends Resource
 {
@@ -37,18 +34,19 @@ class GradeResource extends Resource
     {
         return $form->schema([
 
-            TextInput::make('title')
-                ->label('عنوان پایه')
+            Forms\Components\TextInput::make('title')
+                ->label('نام پایه')
                 ->required()
-                ->maxLength(255),
+                ->maxLength(255)
+                ->live(onBlur: true)
+                ->afterStateUpdated(fn ($state, Forms\Set $set) => $set(
+                    'slug',
+                    Str::slug($state)
+                )),
 
-            TextInput::make('slug')
-                ->label('Slug')
-                ->required()
-                ->unique(ignoreRecord: true)
-                ->maxLength(255),
+            Forms\Components\Hidden::make('slug'),
 
-            TextInput::make('grade_number')
+            Forms\Components\TextInput::make('grade_number')
                 ->label('شماره پایه')
                 ->numeric()
                 ->required()
@@ -56,13 +54,7 @@ class GradeResource extends Resource
                 ->maxValue(12)
                 ->unique(ignoreRecord: true),
 
-            TextInput::make('sort_order')
-                ->label('ترتیب نمایش')
-                ->numeric()
-                ->default(1)
-                ->required(),
-
-            Toggle::make('is_active')
+            Forms\Components\Toggle::make('is_active')
                 ->label('فعال')
                 ->default(true),
 
@@ -73,36 +65,28 @@ class GradeResource extends Resource
     {
         return $table
 
-            ->defaultSort('sort_order')
+            ->defaultSort('grade_number')
 
             ->columns([
 
-                TextColumn::make('id')
+                Tables\Columns\TextColumn::make('id')
                     ->label('#')
                     ->sortable(),
 
-                TextColumn::make('title')
-                    ->label('عنوان پایه')
+                Tables\Columns\TextColumn::make('title')
+                    ->label('نام پایه')
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('slug')
-                    ->label('Slug')
-                    ->searchable(),
-
-                TextColumn::make('grade_number')
-                    ->label('شماره')
+                Tables\Columns\TextColumn::make('grade_number')
+                    ->label('شماره پایه')
                     ->sortable(),
 
-                TextColumn::make('sort_order')
-                    ->label('ترتیب')
-                    ->sortable(),
-
-                IconColumn::make('is_active')
+                Tables\Columns\IconColumn::make('is_active')
                     ->label('فعال')
                     ->boolean(),
 
-                TextColumn::make('created_at')
+                Tables\Columns\TextColumn::make('created_at')
                     ->label('تاریخ ایجاد')
                     ->dateTime('Y/m/d H:i')
                     ->sortable(),
@@ -111,7 +95,7 @@ class GradeResource extends Resource
 
             ->filters([
 
-                TernaryFilter::make('is_active')
+                Tables\Filters\TernaryFilter::make('is_active')
                     ->label('فعال'),
 
                 Tables\Filters\TrashedFilter::make(),

@@ -11,40 +11,77 @@ return new class extends Migration
         Schema::create('teacher_agreements', function (Blueprint $table) {
 
             $table->id();
-            // شناسه
 
+            /*
+            |--------------------------------------------------------------------------
+            | User
+            |--------------------------------------------------------------------------
+            */
 
             $table->foreignId('teacher_id')
                 ->constrained('users')
+                ->cascadeOnUpdate()
                 ->cascadeOnDelete();
-            // معلمی که قوانین را قبول کرده
 
+            /*
+            |--------------------------------------------------------------------------
+            | Agreement
+            |--------------------------------------------------------------------------
+            */
 
-            $table->string('agreement_version')
-                ->default('1.0');
-            // نسخه قوانین
-            // اگر قوانین تغییر کرد نسخه جدید ثبت می‌کنیم
+            $table->enum('agreement_type', [
 
+                'teacher',
+
+                'admin',
+
+            ]);
+
+            $table->string('agreement_version', 20);
 
             $table->timestamp('accepted_at');
-            // زمان تایید
 
+            /*
+            |--------------------------------------------------------------------------
+            | Client Information
+            |--------------------------------------------------------------------------
+            */
 
-            $table->string('ip_address')
+            $table->string('ip_address', 45)
                 ->nullable();
-            // آی‌پی زمان تایید
-
 
             $table->text('user_agent')
                 ->nullable();
-            // اطلاعات مرورگر یا دستگاه
-
 
             $table->timestamps();
 
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
+            $table->index(
+                'agreement_type',
+                'ta_type_idx'
+            );
+
+            $table->index(
+                'agreement_version',
+                'ta_version_idx'
+            );
+
+            $table->unique(
+                [
+                    'teacher_id',
+                    'agreement_type',
+                    'agreement_version',
+                ],
+                'ta_teacher_type_version_unique'
+            );
+
         });
     }
-
 
     public function down(): void
     {

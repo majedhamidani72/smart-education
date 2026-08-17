@@ -1,181 +1,436 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
-use Throwable;
 use App\Models\SampleQuestion;
+use App\Repositories\Interfaces\SampleQuestionRepositoryInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use App\Repositories\Interfaces\SampleQuestionRepositoryInterface;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use RuntimeException;
+use Throwable;
 
 class SampleQuestionService
 {
-    /**
-     * Repository نمونه سوالات
-     */
-    protected SampleQuestionRepositoryInterface $sampleQuestionRepository;
-
-    /**
-     * سرویس آپلود فایل
-     */
-    protected FileUploadService $fileUploadService;
-
     public function __construct(
-        SampleQuestionRepositoryInterface $sampleQuestionRepository,
-        FileUploadService $fileUploadService
-    ) {
-        $this->sampleQuestionRepository = $sampleQuestionRepository;
-        $this->fileUploadService = $fileUploadService;
-    }
+        protected SampleQuestionRepositoryInterface $sampleQuestionRepository,
+        protected FileUploadService $fileUploadService
+    ) {}
 
-    /**
-     * دریافت همه نمونه سوالات
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Read
+    |--------------------------------------------------------------------------
+    */
+
     public function getAll(): Collection
     {
         return $this->sampleQuestionRepository->getAll();
     }
 
-    /**
-     * صفحه‌بندی نمونه سوالات
-     */
     public function paginate(
         int $perPage = 15
-    ): LengthAwarePaginator
-    {
+    ): LengthAwarePaginator {
+
         return $this->sampleQuestionRepository->paginate(
             $perPage
         );
     }
 
-    /**
-     * دریافت یک نمونه سوال
-     */
     public function findById(
         int $id
-    ): ?SampleQuestion
-    {
+    ): ?SampleQuestion {
+
         return $this->sampleQuestionRepository->findById(
             $id
         );
     }
 
-    /**
-     * ایجاد نمونه سوال
-     */
+    public function pending(): Collection
+    {
+        return $this->sampleQuestionRepository->whereStatus(
+            'pending'
+        );
+    }
+
+    public function approved(): Collection
+    {
+        return $this->sampleQuestionRepository->whereStatus(
+            'approved'
+        );
+    }
+
+    public function rejected(): Collection
+    {
+        return $this->sampleQuestionRepository->whereStatus(
+            'rejected'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create
+    |--------------------------------------------------------------------------
+    */
+
     public function create(
         array $data,
-        ?UploadedFile $pdf
-    ): SampleQuestion
-    {
+        UploadedFile|TemporaryUploadedFile $pdf
+    ): SampleQuestion {
+
         DB::beginTransaction();
 
         try {
 
-            if ($pdf) {
+            $fileInfo = $this->fileUploadService->upload(
 
-                $file = $this->fileUploadService->upload(
-                    $pdf,
-                    'sample-questions'
+                $pdf,
+
+                'sample-questions'
+
+            );
+
+            $data = array_merge(
+
+                $data,
+
+                $fileInfo
+
+            );
+
+            $userId = Auth::id();
+
+            if (! $userId) {
+
+                throw new RuntimeException(
+                    'Authenticated user not found.'
                 );
 
-                $data['file'] = $file['file_path'];
             }
 
+            $data['uploaded_by'] = $userId;
+
+            $data['processing_status'] = 'pending';
+
+            $data['download_allowed'] ??= false;
+
             $sampleQuestion = $this->sampleQuestionRepository->create(
+
                 $data
+
             );
 
             DB::commit();
 
-            return $sampleQuestion;
+            return $sampleQuestion->fresh([
+
+                'uploader',
+
+                'approver',
+
+                'contentItem.section.chapter.book',
+
+            ]);
 
         } catch (Throwable $e) {
 
             DB::rollBack();
 
-            Log::error('Sample question creation failed.', [
+            Log::error(
 
-                'data' => $data,
+                'SampleQuestion creation failed.',
 
-                'error' => $e->getMessage(),
+                [
 
-            ]);
+                    'error' => $e->getMessage(),
+
+                ]
+
+            );
 
             throw $e;
-        }
-    }
 
-    /**
-     * بروزرسانی نمونه سوال
-     */
+        }
+
+    }
+        /*
+    |--------------------------------------------------------------------------
+    | Update
+    |--------------------------------------------------------------------------
+    */
+
     public function update(
         SampleQuestion $sampleQuestion,
         array $data,
-        ?UploadedFile $pdf
-    ): SampleQuestion
-    {
+        UploadedFile|TemporaryUploadedFile|null $pdf = null
+    ): SampleQuestion {
+
         DB::beginTransaction();
 
         try {
 
-            if ($pdf) {
+            if (
 
-                $file = $this->fileUploadService->replace(
+                $pdf instanceof UploadedFile
+
+                ||
+
+                $pdf instanceof TemporaryUploadedFile
+
+            ) {
+
+                $fileInfo = $this->fileUploadService->upload(
+
                     $pdf,
-                    $sampleQuestion->file,
+
                     'sample-questions'
+
                 );
 
-                $data['file'] = $file['file_path'];
+                $this->fileUploadService->delete(
+
+                    $sampleQuestion->directory,
+
+                    $sampleQuestion->filename
+
+                );
+
+                $data = array_merge(
+
+                    $data,
+
+                    $fileInfo
+
+                );
+
+                $data['processing_status'] = 'pending';
+
+                $data['approved_by'] = null;
+
+                $data['approved_at'] = null;
+
+                $data['rejected_reason'] = null;
+
             }
 
             $sampleQuestion = $this->sampleQuestionRepository->update(
+
                 $sampleQuestion,
+
                 $data
+
             );
 
             DB::commit();
 
-            return $sampleQuestion;
+            return $sampleQuestion->fresh([
+
+                'uploader',
+
+                'approver',
+
+                'contentItem.section.chapter.book',
+
+            ]);
 
         } catch (Throwable $e) {
 
             DB::rollBack();
 
-            Log::error('Sample question update failed.', [
+            Log::error(
 
-                'sample_question_id' => $sampleQuestion->id,
+                'SampleQuestion update failed.',
 
-                'error' => $e->getMessage(),
+                [
 
-            ]);
+                    'sample_question_id' => $sampleQuestion->id,
+
+                    'error' => $e->getMessage(),
+
+                ]
+
+            );
 
             throw $e;
+
         }
+
     }
 
-    /**
-     * حذف نمونه سوال
-     */
-    public function delete(
+    /*
+    |--------------------------------------------------------------------------
+    | Approve
+    |--------------------------------------------------------------------------
+    */
+
+    public function approve(
         SampleQuestion $sampleQuestion
-    ): bool
-    {
+    ): SampleQuestion {
+
         DB::beginTransaction();
 
         try {
 
-            $this->fileUploadService->delete(
-                $sampleQuestion->file
+            $sampleQuestion = $this->sampleQuestionRepository->update(
+
+                $sampleQuestion,
+
+                [
+
+                    'processing_status' => 'approved',
+
+                    'approved_by' => Auth::id(),
+
+                    'approved_at' => now(),
+
+                    'rejected_reason' => null,
+
+                ]
+
             );
 
-            $deleted = $this->sampleQuestionRepository->delete(
-                $sampleQuestion
+            DB::commit();
+
+            return $sampleQuestion->fresh([
+
+                'uploader',
+
+                'approver',
+
+                'contentItem.section.chapter.book',
+
+            ]);
+
+        } catch (Throwable $e) {
+
+            DB::rollBack();
+
+            Log::error(
+
+                'SampleQuestion approval failed.',
+
+                [
+
+                    'sample_question_id' => $sampleQuestion->id,
+
+                    'error' => $e->getMessage(),
+
+                ]
+
             );
+
+            throw $e;
+
+        }
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reject
+    |--------------------------------------------------------------------------
+    */
+
+    public function reject(
+        SampleQuestion $sampleQuestion,
+        string $reason
+    ): SampleQuestion {
+
+        DB::beginTransaction();
+
+        try {
+
+            $sampleQuestion = $this->sampleQuestionRepository->update(
+
+                $sampleQuestion,
+
+                [
+
+                    'processing_status' => 'rejected',
+
+                    'approved_by' => Auth::id(),
+
+                    'approved_at' => now(),
+
+                    'rejected_reason' => $reason,
+
+                ]
+
+            );
+
+            DB::commit();
+
+            return $sampleQuestion->fresh([
+
+                'uploader',
+
+                'approver',
+
+                'contentItem.section.chapter.book',
+
+            ]);
+
+        } catch (Throwable $e) {
+
+            DB::rollBack();
+
+            Log::error(
+
+                'SampleQuestion rejection failed.',
+
+                [
+
+                    'sample_question_id' => $sampleQuestion->id,
+
+                    'error' => $e->getMessage(),
+
+                ]
+
+            );
+
+            throw $e;
+
+        }
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delete
+    |--------------------------------------------------------------------------
+    */
+
+    public function delete(
+        SampleQuestion $sampleQuestion
+    ): bool {
+
+        DB::beginTransaction();
+
+        try {
+
+            $deleted = $this->sampleQuestionRepository->delete(
+
+                $sampleQuestion
+
+            );
+
+            if ($deleted) {
+
+                $this->fileUploadService->delete(
+
+                    $sampleQuestion->directory,
+
+                    $sampleQuestion->filename
+
+                );
+
+            }
 
             DB::commit();
 
@@ -185,15 +440,23 @@ class SampleQuestionService
 
             DB::rollBack();
 
-            Log::error('Sample question delete failed.', [
+            Log::error(
 
-                'sample_question_id' => $sampleQuestion->id,
+                'SampleQuestion delete failed.',
 
-                'error' => $e->getMessage(),
+                [
 
-            ]);
+                    'sample_question_id' => $sampleQuestion->id,
+
+                    'error' => $e->getMessage(),
+
+                ]
+
+            );
 
             throw $e;
+
         }
+
     }
 }

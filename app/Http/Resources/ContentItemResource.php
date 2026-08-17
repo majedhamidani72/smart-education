@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
@@ -44,9 +46,33 @@ class ContentItemResource extends JsonResource
 
             'published_at' => $this->published_at,
 
+            'reviewed_at' => $this->reviewed_at,
+
             'created_at' => $this->created_at,
 
             'updated_at' => $this->updated_at,
+
+            /*
+            |--------------------------------------------------------------------------
+            | اطلاعات کمکی
+            |--------------------------------------------------------------------------
+            */
+
+            'section' => $this->whenLoaded(
+                'section'
+            ),
+
+            'content_type' => $this->whenLoaded(
+                'contentType'
+            ),
+
+            'creator' => $this->whenLoaded(
+                'creator'
+            ),
+
+            'reviewer' => $this->whenLoaded(
+                'reviewer'
+            ),
 
         ];
     }

@@ -8,34 +8,70 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('grade_subject', function (Blueprint $table) {
-            $table->id(); // شناسه ترکیب پایه و درس
+        Schema::create('app_grade_subjects', function (Blueprint $table) {
+
+            $table->id();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Relationships
+            |--------------------------------------------------------------------------
+            */
+
+            $table->foreignId('app_id')
+                ->constrained()
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
 
             $table->foreignId('grade_id')
                 ->constrained()
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete(); // پایه
+                ->cascadeOnDelete();
 
             $table->foreignId('subject_id')
                 ->constrained()
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete(); // درس
+                ->cascadeOnDelete();
 
-            $table->boolean('is_active')->default(true); // فعال یا غیرفعال
+            /*
+            |--------------------------------------------------------------------------
+            | Status
+            |--------------------------------------------------------------------------
+            */
 
-            $table->unsignedSmallInteger('sort_order')->default(1); // ترتیب نمایش
+            $table->boolean('is_active')
+                ->default(true);
+
+            $table->unsignedSmallInteger('sort_order')
+                ->default(1);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Timestamps
+            |--------------------------------------------------------------------------
+            */
 
             $table->timestamps();
 
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
             $table->unique(
-                ['grade_id', 'subject_id'],
-                'grade_subject_unique'
+                [
+                    'app_id',
+                    'grade_id',
+                    'subject_id',
+                ],
+                'app_grade_subject_unique'
             );
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('grade_subject');
+        Schema::dropIfExists('app_grade_subjects');
     }
 };

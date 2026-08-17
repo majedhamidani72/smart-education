@@ -2,108 +2,62 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
-
-// Grade
-use App\Repositories\Eloquent\GradeRepository;
-use App\Repositories\Interfaces\GradeRepositoryInterface;
-
-// Subject
-use App\Repositories\Eloquent\SubjectRepository;
-use App\Repositories\Interfaces\SubjectRepositoryInterface;
-
-// Book
 use App\Repositories\Eloquent\BookRepository;
-use App\Repositories\Interfaces\BookRepositoryInterface;
-
-// Chapter
 use App\Repositories\Eloquent\ChapterRepository;
-use App\Repositories\Interfaces\ChapterRepositoryInterface;
-
-// Section
-use App\Repositories\Eloquent\SectionRepository;
-use App\Repositories\Interfaces\SectionRepositoryInterface;
-
-// Content Item
 use App\Repositories\Eloquent\ContentItemRepository;
-use App\Repositories\Interfaces\ContentItemRepositoryInterface;
-
-// Video
-use App\Repositories\Eloquent\VideoRepository;
-use App\Repositories\Interfaces\VideoRepositoryInterface;
-
-// Pdf File
-use App\Repositories\Eloquent\PdfFileRepository;
-use App\Repositories\Interfaces\PdfFileRepositoryInterface;
-
-// Step By Step Page
-use App\Repositories\Eloquent\StepByStepPageRepository;
-use App\Repositories\Interfaces\StepByStepPageRepositoryInterface;
-
-// Sample Question
-use App\Repositories\Eloquent\SampleQuestionRepository;
-use App\Repositories\Interfaces\SampleQuestionRepositoryInterface;
-
-// Quiz
-use App\Repositories\Eloquent\QuizRepository;
-use App\Repositories\Interfaces\QuizRepositoryInterface;
-
-// Question
-use App\Repositories\Eloquent\QuestionRepository;
-use App\Repositories\Interfaces\QuestionRepositoryInterface;
-
-// Question Option
-use App\Repositories\Eloquent\QuestionOptionRepository;
-use App\Repositories\Interfaces\QuestionOptionRepositoryInterface;
-
-// Quiz Attempt
-use App\Repositories\Eloquent\QuizAttemptRepository;
-use App\Repositories\Interfaces\QuizAttemptRepositoryInterface;
-
-// Question Attempt
-use App\Repositories\Eloquent\QuestionAttemptRepository;
-use App\Repositories\Interfaces\QuestionAttemptRepositoryInterface;
-
-// OTP
-use App\Repositories\Eloquent\OtpCodeRepository;
-use App\Repositories\Interfaces\OtpCodeRepositoryInterface;
-
-// Device
 use App\Repositories\Eloquent\DeviceRepository;
-use App\Repositories\Interfaces\DeviceRepositoryInterface;
-
-// SMS
-use App\Services\Sms\Contracts\SmsProviderInterface;
-use App\Services\Sms\Providers\MockSmsProvider;
-
-// Plan
-use App\Repositories\Eloquent\PlanRepository;
-use App\Repositories\Interfaces\PlanRepositoryInterface;
-
-// Purchase
-use App\Repositories\Eloquent\PurchaseRepository;
-use App\Repositories\Interfaces\PurchaseRepositoryInterface;
-
-// Purchase Item
-use App\Repositories\Eloquent\PurchaseItemRepository;
-use App\Repositories\Interfaces\PurchaseItemRepositoryInterface;
-
-// Subscription
-use App\Repositories\Eloquent\SubscriptionRepository;
-use App\Repositories\Interfaces\SubscriptionRepositoryInterface;
-
-// Payment Transaction
+use App\Repositories\Eloquent\GradeRepository;
+use App\Repositories\Eloquent\OtpCodeRepository;
 use App\Repositories\Eloquent\PaymentTransactionRepository;
+use App\Repositories\Eloquent\PdfFileRepository;
+use App\Repositories\Eloquent\PlanRepository;
+use App\Repositories\Eloquent\PurchaseItemRepository;
+use App\Repositories\Eloquent\PurchaseRepository;
+use App\Repositories\Eloquent\QuestionAttemptRepository;
+use App\Repositories\Eloquent\QuestionOptionRepository;
+use App\Repositories\Eloquent\QuestionRepository;
+use App\Repositories\Eloquent\QuizAttemptRepository;
+use App\Repositories\Eloquent\QuizRepository;
+use App\Repositories\Eloquent\SampleQuestionRepository;
+use App\Repositories\Eloquent\SectionRepository;
+use App\Repositories\Eloquent\SettingRepository;
+use App\Repositories\Eloquent\StepByStepPageRepository;
+use App\Repositories\Eloquent\SubjectRepository;
+use App\Repositories\Eloquent\SubscriptionRepository;
+use App\Repositories\Eloquent\TeacherAssignmentRepository;
+use App\Repositories\Eloquent\VideoRepository;
+use App\Repositories\Interfaces\BookRepositoryInterface;
+use App\Repositories\Interfaces\ChapterRepositoryInterface;
+use App\Repositories\Interfaces\ContentItemRepositoryInterface;
+use App\Repositories\Interfaces\DeviceRepositoryInterface;
+use App\Repositories\Interfaces\GradeRepositoryInterface;
+use App\Repositories\Interfaces\OtpCodeRepositoryInterface;
 use App\Repositories\Interfaces\PaymentTransactionRepositoryInterface;
-
+use App\Repositories\Interfaces\PdfFileRepositoryInterface;
+use App\Repositories\Interfaces\PlanRepositoryInterface;
+use App\Repositories\Interfaces\PurchaseItemRepositoryInterface;
+use App\Repositories\Interfaces\PurchaseRepositoryInterface;
+use App\Repositories\Interfaces\QuestionAttemptRepositoryInterface;
+use App\Repositories\Interfaces\QuestionOptionRepositoryInterface;
+use App\Repositories\Interfaces\QuestionRepositoryInterface;
+use App\Repositories\Interfaces\QuizAttemptRepositoryInterface;
+use App\Repositories\Interfaces\QuizRepositoryInterface;
+use App\Repositories\Interfaces\SampleQuestionRepositoryInterface;
+use App\Repositories\Interfaces\SectionRepositoryInterface;
+use App\Repositories\Interfaces\SettingRepositoryInterface;
+use App\Repositories\Interfaces\StepByStepPageRepositoryInterface;
+use App\Repositories\Interfaces\SubjectRepositoryInterface;
+use App\Repositories\Interfaces\SubscriptionRepositoryInterface;
+use App\Repositories\Interfaces\TeacherAssignmentRepositoryInterface;
+use App\Repositories\Interfaces\VideoRepositoryInterface;
 use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Services\Payment\Providers\ZibalProvider;
-
-use App\Repositories\Eloquent\TeacherAssignmentRepository;
-use App\Repositories\Interfaces\TeacherAssignmentRepositoryInterface;
+use App\Services\Sms\Contracts\SmsProviderInterface;
+use App\Services\Sms\Providers\MockSmsProvider;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -248,6 +202,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(
             TeacherAssignmentRepositoryInterface::class,
             TeacherAssignmentRepository::class
+        );
+
+        $this->app->bind(
+            SettingRepositoryInterface::class,
+            SettingRepository::class
         );
 
 

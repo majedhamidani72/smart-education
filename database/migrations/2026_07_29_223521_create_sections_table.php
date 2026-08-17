@@ -9,31 +9,76 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sections', function (Blueprint $table) {
-            $table->id(); // شناسه بخش
+
+            $table->id();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Relations
+            |--------------------------------------------------------------------------
+            */
 
             $table->foreignId('chapter_id')
                 ->constrained()
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete(); // فصل
+                ->cascadeOnDelete();
 
-            $table->string('title'); // عنوان بخش
+            /*
+            |--------------------------------------------------------------------------
+            | Section Information
+            |--------------------------------------------------------------------------
+            */
 
-            $table->string('slug'); // نام یکتا
+            $table->string('title');
 
-            $table->text('description')->nullable(); // توضیحات
+            $table->string('slug');
 
-            $table->unsignedSmallInteger('sort_order')->default(1); // ترتیب بخش
+            $table->unsignedSmallInteger('sort_order')
+                ->default(1);
 
-            $table->boolean('is_active')->default(true); // فعال یا غیرفعال
+            $table->boolean('is_active')
+                ->default(true);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Timestamps
+            |--------------------------------------------------------------------------
+            */
 
             $table->timestamps();
 
             $table->softDeletes();
 
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
             $table->unique(
-                ['chapter_id', 'slug'],
+                [
+                    'chapter_id',
+                    'slug',
+                ],
                 'section_chapter_slug_unique'
             );
+
+            $table->index(
+                [
+                    'chapter_id',
+                    'sort_order',
+                ],
+                'section_chapter_sort_index'
+            );
+
+            $table->index(
+                [
+                    'chapter_id',
+                    'is_active',
+                ],
+                'section_filter_index'
+            );
+
         });
     }
 

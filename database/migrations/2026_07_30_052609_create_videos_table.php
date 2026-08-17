@@ -12,15 +12,10 @@ return new class extends Migration
 
             $table->id();
 
-
             /*
             |--------------------------------------------------------------------------
-            | ارتباط با محتوای آموزشی
+            | Relationships
             |--------------------------------------------------------------------------
-            |
-            | هر ویدئو متعلق به یک ContentItem است.
-            | ContentItem به Section، Chapter و Book متصل است.
-            |
             */
 
             $table->foreignId('content_item_id')
@@ -28,125 +23,62 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
 
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | آپلود کننده
-            |--------------------------------------------------------------------------
-            */
-
             $table->foreignId('uploaded_by')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
 
-
-
             /*
             |--------------------------------------------------------------------------
-            | تایید کننده
-            |--------------------------------------------------------------------------
-            */
-
-            $table->foreignId('approved_by')
-                ->nullable()
-                ->constrained('users')
-                ->nullOnDelete();
-
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | اطلاعات فایل
+            | File Information
             |--------------------------------------------------------------------------
             */
 
             $table->string('directory');
 
-
-            $table->string('filename')
-                ->index();
-
+            $table->string('filename');
 
             $table->string('original_name');
 
-
             $table->string('extension', 20);
-
 
             $table->string('mime_type', 100);
 
-
             $table->unsignedBigInteger('file_size');
-
-
 
             /*
             |--------------------------------------------------------------------------
-            | اطلاعات ویدئو
+            | Video Information
             |--------------------------------------------------------------------------
             */
 
-            $table->unsignedInteger('duration')
-                ->nullable();
+            $table->unsignedInteger('duration')->nullable();
 
+            $table->string('quality', 30)->nullable();
 
-            $table->string('quality', 30)
-                ->nullable();
-
-
-            $table->string('thumbnail_path')
-                ->nullable();
-
-
+            $table->string('thumbnail_path')->nullable();
 
             /*
             |--------------------------------------------------------------------------
-            | آمار و دسترسی
+            | Statistics
             |--------------------------------------------------------------------------
             */
 
             $table->unsignedBigInteger('views_count')
                 ->default(0);
 
-
             $table->boolean('download_allowed')
                 ->default(false);
 
-
-
             /*
             |--------------------------------------------------------------------------
-            | گردش تایید محتوا
-            |--------------------------------------------------------------------------
-            */
-
-            $table->string('processing_status')
-                ->default('pending');
-
-
-            $table->timestamp('approved_at')
-                ->nullable();
-
-
-            $table->text('rejected_reason')
-                ->nullable();
-
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | زمان‌ها
+            | Timestamps
             |--------------------------------------------------------------------------
             */
 
             $table->timestamps();
 
-
             $table->softDeletes();
-
-
 
             /*
             |--------------------------------------------------------------------------
@@ -154,20 +86,21 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             */
 
-            $table->index('content_item_id');
+            $table->unique('content_item_id');
 
-            $table->index('uploaded_by');
+            $table->index([
+                'uploaded_by',
+                'views_count',
+            ]);
 
-            $table->index('approved_by');
+            $table->index([
+                'duration',
+                'quality',
+            ]);
 
-            $table->index('processing_status');
-
-            $table->index('views_count');
-
+            $table->index('filename');
         });
     }
-
-
 
     public function down(): void
     {

@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 
 class App extends Model
 {
@@ -65,4 +67,12 @@ class App extends Model
         ];
     }
 
+
+
+    public function appGradeSubjects(): HasMany
+    {
+        return $this->hasMany(
+            AppGradeSubject::class
+        );
+    }
 }

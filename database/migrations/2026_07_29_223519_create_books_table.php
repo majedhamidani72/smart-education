@@ -9,36 +9,76 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('books', function (Blueprint $table) {
-            $table->id(); // شناسه کتاب
 
-            $table->foreignId('grade_subject_id')
-                ->constrained('grade_subject')
+            $table->id();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Relationships
+            |--------------------------------------------------------------------------
+            */
+
+            $table->foreignId('app_grade_subject_id')
+                ->constrained('app_grade_subjects')
                 ->cascadeOnUpdate()
-                ->restrictOnDelete(); // پایه و درس کتاب
+                ->restrictOnDelete();
 
-            $table->string('title'); // عنوان کتاب
+            /*
+            |--------------------------------------------------------------------------
+            | Book Information
+            |--------------------------------------------------------------------------
+            */
 
-            $table->string('slug'); // نام یکتا
+            $table->string('title');
 
-            $table->string('cover')->nullable(); // تصویر جلد
+            $table->string('slug');
 
-            $table->string('academic_year', 20)->nullable(); // سال تحصیلی
+            $table->string('cover')->nullable();
 
-            $table->unsignedSmallInteger('pages_count')->nullable(); // تعداد صفحات
+            $table->unsignedSmallInteger('sort_order')
+                ->default(1);
 
-            $table->text('description')->nullable(); // توضیحات
+            $table->boolean('is_active')
+                ->default(true);
 
-            $table->boolean('is_active')->default(true); // فعال یا غیرفعال
-
-            $table->unsignedSmallInteger('sort_order')->default(1); // ترتیب نمایش
+            /*
+            |--------------------------------------------------------------------------
+            | Timestamps
+            |--------------------------------------------------------------------------
+            */
 
             $table->timestamps();
 
             $table->softDeletes();
 
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
             $table->unique(
-                ['grade_subject_id', 'slug'],
-                'book_grade_subject_slug_unique'
+                [
+                    'app_grade_subject_id',
+                    'slug',
+                ],
+                'book_app_grade_subject_slug_unique'
+            );
+
+            $table->index(
+                [
+                    'app_grade_subject_id',
+                    'sort_order',
+                ],
+                'book_sort_index'
+            );
+
+            $table->index(
+                [
+                    'app_grade_subject_id',
+                    'is_active',
+                ],
+                'book_filter_index'
             );
         });
     }

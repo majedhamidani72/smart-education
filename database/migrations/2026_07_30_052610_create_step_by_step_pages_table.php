@@ -6,35 +6,59 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
-{
-    Schema::create('step_by_step_pages', function (Blueprint $table) {
+    {
+        Schema::create('step_by_step_pages', function (Blueprint $table) {
 
-        $table->id();
+            $table->id();
 
-        $table->foreignId('content_item_id')
-            ->constrained()
-            ->cascadeOnDelete(); // متعلق به یک محتوای گام‌به‌گام
+            /*
+            |--------------------------------------------------------------------------
+            | Step By Step
+            |--------------------------------------------------------------------------
+            */
 
-        $table->unsignedSmallInteger('page_number'); // شماره صفحه کتاب
+            $table->foreignId('step_by_step_id')
+                ->constrained()
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
 
-        $table->string('image'); // تصویر صفحه
+            /*
+            |--------------------------------------------------------------------------
+            | Page Information
+            |--------------------------------------------------------------------------
+            */
 
-        $table->unsignedTinyInteger('sort_order'); // ترتیب نمایش صفحات
+            $table->unsignedSmallInteger('page_number');
 
-        $table->boolean('is_free')->default(false); // صفحه رایگان
+            $table->string('image');
 
-        $table->timestamps();
+            $table->unsignedSmallInteger('sort_order')
+                ->default(1);
 
-    });
-}
+            $table->boolean('is_free')
+                ->default(false);
 
-    /**
-     * Reverse the migrations.
-     */
+            $table->timestamps();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
+            $table->unique(
+                ['step_by_step_id', 'page_number'],
+                'step_page_unique'
+            );
+
+            $table->index(
+                ['step_by_step_id', 'sort_order'],
+                'step_page_sort_index'
+            );
+        });
+    }
+
     public function down(): void
     {
         Schema::dropIfExists('step_by_step_pages');

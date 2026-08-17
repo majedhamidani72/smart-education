@@ -3,23 +3,23 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ChapterResource\Pages;
+use App\Models\App;
+use App\Models\AppGradeSubject;
+use App\Models\Book;
 use App\Models\Chapter;
+use App\Models\Grade;
+use App\Models\Subject;
 use App\Traits\FiltersByTeacherAssignment;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Toggle;
+use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Columns\ImageColumn;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
 
 class ChapterResource extends Resource
 {
@@ -39,54 +39,164 @@ class ChapterResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-
     public static function form(Form $form): Form
     {
         return $form->schema([
 
-            Select::make('book_id')
-                ->label('کتاب')
-                ->relationship('book', 'title')
-                ->searchable()
-                ->preload()
-                ->required(),
+            Forms\Components\Section::make('اطلاعات فصل')
+                ->columns(2)
+                ->schema([
 
-            TextInput::make('title')
-                ->label('عنوان فصل')
-                ->required()
-                ->maxLength(255),
+                    Forms\Components\Select::make('app_id')
+                        ->label('اپلیکیشن')
+                        ->options(
+                            App::query()
+                                ->where('is_active', true)
+                                ->orderBy('sort_order')
+                                ->pluck('title', 'id')
+                        )
+                        ->searchable()
+                        ->preload()
+                        ->live()
+                        ->dehydrated(false)
+                        ->afterStateUpdated(function (Set $set) {
 
-            TextInput::make('slug')
-                ->label('Slug')
-                ->required()
-                ->unique(ignoreRecord: true)
-                ->maxLength(255),
+                            $set('grade_id', null);
+                            $set('subject_id', null);
+                            $set('book_id', null);
 
-            Textarea::make('description')
-                ->label('توضیحات')
-                ->rows(4)
-                ->columnSpanFull(),
+                        })
+                        ->required(),
 
-            FileUpload::make('thumbnail')
-                ->label('تصویر فصل')
-                ->image()
-                ->directory('chapters'),
+                    Forms\Components\Select::make('grade_id')
+                        ->label('پایه')
+                        ->options(function (Get $get) {
 
-            TextInput::make('sort_order')
-                ->label('ترتیب نمایش')
-                ->numeric()
-                ->default(1)
-                ->required(),
+                            if (! $get('app_id')) {
+                                return [];
+                            }
 
-            Toggle::make('is_active')
-                ->label('فعال')
-                ->default(true),
+                            return Grade::query()
+                                ->whereHas(
+                                    'appGradeSubjects',
+                                    fn ($query) => $query
+                                        ->where('app_id', $get('app_id'))
+                                )
+                                ->orderBy('grade_number')
+                                ->pluck('title', 'id');
+
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->live()
+                        ->dehydrated(false)
+                        ->afterStateUpdated(function (Set $set) {
+
+                            $set('subject_id', null);
+                            $set('book_id', null);
+
+                        })
+                        ->required(),
+
+                    Forms\Components\Select::make('subject_id')
+                        ->label('درس')
+                        ->options(function (Get $get) {
+
+                            if (! $get('grade_id')) {
+                                return [];
+                            }
+
+                            return Subject::query()
+                                ->whereHas(
+                                    'appGradeSubjects',
+                                    fn ($query) => $query
+                                        ->where('app_id', $get('app_id'))
+                                        ->where('grade_id', $get('grade_id'))
+                                )
+                                ->orderBy('title')
+                                ->pluck('title', 'id');
+
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->live()
+                        ->dehydrated(false)
+                        ->afterStateUpdated(function (Set $set) {
+
+                            $set('book_id', null);
+
+                        })
+                        ->required(),
+
+                    Forms\Components\Select::make('book_id')
+                        ->label('کتاب')
+                        ->options(function (Get $get) {
+
+                            if (! $get('subject_id')) {
+                                return [];
+                            }
+
+                            $appGradeSubject = AppGradeSubject::query()
+                                ->where('app_id', $get('app_id'))
+                                ->where('grade_id', $get('grade_id'))
+                                ->where('subject_id', $get('subject_id'))
+                                ->first();
+
+                            if (! $appGradeSubject) {
+                                return [];
+                            }
+
+                            return Book::query()
+                                ->where(
+                                    'app_grade_subject_id',
+                                    $appGradeSubject->id
+                                )
+                                ->where('is_active', true)
+                                ->orderBy('title')
+                                ->pluck('title', 'id');
+
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+
+                    Forms\Components\TextInput::make('title')
+                        ->label('نام فصل')
+                        ->required()
+                        ->maxLength(255)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(function ($state, Set $set) {
+
+                            $set(
+                                'slug',
+                                Str::slug($state)
+                            );
+
+                        }),
+
+                    Forms\Components\Hidden::make('slug'),
+
+                    Forms\Components\FileUpload::make('thumbnail')
+                        ->label('تصویر فصل')
+                        ->directory('chapters')
+                        ->image(),
+
+                    Forms\Components\TextInput::make('sort_order')
+                        ->label('ترتیب نمایش')
+                        ->numeric()
+                        ->default(1)
+                        ->minValue(1)
+                        ->required(),
+
+                    Forms\Components\Toggle::make('is_active')
+                        ->label('فعال')
+                        ->default(true),
+
+                ]),
 
         ]);
     }
-
-
-    public static function table(Table $table): Table
+        public static function table(Table $table): Table
     {
         return $table
 
@@ -94,32 +204,55 @@ class ChapterResource extends Resource
 
             ->columns([
 
-                TextColumn::make('id')
+                Tables\Columns\TextColumn::make('id')
                     ->label('#')
                     ->sortable(),
 
-                ImageColumn::make('thumbnail')
-                    ->label('تصویر'),
-
-                TextColumn::make('book.title')
-                    ->label('کتاب')
-                    ->searchable(),
-
-                TextColumn::make('title')
-                    ->label('عنوان')
+                Tables\Columns\TextColumn::make(
+                    'book.appGradeSubject.app.title'
+                )
+                    ->label('اپلیکیشن')
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('sort_order')
+                Tables\Columns\TextColumn::make(
+                    'book.appGradeSubject.grade.title'
+                )
+                    ->label('پایه')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make(
+                    'book.appGradeSubject.subject.title'
+                )
+                    ->label('درس')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('book.title')
+                    ->label('کتاب')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\ImageColumn::make('thumbnail')
+                    ->label('تصویر فصل')
+                    ->square(),
+
+                Tables\Columns\TextColumn::make('title')
+                    ->label('نام فصل')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('sort_order')
                     ->label('ترتیب')
                     ->sortable(),
 
-                IconColumn::make('is_active')
+                Tables\Columns\IconColumn::make('is_active')
                     ->label('فعال')
                     ->boolean(),
 
-                TextColumn::make('created_at')
-                    ->label('ایجاد')
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('تاریخ ایجاد')
                     ->dateTime('Y/m/d H:i')
                     ->sortable(),
 
@@ -127,7 +260,14 @@ class ChapterResource extends Resource
 
             ->filters([
 
-                TernaryFilter::make('is_active')
+                Tables\Filters\SelectFilter::make('book_id')
+                    ->label('کتاب')
+                    ->relationship(
+                        'book',
+                        'title'
+                    ),
+
+                Tables\Filters\TernaryFilter::make('is_active')
                     ->label('فعال'),
 
                 Tables\Filters\TrashedFilter::make(),
@@ -135,6 +275,8 @@ class ChapterResource extends Resource
             ])
 
             ->actions([
+
+                Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make(),
 
@@ -161,12 +303,10 @@ class ChapterResource extends Resource
             ]);
     }
 
-
     public static function getRelations(): array
     {
         return [];
     }
-
 
     public static function getPages(): array
     {
@@ -180,7 +320,6 @@ class ChapterResource extends Resource
 
         ];
     }
-
 
     public static function getEloquentQuery(): Builder
     {
@@ -198,3 +337,4 @@ class ChapterResource extends Resource
         );
     }
 }
+

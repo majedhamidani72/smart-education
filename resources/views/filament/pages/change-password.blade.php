@@ -4,14 +4,12 @@
 
         {{ $this->form }}
 
-
         <x-filament::button
             type="submit"
             class="mt-6"
         >
             تغییر رمز عبور
         </x-filament::button>
-
 
     </form>
 

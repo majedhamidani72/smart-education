@@ -5,42 +5,29 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ContentType extends Model
 {
     use HasFactory, SoftDeletes;
 
-
-
-    // فیلدهای قابل ذخیره
     protected $fillable = [
 
         'title',
-        // نام نوع محتوا
-        // video
-        // pdf
-        // step_by_step
-        // sample_question
 
+        // teaching
+        // step_by_step
+        // sample_questions
 
         'slug',
-        // نام یکتا
-
 
         'icon',
-        // آیکون نوع محتوا
-
 
         'sort_order',
-        // ترتیب نمایش
-
 
         'is_active',
-        // فعال بودن
 
     ];
-
-
 
     protected function casts(): array
     {
@@ -51,14 +38,16 @@ class ContentType extends Model
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
 
-
-    // محتواهای مربوط به این نوع
-    public function contentItems()
+    public function contentItems(): HasMany
     {
         return $this->hasMany(
             ContentItem::class
         );
     }
-
 }

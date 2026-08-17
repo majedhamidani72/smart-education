@@ -13,9 +13,13 @@ interface SampleQuestionRepositoryInterface extends BaseRepositoryInterface
 {
     public function getAll(): Collection;
 
-    public function findById(int $id): ?Model;
+    public function findById(
+        int $id
+    ): ?Model;
 
-    public function create(array $data): Model;
+    public function create(
+        array $data
+    ): Model;
 
     public function update(
         Model $model,
@@ -25,4 +29,8 @@ interface SampleQuestionRepositoryInterface extends BaseRepositoryInterface
     public function delete(
         Model $model
     ): bool;
+
+    public function whereStatus(
+        string $status
+    ): Collection;
 }

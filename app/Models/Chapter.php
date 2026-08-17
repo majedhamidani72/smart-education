@@ -2,16 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Chapter extends Model
 {
     use HasFactory, SoftDeletes;
-
 
     protected $fillable = [
 
@@ -21,8 +20,6 @@ class Chapter extends Model
 
         'slug',
 
-        'description',
-
         'thumbnail',
 
         'sort_order',
@@ -30,8 +27,6 @@ class Chapter extends Model
         'is_active',
 
     ];
-
-
 
     protected function casts(): array
     {
@@ -42,10 +37,14 @@ class Chapter extends Model
         ];
     }
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
 
     /**
-     * فصل متعلق به یک کتاب است
+     * کتاب
      */
     public function book(): BelongsTo
     {
@@ -54,10 +53,8 @@ class Chapter extends Model
         );
     }
 
-
-
     /**
-     * فصل دارای چند بخش است
+     * بخش‌های فصل
      */
     public function sections(): HasMany
     {

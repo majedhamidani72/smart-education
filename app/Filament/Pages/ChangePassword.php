@@ -1,81 +1,128 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Pages;
 
-use Filament\Pages\Page;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Illuminate\Support\Facades\Hash;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 
 class ChangePassword extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-key';
+    protected static bool $shouldRegisterNavigation = false;
 
-    protected static string $view = 'filament.pages.change-password';
+    protected static ?string $slug = 'change-password';
 
     protected static ?string $title = 'تغییر رمز عبور';
 
-    public ?array $data = [];
+    protected static string $view = 'filament.pages.change-password';
 
+    public ?array $data = [];
 
     public function mount(): void
     {
         if (! auth()->check()) {
 
-            redirect('/admin/login');
+            $this->redirectRoute(
+                'filament.admin.auth.login'
+            );
 
             return;
         }
 
+        if (! auth()->user()->must_change_password) {
 
-        $user = auth()->user();
-
-
-        if (! $user->must_change_password) {
-
-            redirect('/admin');
+            $this->redirect(route('agreement.show'));
 
             return;
         }
-
 
         $this->form->fill();
     }
 
+    public function form(
+        Form $form
+    ): Form {
 
-    public function form(Form $form): Form
-    {
         return $form
+
             ->schema([
 
                 Forms\Components\TextInput::make('password')
-                    ->label('رمز جدید')
-                    ->password()
-                    ->revealable()
-                    ->required()
-                    ->minLength(8)
-                    ->same('password_confirmation'),
 
+                    ->label('رمز عبور جدید')
+
+                    ->password()
+
+                    ->revealable()
+
+                    ->required()
+
+                    ->rule(
+
+                        Password::min(8)
+
+                            ->letters()
+
+                            ->numbers()
+
+                    )
+
+                    ->confirmed()
+
+                    ->validationMessages([
+
+                        'required' => 'رمز عبور الزامی است.',
+
+                        'confirmed' => 'تکرار رمز عبور صحیح نیست.',
+
+                    ]),
 
                 Forms\Components\TextInput::make('password_confirmation')
-                    ->label('تکرار رمز جدید')
+
+                    ->label('تکرار رمز عبور')
+
                     ->password()
+
                     ->revealable()
+
                     ->required(),
 
             ])
+
             ->statePath('data');
     }
-
 
     public function save(): void
     {
         $data = $this->form->getState();
 
-
         $user = auth()->user();
 
+        if (
+
+            Hash::check(
+
+                $data['password'],
+
+                $user->password
+
+            )
+
+        ) {
+
+            throw ValidationException::withMessages([
+
+                'data.password' => 'رمز جدید نباید با رمز قبلی یکسان باشد.',
+
+            ]);
+        }
 
         $user->update([
 
@@ -85,23 +132,30 @@ class ChangePassword extends Page
 
             'must_change_password' => false,
 
+            'remember_token' => Str::random(60),
+
         ]);
 
-
-        session()->forget(
-            'must_change_password_user'
+        auth()->logoutOtherDevices(
+            $data['password']
         );
 
+        session()->invalidate();
 
-        session()->regenerate();
+        session()->regenerateToken();
 
+        auth()->login($user);
 
         Notification::make()
+
             ->title('رمز عبور با موفقیت تغییر کرد.')
+
             ->success()
+
             ->send();
 
-
-        redirect('/admin');
+        $this->redirectRoute(
+            'filament.admin.pages.dashboard'
+        );
     }
 }

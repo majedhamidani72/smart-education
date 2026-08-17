@@ -1,42 +1,166 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PdfFile extends Model
 {
-    use HasFactory;
-
-
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
 
         'content_item_id',
 
-        'title',
+        'uploaded_by',
 
-        'file',
+        'directory',
+
+        'filename',
+
+        'original_name',
+
+        'extension',
+
+        'mime_type',
 
         'file_size',
 
+        'download_allowed',
+
+        'processing_status',
+
+        'approved_by',
+
+        'approved_at',
+
+        'rejected_reason',
+
     ];
 
+    protected function casts(): array
+    {
+        return [
 
+            'file_size' => 'integer',
 
-    // هر PDF متعلق به یک ContentItem است
-    public function contentItem()
+            'download_allowed' => 'boolean',
+
+            'approved_at' => 'datetime',
+
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
+
+    public function contentItem(): BelongsTo
     {
         return $this->belongsTo(
             ContentItem::class
         );
     }
 
-    protected function casts(): array
+    public function uploader(): BelongsTo
     {
-        return [
-            'file_size' => 'integer',
-        ];
+        return $this->belongsTo(
+            User::class,
+            'uploaded_by'
+        );
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'approved_by'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Accessors
+    |--------------------------------------------------------------------------
+    */
+
+    public function fileUrl(): Attribute
+    {
+        return Attribute::make(
+
+            get: fn() =>
+
+                $this->directory && $this->filename
+
+                    ? asset(
+                        $this->directory.'/'.$this->filename
+                    )
+
+                    : null
+
+        );
+    }
+
+    public function fileSizeReadable(): Attribute
+    {
+        return Attribute::make(
+
+            get: function () {
+
+                if (! $this->file_size) {
+
+                    return null;
+
+                }
+
+                return round(
+
+                    $this->file_size / 1024 / 1024,
+
+                    2
+
+                ).' MB';
+
+            }
+
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Helpers
+    |--------------------------------------------------------------------------
+    */
+
+    public function fullPath(): string
+    {
+        return public_path(
+
+            $this->directory.'/'.$this->filename
+
+        );
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->processing_status === 'approved';
+    }
+
+    public function isPending(): bool
+    {
+        return $this->processing_status === 'pending';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->processing_status === 'rejected';
     }
 }

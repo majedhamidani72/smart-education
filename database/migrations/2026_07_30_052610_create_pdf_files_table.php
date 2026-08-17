@@ -6,33 +6,114 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('pdf_files', function (Blueprint $table) {
 
             $table->id();
 
+            /*
+            |--------------------------------------------------------------------------
+            | ارتباط با محتوای آموزشی
+            |--------------------------------------------------------------------------
+            */
+
             $table->foreignId('content_item_id')
                 ->constrained()
+                ->cascadeOnUpdate()
                 ->cascadeOnDelete();
 
-            $table->string('title',150); // عنوان PDF
+            /*
+            |--------------------------------------------------------------------------
+            | آپلود کننده
+            |--------------------------------------------------------------------------
+            */
 
-            $table->string('file'); // فایل PDF
+            $table->foreignId('uploaded_by')
+                ->constrained('users')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
 
-            $table->unsignedInteger('file_size')->nullable(); // حجم فایل
+            /*
+            |--------------------------------------------------------------------------
+            | تایید کننده
+            |--------------------------------------------------------------------------
+            */
+
+            $table->foreignId('approved_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+
+            /*
+            |--------------------------------------------------------------------------
+            | اطلاعات فایل
+            |--------------------------------------------------------------------------
+            */
+
+            $table->string('directory');
+
+            $table->string('filename')->index();
+
+            $table->string('original_name');
+
+            $table->string('extension',20);
+
+            $table->string('mime_type',100);
+
+            $table->unsignedBigInteger('file_size');
+
+            /*
+            |--------------------------------------------------------------------------
+            | دسترسی
+            |--------------------------------------------------------------------------
+            */
+
+            $table->boolean('download_allowed')
+                ->default(false);
+
+            /*
+            |--------------------------------------------------------------------------
+            | گردش تایید محتوا
+            |--------------------------------------------------------------------------
+            */
+
+            $table->string('processing_status')
+                ->default('pending');
+
+            $table->timestamp('approved_at')
+                ->nullable();
+
+            $table->text('rejected_reason')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | زمان‌ها
+            |--------------------------------------------------------------------------
+            */
 
             $table->timestamps();
+
+            $table->softDeletes();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
+            $table->index('content_item_id');
+
+            $table->index('uploaded_by');
+
+            $table->index('approved_by');
+
+            $table->index('processing_status');
 
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('pdf_files');

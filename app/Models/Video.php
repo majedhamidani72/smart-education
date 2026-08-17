@@ -14,7 +14,6 @@ class Video extends Model
 {
     use HasFactory, SoftDeletes;
 
-
     protected $fillable = [
 
         'content_item_id',
@@ -43,17 +42,7 @@ class Video extends Model
 
         'download_allowed',
 
-        'processing_status',
-
-        'approved_by',
-
-        'approved_at',
-
-        'rejected_reason',
-
     ];
-
-
 
     protected function casts(): array
     {
@@ -67,12 +56,8 @@ class Video extends Model
 
             'download_allowed' => 'boolean',
 
-            'approved_at' => 'datetime',
-
         ];
     }
-
-
 
     /*
     |--------------------------------------------------------------------------
@@ -80,9 +65,8 @@ class Video extends Model
     |--------------------------------------------------------------------------
     */
 
-
     /**
-     * اطلاعات آموزشی ویدئو
+     * محتوای آموزشی
      */
     public function contentItem(): BelongsTo
     {
@@ -91,10 +75,8 @@ class Video extends Model
         );
     }
 
-
-
     /**
-     * معلم یا کاربر آپلود کننده
+     * آپلود کننده
      */
     public function uploader(): BelongsTo
     {
@@ -104,37 +86,25 @@ class Video extends Model
         );
     }
 
-
-
-    /**
-     * تایید کننده محتوا
-     */
-    public function approver(): BelongsTo
-    {
-        return $this->belongsTo(
-            User::class,
-            'approved_by'
-        );
-    }
-
-
-
     /*
     |--------------------------------------------------------------------------
     | Accessors
     |--------------------------------------------------------------------------
     */
 
-
+    /**
+     * آدرس فایل ویدئو
+     */
     public function videoUrl(): Attribute
     {
         return Attribute::make(
 
             get: fn () =>
+
                 $this->directory && $this->filename
 
                     ? asset(
-                        $this->directory.'/'.$this->filename
+                        $this->directory . '/' . $this->filename
                     )
 
                     : null
@@ -142,13 +112,15 @@ class Video extends Model
         );
     }
 
-
-
+    /**
+     * آدرس تصویر بندانگشتی
+     */
     public function thumbnailUrl(): Attribute
     {
         return Attribute::make(
 
             get: fn () =>
+
                 $this->thumbnail_path
 
                     ? asset(
@@ -160,8 +132,9 @@ class Video extends Model
         );
     }
 
-
-
+    /**
+     * حجم فایل به صورت خوانا
+     */
     public function fileSizeReadable(): Attribute
     {
         return Attribute::make(
@@ -174,18 +147,15 @@ class Video extends Model
 
                 }
 
-
                 return round(
                     $this->file_size / 1024 / 1024,
                     2
-                ).' MB';
+                ) . ' MB';
 
             }
 
         );
     }
-
-
 
     /*
     |--------------------------------------------------------------------------
@@ -193,32 +163,13 @@ class Video extends Model
     |--------------------------------------------------------------------------
     */
 
-
+    /**
+     * مسیر کامل فایل
+     */
     public function fullPath(): string
     {
         return public_path(
-            $this->directory.'/'.$this->filename
+            $this->directory . '/' . $this->filename
         );
-    }
-
-
-
-    public function isApproved(): bool
-    {
-        return $this->processing_status === 'approved';
-    }
-
-
-
-    public function isPending(): bool
-    {
-        return $this->processing_status === 'pending';
-    }
-
-
-
-    public function isRejected(): bool
-    {
-        return $this->processing_status === 'rejected';
     }
 }

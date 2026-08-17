@@ -1,82 +1,53 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ContentItem extends Model
 {
     use HasFactory, SoftDeletes;
 
-
-
-    // فیلدهایی که اجازه ذخیره دارند
     protected $fillable = [
 
         'section_id',
-        // بخش آموزشی
-
 
         'content_type_id',
-        // نوع محتوا
-
 
         'created_by',
-        // سازنده محتوا (ادمین یا معلم)
-
 
         'reviewed_by',
-        // مدیر بررسی کننده
-
 
         'title',
-        // عنوان محتوا
-
 
         'slug',
-        // نام یکتا
-
 
         'description',
-        // توضیحات
-
 
         'page_number',
-        // شماره صفحه کتاب
-
 
         'thumbnail',
-        // تصویر شاخص
-
 
         'is_free',
-        // رایگان یا پولی
-
 
         'status',
-        // draft
-        // pending
-        // approved
-        // rejected
-        // published
-
 
         'rejection_reason',
-        // دلیل رد شدن
-
 
         'sort_order',
-        // ترتیب نمایش
-
 
         'published_at',
-        // زمان انتشار
+
+        'reviewed_at',
 
     ];
-
-
 
     protected function casts(): array
     {
@@ -86,39 +57,41 @@ class ContentItem extends Model
 
             'published_at' => 'datetime',
 
+            'reviewed_at' => 'datetime',
+
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
 
-
-    // =========================
-    // Relationships
-    // =========================
-
-
-    // محتوا متعلق به یک بخش است
-    public function section()
+    /**
+     * بخش آموزشی
+     */
+    public function section(): BelongsTo
     {
         return $this->belongsTo(
             Section::class
         );
     }
 
-
-
-    // نوع محتوا
-    public function contentType()
+    /**
+     * نوع محتوا
+     */
+    public function contentType(): BelongsTo
     {
         return $this->belongsTo(
             ContentType::class
         );
     }
 
-
-
-    // کسی که محتوا را ساخته
-    // (معلم یا ادمین)
-    public function creator()
+    /**
+     * ایجاد کننده محتوا
+     */
+    public function creator(): BelongsTo
     {
         return $this->belongsTo(
             User::class,
@@ -126,10 +99,10 @@ class ContentItem extends Model
         );
     }
 
-
-
-    // مدیری که محتوا را بررسی کرده
-    public function reviewer()
+    /**
+     * بررسی کننده محتوا
+     */
+    public function reviewer(): BelongsTo
     {
         return $this->belongsTo(
             User::class,
@@ -137,54 +110,58 @@ class ContentItem extends Model
         );
     }
 
-
-
-    // ویدئو
-    public function video()
+    /**
+     * ویدئو
+     */
+    public function video(): HasOne
     {
         return $this->hasOne(
             Video::class
         );
     }
 
+    /**
+     * گام به گام
+     */
+    public function stepByStep(): HasOne
+    {
+        return $this->hasOne(
+            StepByStep::class
+        );
+    }
 
-
-    // فایل PDF
-    public function pdfFile()
+    /**
+     * فایل PDF
+     */
+    public function pdfFile(): HasOne
     {
         return $this->hasOne(
             PdfFile::class
         );
     }
 
+    /**
+     * صفحات گام به گام
+     */
+    
 
-
-    // صفحات گام به گام
-    public function stepByStepPages()
-    {
-        return $this->hasMany(
-            StepByStepPage::class
-        );
-    }
-
-
-
-    // نمونه سوال
-    public function sampleQuestions()
+    /**
+     * نمونه سوالات
+     */
+    public function sampleQuestions(): HasMany
     {
         return $this->hasMany(
             SampleQuestion::class
         );
     }
 
-
-
-    // تایید محتوا
-    public function approval()
+    /**
+     * تایید محتوا
+     */
+    public function approval(): HasOne
     {
         return $this->hasOne(
             ContentApproval::class
         );
     }
-
 }

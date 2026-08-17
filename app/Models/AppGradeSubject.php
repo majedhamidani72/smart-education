@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AppGradeSubject extends Model
 {
@@ -11,48 +13,60 @@ class AppGradeSubject extends Model
 
     protected $table = 'app_grade_subjects';
 
-
-    // فیلدهای قابل ذخیره
     protected $fillable = [
 
         'app_id',
-        // شناسه اپلیکیشن
 
         'grade_id',
-        // شناسه پایه
 
         'subject_id',
-        // شناسه درس
+
+        'is_active',
+
+        'sort_order',
 
     ];
 
-
-
-    // =========================
-    // Relationships
-    // =========================
-
-
-    // هر رکورد متعلق به یک App است
-    public function app()
+    protected function casts(): array
     {
-        return $this->belongsTo(App::class);
+        return [
+
+            'is_active' => 'boolean',
+
+        ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
 
-
-    // هر رکورد متعلق به یک Grade است
-    public function grade()
+    public function app(): BelongsTo
     {
-        return $this->belongsTo(Grade::class);
+        return $this->belongsTo(
+            App::class
+        );
     }
 
-
-
-    // هر رکورد متعلق به یک Subject است
-    public function subject()
+    public function grade(): BelongsTo
     {
-        return $this->belongsTo(Subject::class);
+        return $this->belongsTo(
+            Grade::class
+        );
     }
 
+    public function subject(): BelongsTo
+    {
+        return $this->belongsTo(
+            Subject::class
+        );
+    }
+
+    public function books(): HasMany
+    {
+        return $this->hasMany(
+            Book::class
+        );
+    }
 }

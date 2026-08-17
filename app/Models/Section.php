@@ -2,16 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Section extends Model
 {
     use HasFactory, SoftDeletes;
-
 
     protected $fillable = [
 
@@ -21,15 +20,11 @@ class Section extends Model
 
         'slug',
 
-        'description',
-
         'sort_order',
 
         'is_active',
 
     ];
-
-
 
     protected function casts(): array
     {
@@ -40,10 +35,14 @@ class Section extends Model
         ];
     }
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
 
     /**
-     * بخش متعلق به یک فصل است
+     * فصل
      */
     public function chapter(): BelongsTo
     {
@@ -52,10 +51,8 @@ class Section extends Model
         );
     }
 
-
-
     /**
-     * بخش دارای چند محتوای آموزشی است
+     * محتواهای آموزشی
      */
     public function contentItems(): HasMany
     {

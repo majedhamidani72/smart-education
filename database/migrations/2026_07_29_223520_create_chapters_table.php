@@ -9,32 +9,77 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('chapters', function (Blueprint $table) {
-            $table->id(); // شناسه فصل
+
+            $table->id();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Relations
+            |--------------------------------------------------------------------------
+            */
 
             $table->foreignId('book_id')
                 ->constrained()
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete(); // کتاب
+                ->cascadeOnDelete();
 
-            $table->string('title'); // عنوان فصل
+            /*
+            |--------------------------------------------------------------------------
+            | Chapter Information
+            |--------------------------------------------------------------------------
+            */
 
-            $table->string('slug'); // نام یکتا
+            $table->string('title');
 
-            $table->text('description')->nullable(); // توضیحات
+            $table->string('slug');
 
-            $table->string('thumbnail')->nullable(); // تصویر فصل
+            $table->string('thumbnail')
+                ->nullable();
 
-            $table->unsignedSmallInteger('sort_order')->default(1); // ترتیب فصل
+            $table->unsignedSmallInteger('sort_order')
+                ->default(1);
 
-            $table->boolean('is_active')->default(true); // فعال یا غیرفعال
+            $table->boolean('is_active')
+                ->default(true);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Timestamps
+            |--------------------------------------------------------------------------
+            */
 
             $table->timestamps();
 
             $table->softDeletes();
 
+            /*
+            |--------------------------------------------------------------------------
+            | Indexes
+            |--------------------------------------------------------------------------
+            */
+
             $table->unique(
-                ['book_id', 'slug'],
+                [
+                    'book_id',
+                    'slug',
+                ],
                 'chapter_book_slug_unique'
+            );
+
+            $table->index(
+                [
+                    'book_id',
+                    'sort_order',
+                ],
+                'chapter_book_sort_index'
+            );
+
+            $table->index(
+                [
+                    'book_id',
+                    'is_active',
+                ],
+                'chapter_filter_index'
             );
         });
     }

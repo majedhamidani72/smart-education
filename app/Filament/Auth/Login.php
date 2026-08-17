@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Auth;
 
-use Filament\Pages\Auth\Login as BaseLogin;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Component;
+use Filament\Forms\Components\TextInput;
 use Filament\Http\Responses\Auth\Contracts\LoginResponse;
+use Filament\Pages\Auth\Login as BaseLogin;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
@@ -19,68 +21,59 @@ class Login extends BaseLogin
             ->required()
             ->autofocus()
             ->autocomplete('tel')
-            ->maxLength(11)
-            ->minLength(11);
+            ->placeholder('09123456789')
+            ->rule('digits:11')
+            ->rule('regex:/^09[0-9]{9}$/')
+            ->validationMessages([
+                'required' => 'شماره موبایل الزامی است.',
+                'digits' => 'شماره موبایل باید ۱۱ رقم باشد.',
+                'regex' => 'فرمت شماره موبایل صحیح نیست.',
+            ]);
     }
-
 
     protected function getCredentialsFromFormData(
         array $data
     ): array {
-
         return [
             'mobile' => $data['mobile'],
             'password' => $data['password'],
         ];
     }
 
-
     protected function throwFailureValidationException(): never
     {
         throw ValidationException::withMessages([
-            'data.mobile' =>
-                'شماره موبایل یا رمز عبور اشتباه است.',
+            'data.mobile' => 'شماره موبایل یا رمز عبور اشتباه است.',
         ]);
     }
-
 
     public function authenticate(): ?LoginResponse
     {
         $this->rateLimit(5);
 
-
         $data = $this->form->getState();
 
-
-        if (
-            ! Auth::attempt(
-                $this->getCredentialsFromFormData($data)
-            )
-        ) {
-
+        if (! Auth::attempt(
+            $this->getCredentialsFromFormData($data)
+        )) {
             $this->throwFailureValidationException();
-
         }
-
-
-        $user = Auth::user();
-
 
         session()->regenerate();
 
-
-        if (
-            $user->must_change_password
-        ) {
-
-            session()->put(
-                'must_change_password_user',
-                $user->id
-            );
-
-        }
-
+        /*
+        |--------------------------------------------------------------------------
+        | ادامه فرآیند ورود
+        |--------------------------------------------------------------------------
+        | تصمیم برای اجبار تغییر رمز عبور داخل Middleware
+        | CheckPasswordChange گرفته می‌شود.
+        */
 
         return app(LoginResponse::class);
+    }
+
+    protected function getPasswordResetUrl(): ?string
+    {
+        return null;
     }
 }

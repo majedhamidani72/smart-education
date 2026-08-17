@@ -6,7 +6,7 @@ use App\Exceptions\Auth\InvalidLoginTokenException;
 use App\Exceptions\Auth\InvalidOtpException;
 use App\Exceptions\Auth\OtpAlreadyUsedException;
 use App\Exceptions\Auth\OtpAttemptsExceededException;
-
+use App\Http\Middleware\EnsureAgreementAccepted;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -18,30 +18,26 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 return Application::configure(
     basePath: dirname(__DIR__)
 )
-
     ->withRouting(
-
-        web: __DIR__ . '/../routes/web.php',
-
-        api: __DIR__ . '/../routes/api.php',
-
-        commands: __DIR__ . '/../routes/console.php',
-
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
         health: '/up',
-
     )
+    ->withMiddleware(function (Middleware $middleware): void {
 
-    ->withMiddleware(function (
-        Middleware $middleware
-    ): void {
+        /*
+        |--------------------------------------------------------------------------
+        | Web Middleware
+        |--------------------------------------------------------------------------
+        */
 
-        //
+        $middleware->web(append: [
+            EnsureAgreementAccepted::class,
+        ]);
 
     })
-
-    ->withExceptions(function (
-        Exceptions $exceptions
-    ) {
+    ->withExceptions(function (Exceptions $exceptions) {
 
         /*
         |--------------------------------------------------------------------------
@@ -49,22 +45,11 @@ return Application::configure(
         |--------------------------------------------------------------------------
         */
 
-        $exceptions->render(function (
-
-            ValidationException $e,
-
-            $request
-
-        ) {
-
+        $exceptions->render(function (ValidationException $e,$request) {
             if (! $request->expectsJson()) {
-
                 return null;
             }
-
-            return ApiResponse::validation(
-                $e->errors()
-            );
+            return ApiResponse::validation($e->errors());
         });
 
         /*
@@ -73,17 +58,10 @@ return Application::configure(
         |--------------------------------------------------------------------------
         */
 
-        $exceptions->render(function (
-
-            AuthenticationException $e,
-
-            $request
-
-        ) {
+        $exceptions->render(function (AuthenticationException $e,$request) {
             if (! $request->expectsJson()) {
                 return null;
             }
-
             return ApiResponse::unauthorized();
         });
 
@@ -93,17 +71,10 @@ return Application::configure(
         |--------------------------------------------------------------------------
         */
 
-        $exceptions->render(function (
-
-            AccessDeniedHttpException $e,
-
-            $request
-
-        ) {
+        $exceptions->render(function (AccessDeniedHttpException $e,$request) {
             if (! $request->expectsJson()) {
                 return null;
             }
-
             return ApiResponse::forbidden();
         });
 
@@ -113,20 +84,11 @@ return Application::configure(
         |--------------------------------------------------------------------------
         */
 
-        $exceptions->render(function (
-
-            ModelNotFoundException $e,
-
-            $request
-
-        ) {
+        $exceptions->render(function (ModelNotFoundException $e,$request) {
             if (! $request->expectsJson()) {
                 return null;
             }
-
-            return ApiResponse::notFound(
-                'Resource not found.'
-            );
+            return ApiResponse::notFound('Resource not found.');
         });
 
         /*
@@ -135,114 +97,39 @@ return Application::configure(
         |--------------------------------------------------------------------------
         */
 
-        $exceptions->render(function (
-
-            InvalidLoginTokenException $e,
-
-            $request
-
-        ) {
+        $exceptions->render(function (InvalidLoginTokenException $e,$request) {
             if (! $request->expectsJson()) {
                 return null;
             }
-
-            return ApiResponse::error(
-
-                $e->getMessage(),
-
-                null,
-
-                404
-
-            );
+            return ApiResponse::error($e->getMessage(),null,404);
         });
 
-        $exceptions->render(function (
-
-            InvalidOtpException $e,
-
-            $request
-
-        ) {
+        $exceptions->render(function (InvalidOtpException $e,$request) {
             if (! $request->expectsJson()) {
                 return null;
             }
-
-            return ApiResponse::error(
-
-                $e->getMessage(),
-
-                null,
-
-                422
-
-            );
+            return ApiResponse::error($e->getMessage(),null,422);
         });
 
-        $exceptions->render(function (
-
-            ExpiredOtpException $e,
-
-            $request
-
-        ) {
+        $exceptions->render(function (ExpiredOtpException $e,$request) {
             if (! $request->expectsJson()) {
                 return null;
             }
-
-            return ApiResponse::error(
-
-                $e->getMessage(),
-
-                null,
-
-                410
-
-            );
+            return ApiResponse::error($e->getMessage(),null,410);
         });
 
-        $exceptions->render(function (
-
-            OtpAlreadyUsedException $e,
-
-            $request
-
-        ) {
+        $exceptions->render(function (OtpAlreadyUsedException $e,$request) {
             if (! $request->expectsJson()) {
                 return null;
             }
-
-            return ApiResponse::error(
-
-                $e->getMessage(),
-
-                null,
-
-                409
-
-            );
+            return ApiResponse::error($e->getMessage(),null,409);
         });
 
-        $exceptions->render(function (
-
-            OtpAttemptsExceededException $e,
-
-            $request
-
-        ) {
+        $exceptions->render(function (OtpAttemptsExceededException $e,$request) {
             if (! $request->expectsJson()) {
                 return null;
             }
-
-            return ApiResponse::error(
-
-                $e->getMessage(),
-
-                null,
-
-                429
-
-            );
+            return ApiResponse::error($e->getMessage(),null,429);
         });
 
         /*
@@ -251,29 +138,16 @@ return Application::configure(
         |--------------------------------------------------------------------------
         */
 
-        $exceptions->render(function (
-
-            Throwable $e,
-
-            $request
-
-        ) {
+        $exceptions->render(function (\Throwable $e,$request) {
             if (! $request->expectsJson()) {
                 return null;
             }
-
             return ApiResponse::error(
-
-                app()->hasDebugModeEnabled()
-                    ? $e->getMessage()
-                    : 'Internal Server Error',
-
+                app()->hasDebugModeEnabled() ? $e->getMessage() : 'Internal Server Error',
                 null,
-
                 500
-
             );
         });
-    })
 
+    })
     ->create();

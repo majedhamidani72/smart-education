@@ -2,21 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\TeacherAssignment;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\TeacherAssignment;
 
 class Book extends Model
 {
     use HasFactory, SoftDeletes;
 
-
-
     protected $fillable = [
 
-        'grade_subject_id',
+        'app_grade_subject_id',
 
         'title',
 
@@ -24,19 +23,11 @@ class Book extends Model
 
         'cover',
 
-        'academic_year',
-
-        'pages_count',
-
-        'description',
-
         'is_active',
 
         'sort_order',
 
     ];
-
-
 
     protected function casts(): array
     {
@@ -47,20 +38,26 @@ class Book extends Model
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
 
-
-    // پایه و درس مربوط به کتاب
-    public function gradeSubject()
+    /**
+     * اپ + پایه + درس
+     */
+    public function appGradeSubject(): BelongsTo
     {
         return $this->belongsTo(
-            GradeSubject::class
+            AppGradeSubject::class
         );
     }
 
-
-
-    // فصل‌های کتاب
-    public function chapters()
+    /**
+     * فصل‌های کتاب
+     */
+    public function chapters(): HasMany
     {
         return $this->hasMany(
             Chapter::class
@@ -68,7 +65,7 @@ class Book extends Model
     }
 
     /**
-     * معلمان مجاز این کتاب
+     * معلمان مجاز کتاب
      */
     public function teacherAssignments(): HasMany
     {
