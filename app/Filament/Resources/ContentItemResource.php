@@ -106,6 +106,12 @@ class ContentItemResource extends Resource
                         })
                         ->searchable()
                         ->preload()
+                        // چون اپلیکیشنِ تازه‌ساخته‌شده ممکن است در
+                        // لحظه‌ی نمایش هنوز داخل لیست options() بالا
+                        // نباشد (مثلاً فیلترهای معلم)، این متد تضمین
+                        // می‌کند که همیشه عنوان واقعی نمایش داده شود،
+                        // نه شناسه‌ی عددی (id) به‌عنوان جایگزین.
+                        ->getOptionLabelUsing(fn($value) => App::find($value)?->title)
                         ->live()
                         ->dehydrated(false)
                         ->required()
@@ -218,6 +224,7 @@ class ContentItemResource extends Resource
                         })
                         ->searchable()
                         ->preload()
+                        ->getOptionLabelUsing(fn($value) => Grade::find($value)?->title)
                         ->live()
                         ->dehydrated(false)
                         ->required()
@@ -342,6 +349,7 @@ class ContentItemResource extends Resource
                         })
                         ->searchable()
                         ->preload()
+                        ->getOptionLabelUsing(fn($value) => Subject::find($value)?->title)
                         ->live()
                         ->dehydrated(false)
                         ->required()
@@ -460,6 +468,7 @@ class ContentItemResource extends Resource
                         })
                         ->searchable()
                         ->preload()
+                        ->getOptionLabelUsing(fn($value) => Book::find($value)?->title)
                         ->live()
                         ->dehydrated(false)
                         ->required()

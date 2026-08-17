@@ -131,6 +131,7 @@ class TeacherResource extends Resource
                         )
                         ->searchable()
                         ->preload()
+                        ->getOptionLabelUsing(fn($value) => App::find($value)?->title)
                         ->live()
                         ->dehydrated(false)
                         ->required()
@@ -195,6 +196,7 @@ class TeacherResource extends Resource
                         })
                         ->searchable()
                         ->preload()
+                        ->getOptionLabelUsing(fn($value) => Grade::find($value)?->title)
                         ->live()
                         ->dehydrated(false)
                         ->required()
@@ -267,6 +269,7 @@ class TeacherResource extends Resource
                         })
                         ->searchable()
                         ->preload()
+                        ->getOptionLabelUsing(fn($value) => Subject::find($value)?->title)
                         ->live()
                         ->dehydrated(false)
                         ->required()
@@ -339,6 +342,7 @@ class TeacherResource extends Resource
                         })
                         ->searchable()
                         ->preload()
+                        ->getOptionLabelUsing(fn($value) => Book::find($value)?->title)
                         ->required()
                         ->createOptionForm([
 
