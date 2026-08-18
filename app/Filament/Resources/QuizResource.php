@@ -520,13 +520,6 @@ class QuizResource extends Resource
                 ->numeric()
                 ->default(20),
 
-            Forms\Components\TextInput::make('passing_percentage')
-                ->label('درصد قبولی')
-                ->numeric()
-                ->default(50)
-                ->minValue(0)
-                ->maxValue(100),
-
             Forms\Components\TextInput::make('max_attempts')
                 ->label('حداکثر دفعات شرکت')
                 ->numeric()
