@@ -10,6 +10,7 @@ use App\Models\StepByStepPage;
 use App\Models\Video;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class EditContentItem extends EditRecord
@@ -149,18 +150,14 @@ class EditContentItem extends EditRecord
                         'content_item_id' => $record->id,
                     ],
 
-                    [
-                        'title' => data_get(
-                            $this->data,
-                            'video.title'
-                        ),
-
-                        'video_file' => data_get(
-                            $this->data,
-                            'video.video_file'
-                        ),
-
-                    ]
+                    array_merge(
+                        [
+                            'uploaded_by' => $record->video?->uploaded_by ?? auth()->id(),
+                        ],
+                        $this->extractFileMeta(
+                            data_get($this->data, 'video.video_file')
+                        )
+                    )
 
                 );
 
@@ -230,23 +227,69 @@ class EditContentItem extends EditRecord
                         'content_item_id' => $record->id,
                     ],
 
-                    [
-                        'title' => data_get(
-                            $this->data,
-                            'pdfFile.title'
-                        ),
-
-                        'file' => data_get(
-                            $this->data,
-                            'pdfFile.file'
-                        ),
-
-                    ]
+                    array_merge(
+                        [
+                            'uploaded_by' => $record->pdfFile?->uploaded_by ?? auth()->id(),
+                        ],
+                        $this->extractFileMeta(
+                            data_get($this->data, 'pdfFile.file')
+                        )
+                    )
 
                 );
 
                 break;
         }
+    }
+
+    /**
+     * از روی مسیر فایلی که Filament ذخیره کرده (روی دیسک public)،
+     * ستون‌های اجباری جدول‌های videos و pdf_files را می‌سازد.
+     * همان منطق CreateContentItem::extractFileMeta.
+     */
+    protected function extractFileMeta(string|array|null $path): array
+    {
+        if (is_array($path)) {
+            $path = collect($path)->first();
+        }
+
+        if (blank($path)) {
+
+            return [
+                'directory' => '',
+                'filename' => '',
+                'original_name' => '',
+                'extension' => '',
+                'mime_type' => 'application/octet-stream',
+                'file_size' => 0,
+            ];
+        }
+
+        $disk = Storage::disk('public');
+
+        $directory = dirname($path);
+
+        $filename = basename($path);
+
+        return [
+
+            'directory' => $directory === '.' ? '' : $directory,
+
+            'filename' => $filename,
+
+            'original_name' => $filename,
+
+            'extension' => pathinfo($path, PATHINFO_EXTENSION) ?: '',
+
+            'mime_type' => $disk->exists($path)
+                ? ($disk->mimeType($path) ?: 'application/octet-stream')
+                : 'application/octet-stream',
+
+            'file_size' => $disk->exists($path)
+                ? $disk->size($path)
+                : 0,
+
+        ];
     }
 
     protected function getHeaderActions(): array
