@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Http\Middleware\CheckPasswordChange;
+use App\Http\Middleware\EnsureAgreementAccepted;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -117,6 +118,17 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
 
                 CheckPasswordChange::class,
+
+                // این پنل از گروه میدل‌ور استاندارد "web" استفاده
+                // نمی‌کند (بالاتر، لیست میدل‌ورها را دستی مشخص
+                // کرده‌ایم)، پس هر میدل‌ور سراسری که فقط به گروه
+                // "web" اضافه شده باشد (مثل همین مورد در
+                // bootstrap/app.php) هرگز روی مسیرهای این پنل
+                // اجرا نمی‌شود. برای همین اینجا هم صریحاً اضافه‌اش
+                // می‌کنیم. ترتیب مهم است: باید بعد از
+                // CheckPasswordChange بیاید تا اول تغییر رمز اجباری
+                // انجام شود، بعد قرارداد همکاری بررسی شود.
+                EnsureAgreementAccepted::class,
 
             ]);
     }
