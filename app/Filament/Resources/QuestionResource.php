@@ -470,6 +470,11 @@ class QuestionResource extends Resource
             ])
             ->filters([
 
+                Tables\Filters\SelectFilter::make('question_topic_id')
+                    ->label('موضوع')
+                    ->options(QuestionTopic::pluck('title', 'id'))
+                    ->searchable(),
+
                 Tables\Filters\SelectFilter::make('difficulty')
                     ->label('سطح سختی')
                     ->options([
@@ -477,6 +482,11 @@ class QuestionResource extends Resource
                         'medium' => 'متوسط',
                         'hard' => 'سخت',
                     ]),
+
+                Tables\Filters\SelectFilter::make('created_by')
+                    ->label('ایجادکننده')
+                    ->relationship('creator', 'name')
+                    ->searchable(),
 
                 Tables\Filters\SelectFilter::make('status')
                     ->label('وضعیت')

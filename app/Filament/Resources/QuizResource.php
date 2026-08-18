@@ -731,6 +731,90 @@ class QuizResource extends Resource
 
             ->filters([
 
+                Tables\Filters\SelectFilter::make('grade_id')
+                    ->label('پایه')
+                    ->options(Grade::pluck('title', 'id'))
+                    ->query(function ($query, array $data) {
+
+                        if (blank($data['value'] ?? null)) {
+                            return $query;
+                        }
+
+                        $gradeId = $data['value'];
+
+                        return $query->whereHasMorph(
+                            'quizable',
+                            [Book::class, Chapter::class, Section::class],
+                            function ($q, $type) use ($gradeId) {
+
+                                match ($type) {
+
+                                    Book::class => $q->whereHas(
+                                        'appGradeSubject',
+                                        fn($qq) => $qq->where('grade_id', $gradeId)
+                                    ),
+
+                                    Chapter::class => $q->whereHas(
+                                        'book.appGradeSubject',
+                                        fn($qq) => $qq->where('grade_id', $gradeId)
+                                    ),
+
+                                    Section::class => $q->whereHas(
+                                        'chapter.book.appGradeSubject',
+                                        fn($qq) => $qq->where('grade_id', $gradeId)
+                                    ),
+
+                                };
+                            }
+                        );
+                    }),
+
+                Tables\Filters\SelectFilter::make('subject_id')
+                    ->label('درس')
+                    ->options(Subject::pluck('title', 'id'))
+                    ->query(function ($query, array $data) {
+
+                        if (blank($data['value'] ?? null)) {
+                            return $query;
+                        }
+
+                        $subjectId = $data['value'];
+
+                        return $query->whereHasMorph(
+                            'quizable',
+                            [Book::class, Chapter::class, Section::class],
+                            function ($q, $type) use ($subjectId) {
+
+                                match ($type) {
+
+                                    Book::class => $q->whereHas(
+                                        'appGradeSubject',
+                                        fn($qq) => $qq->where('subject_id', $subjectId)
+                                    ),
+
+                                    Chapter::class => $q->whereHas(
+                                        'book.appGradeSubject',
+                                        fn($qq) => $qq->where('subject_id', $subjectId)
+                                    ),
+
+                                    Section::class => $q->whereHas(
+                                        'chapter.book.appGradeSubject',
+                                        fn($qq) => $qq->where('subject_id', $subjectId)
+                                    ),
+
+                                };
+                            }
+                        );
+                    }),
+
+                Tables\Filters\SelectFilter::make('quizable_type')
+                    ->label('سطح آزمون')
+                    ->options([
+                        Section::class => 'بخش',
+                        Chapter::class => 'فصل / بعد از هر درس',
+                        Book::class => 'کتاب / جامع / نوبت',
+                    ]),
+
                 Tables\Filters\SelectFilter::make('status')
                     ->label('وضعیت')
                     ->options([
