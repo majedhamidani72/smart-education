@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Video extends Model
 {
@@ -103,7 +104,9 @@ class Video extends Model
 
                 $this->directory && $this->filename
 
-                    ? asset(
+                    // فایل‌ها روی دیسک "public" (storage/app/public)
+                    // ذخیره می‌شوند، نه مستقیم داخل پوشه‌ی public/.
+                    ? Storage::disk('public')->url(
                         $this->directory . '/' . $this->filename
                     )
 
@@ -168,8 +171,10 @@ class Video extends Model
      */
     public function fullPath(): string
     {
-        return public_path(
+        return Storage::disk('public')->path(
+
             $this->directory . '/' . $this->filename
+
         );
     }
 }

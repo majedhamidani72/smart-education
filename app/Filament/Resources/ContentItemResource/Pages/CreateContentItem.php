@@ -3,46 +3,84 @@
 namespace App\Filament\Resources\ContentItemResource\Pages;
 
 use App\Filament\Resources\ContentItemResource;
-use App\Models\ContentItem;
 use App\Models\ContentType;
 use App\Models\PdfFile;
 use App\Models\StepByStep;
 use App\Models\StepByStepPage;
 use App\Models\Video;
-use Filament\Resources\Pages\CreateRecord;
+use Filament\Actions;
+use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class CreateContentItem extends CreateRecord
+class EditContentItem extends EditRecord
 {
     protected static string $resource = ContentItemResource::class;
 
-    protected function mutateFormDataBeforeCreate(array $data): array
+    protected function mutateFormDataBeforeSave(array $data): array
     {
-        $data['created_by'] = auth()->id();
+        // «ایجادکننده» هرگز نباید با ویرایش عوض شود — این فیلد
+        // فقط یک‌بار، همان لحظه‌ی ساخت اولیه‌ی محتوا مشخص می‌شود
+        // (نگاه کنید به CreateContentItem). این خط صراحتاً از هر
+        // احتمال رونویسی‌شدنِ آن هنگام ذخیره‌ی ویرایش جلوگیری
+        // می‌کند.
+        unset($data['created_by']);
+
+        // محافظت سمت سرور: حتی اگر فرم در رابط کاربری این بخش را
+        // از معلم مخفی می‌کند، تغییر وضعیت (تأیید/رد/انتشار) فقط
+        // باید توسط ادمین یا سوپرادمین ثبت شود — نه با یک درخواست
+        // دستکاری‌شده از سمت معلم.
+        $isReviewer = auth()->user()?->hasRole('Admin')
+            || auth()->user()?->hasRole('SuperAdmin');
+
+        if (! $isReviewer) {
+
+            // وضعیت به همان مقداری که از قبل روی رکورد بوده
+            // برمی‌گردد؛ یعنی معلم عملاً نمی‌تواند وضعیت را از این
+            // مسیر تغییر دهد.
+            $data['status'] = $this->record->status;
+
+            unset($data['reviewed_by'], $data['reviewed_at'], $data['rejection_reason']);
+
+        } elseif (
+            isset($data['status']) &&
+            in_array(
+                $data['status'],
+                [
+                    'approved',
+                    'published',
+                ],
+                true
+            )
+        ) {
+            $data['reviewed_by'] = auth()->id();
+
+            $data['reviewed_at'] = now();
+        }
 
         // عنوان نهایی محتوا از روی همان فیلد اختصاصی نوع محتوا
-        // ساخته می‌شود (دیگر فیلد «عنوان» جداگانه‌ای در فرم
-        // وجود ندارد؛ نگاه کنید به ContentItemResource::form).
+        // بازسازی می‌شود (همان منطق CreateContentItem).
         $title = $this->resolveTitle($data);
 
-        $data['title'] = $title;
+        if (filled($title)) {
 
-        $data['slug'] = $this->uniqueSlug(
-            filled($title) ? Str::slug($title) : Str::random(10),
-            $data['section_id'] ?? null
-        );
+            $data['title'] = $title;
+
+            $data['slug'] = $this->uniqueSlug(
+                Str::slug($title),
+                $data['section_id'] ?? $this->record->section_id,
+                $this->record->id
+            );
+        }
 
         return $data;
     }
 
     /**
-     * یک اسلاگ یکتا برای همین «بخش» می‌سازد.
-     * --------------------------------------------------------------------
-     * یکتایی محتوا در دیتابیس بر اساس ترکیب (section_id, slug) است.
-     * اگر معلم/ادمین دو محتوای متفاوت را با عنوان یکسان در همان
-     * بخش بسازد (مثلاً هم یک ویدئو هم یک PDF به اسم «کاردرکلاس»)،
-     * به‌جای خطای یکتایی، به انتهای اسلاگ یک شماره اضافه می‌شود
-     * (kardrklas-2, kardrklas-3, ...) تا تداخل پیش نیاید.
+     * یک اسلاگ یکتا برای همین «بخش» می‌سازد (همان منطق
+     * CreateContentItem::uniqueSlug، با این تفاوت که رکورد خودِ
+     * این محتوا از بررسی تکراری بودن کنار گذاشته می‌شود — وگرنه
+     * ویرایش یک محتوای موجود همیشه با خودش تداخل می‌کرد).
      */
     protected function uniqueSlug(string $baseSlug, ?int $sectionId, ?int $ignoreId = null): string
     {
@@ -51,7 +89,7 @@ class CreateContentItem extends CreateRecord
         $counter = 2;
 
         while (
-            ContentItem::query()
+            \App\Models\ContentItem::query()
                 ->where('section_id', $sectionId)
                 ->where('slug', $slug)
                 ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
@@ -65,12 +103,6 @@ class CreateContentItem extends CreateRecord
         return $slug;
     }
 
-    /**
-     * بر اساس نوع محتوای انتخاب‌شده، عنوان را از فیلد اختصاصی
-     * همان نوع می‌خواند:
-     * تدریس → عنوان ویدئو، گام‌به‌گام → عنوان اولین صفحه،
-     * نمونه سوالات → عنوان فایل PDF.
-     */
     protected function resolveTitle(array $data): ?string
     {
         $slug = ContentType::query()
@@ -90,7 +122,7 @@ class CreateContentItem extends CreateRecord
         };
     }
 
-    protected function afterCreate(): void
+    protected function afterSave(): void
     {
         $record = $this->record;
 
@@ -112,27 +144,22 @@ class CreateContentItem extends CreateRecord
 
             case 'teaching':
 
-                if (
-                    filled(data_get($this->data, 'video.title')) ||
-                    filled(data_get($this->data, 'video.video_file'))
-                ) {
+                Video::updateOrCreate(
 
-                    Video::create([
-
+                    [
                         'content_item_id' => $record->id,
+                    ],
 
-                        'title' => data_get(
-                            $this->data,
-                            'video.title'
-                        ),
+                    array_merge(
+                        [
+                            'uploaded_by' => $record->video?->uploaded_by ?? auth()->id(),
+                        ],
+                        $this->extractFileMeta(
+                            data_get($this->data, 'video.video_file')
+                        )
+                    )
 
-                        'video_file' => data_get(
-                            $this->data,
-                            'video.video_file'
-                        ),
-
-                    ]);
-                }
+                );
 
                 break;
 
@@ -144,18 +171,26 @@ class CreateContentItem extends CreateRecord
 
             case 'step_by_step':
 
-                $step = StepByStep::create([
+                $step = StepByStep::firstOrCreate(
 
-                    'content_item_id' => $record->id,
+                    [
+                        'content_item_id' => $record->id,
+                    ]
 
-                ]);
+                );
+
+                $step->pages()->delete();
 
                 foreach (
+
                     data_get(
                         $this->data,
                         'stepByStep',
                         []
-                    ) as $page
+                    )
+
+                    as $page
+
                 ) {
 
                     StepByStepPage::create([
@@ -172,6 +207,7 @@ class CreateContentItem extends CreateRecord
 
                         'is_free' => false,
 
+
                     ]);
                 }
 
@@ -185,24 +221,84 @@ class CreateContentItem extends CreateRecord
 
             case 'sample_questions':
 
-                PdfFile::create([
+                PdfFile::updateOrCreate(
 
-                    'content_item_id' => $record->id,
+                    [
+                        'content_item_id' => $record->id,
+                    ],
 
-                    'title' => data_get(
-                        $this->data,
-                        'pdfFile.title'
-                    ),
+                    array_merge(
+                        [
+                            'uploaded_by' => $record->pdfFile?->uploaded_by ?? auth()->id(),
+                        ],
+                        $this->extractFileMeta(
+                            data_get($this->data, 'pdfFile.file')
+                        )
+                    )
 
-                    'file' => data_get(
-                        $this->data,
-                        'pdfFile.file'
-                    ),
-
-                ]);
+                );
 
                 break;
         }
+    }
+
+    /**
+     * از روی مسیر فایلی که Filament ذخیره کرده (روی دیسک public)،
+     * ستون‌های اجباری جدول‌های videos و pdf_files را می‌سازد.
+     * همان منطق CreateContentItem::extractFileMeta.
+     */
+    protected function extractFileMeta(?string $path): array
+    {
+        if (blank($path)) {
+
+            return [
+                'directory' => '',
+                'filename' => '',
+                'original_name' => '',
+                'extension' => '',
+                'mime_type' => 'application/octet-stream',
+                'file_size' => 0,
+            ];
+        }
+
+        $disk = Storage::disk('public');
+
+        $directory = dirname($path);
+
+        $filename = basename($path);
+
+        return [
+
+            'directory' => $directory === '.' ? '' : $directory,
+
+            'filename' => $filename,
+
+            'original_name' => $filename,
+
+            'extension' => pathinfo($path, PATHINFO_EXTENSION) ?: '',
+
+            'mime_type' => $disk->exists($path)
+                ? ($disk->mimeType($path) ?: 'application/octet-stream')
+                : 'application/octet-stream',
+
+            'file_size' => $disk->exists($path)
+                ? $disk->size($path)
+                : 0,
+
+        ];
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+
+            Actions\DeleteAction::make(),
+
+            Actions\ForceDeleteAction::make(),
+
+            Actions\RestoreAction::make(),
+
+        ];
     }
 
     protected function getRedirectUrl(): string
@@ -210,8 +306,8 @@ class CreateContentItem extends CreateRecord
         return static::getResource()::getUrl('index');
     }
 
-    protected function getCreatedNotificationTitle(): ?string
+    protected function getSavedNotificationTitle(): ?string
     {
-        return 'محتوای آموزشی با موفقیت ایجاد شد.';
+        return 'محتوای آموزشی با موفقیت ویرایش شد.';
     }
 }

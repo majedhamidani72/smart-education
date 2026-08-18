@@ -1035,16 +1035,23 @@ class ContentItemResource extends Resource
 
                 ->visible(fn($record) => $record->contentType?->slug === 'teaching')
 
+                ->columns(2)
+
                 ->schema([
 
-                    TextEntry::make('video.title')
-                        ->label('عنوان ویدئو')
+                    TextEntry::make('video.video_url')
+                        ->label('لینک فایل')
+                        ->placeholder('—')
+                        ->formatStateUsing(fn($state) => $state ? 'مشاهده / دانلود فایل' : '—')
+                        ->url(fn($record) => $record->video?->video_url, shouldOpenInNewTab: true),
+
+                    TextEntry::make('video.file_size_readable')
+                        ->label('حجم فایل')
                         ->placeholder('—'),
 
-                    TextEntry::make('video.video_file')
-                        ->label('مسیر فایل')
-                        ->placeholder('—')
-                        ->copyable(),
+                    TextEntry::make('video.mime_type')
+                        ->label('نوع فایل')
+                        ->placeholder('—'),
 
                 ]),
 
@@ -1083,16 +1090,19 @@ class ContentItemResource extends Resource
 
                 ->visible(fn($record) => $record->contentType?->slug === 'sample_questions')
 
+                ->columns(2)
+
                 ->schema([
 
-                    TextEntry::make('pdfFile.title')
-                        ->label('عنوان')
-                        ->placeholder('—'),
-
-                    TextEntry::make('pdfFile.file')
-                        ->label('مسیر فایل PDF')
+                    TextEntry::make('pdfFile.file_url')
+                        ->label('لینک فایل PDF')
                         ->placeholder('—')
-                        ->copyable(),
+                        ->formatStateUsing(fn($state) => $state ? 'مشاهده / دانلود فایل' : '—')
+                        ->url(fn($record) => $record->pdfFile?->file_url, shouldOpenInNewTab: true),
+
+                    TextEntry::make('pdfFile.file_size_readable')
+                        ->label('حجم فایل')
+                        ->placeholder('—'),
 
                 ]),
 

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class PdfFile extends Model
 {
@@ -100,7 +101,12 @@ class PdfFile extends Model
 
                 $this->directory && $this->filename
 
-                    ? asset(
+                    // فایل‌ها توسط Filament روی دیسک "public"
+                    // (یعنی storage/app/public، نه پوشه‌ی public/
+                    // پروژه به‌طور مستقیم) ذخیره می‌شوند؛ برای همین
+                    // باید از Storage::disk('public')->url()
+                    // استفاده کرد، نه asset() خام.
+                    ? Storage::disk('public')->url(
                         $this->directory.'/'.$this->filename
                     )
 
@@ -142,7 +148,9 @@ class PdfFile extends Model
 
     public function fullPath(): string
     {
-        return public_path(
+        // مسیر واقعی فایل روی دیسک "public"
+        // (storage/app/public/...)
+        return Storage::disk('public')->path(
 
             $this->directory.'/'.$this->filename
 
