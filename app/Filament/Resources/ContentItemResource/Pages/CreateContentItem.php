@@ -150,19 +150,34 @@ class CreateContentItem extends CreateRecord
 
             case 'step_by_step':
 
+                $pages = data_get($this->data, 'stepByStep', []);
+
+                // رکورد step_by_steps صرفاً یک «ظرف» برای صفحات است
+                // و خودش فایل مستقلی ندارد، ولی ستون‌های اطلاعات
+                // فایل روی جدولش اجباری‌اند؛ برای همین با مقادیر
+                // خلاصه (نه یک فایل واقعی) پر می‌شوند. حجم کل هم
+                // مجموع حجم تصاویر همه‌ی صفحات است.
                 $step = StepByStep::create([
 
                     'content_item_id' => $record->id,
 
+                    'uploaded_by' => auth()->id(),
+
+                    'directory' => 'step-by-step',
+
+                    'filename' => 'content-'.$record->id,
+
+                    'original_name' => 'content-'.$record->id,
+
+                    'extension' => '',
+
+                    'mime_type' => 'application/octet-stream',
+
+                    'file_size' => $this->sumImageSizes($pages),
+
                 ]);
 
-                foreach (
-                    data_get(
-                        $this->data,
-                        'stepByStep',
-                        []
-                    ) as $page
-                ) {
+                foreach ($pages as $page) {
 
                     StepByStepPage::create([
 
@@ -172,7 +187,9 @@ class CreateContentItem extends CreateRecord
 
                         'page_number' => $page['sort_order'] ?? 1,
 
-                        'image' => $page['image'],
+                        'image' => is_array($page['image'] ?? null)
+                            ? collect($page['image'])->first()
+                            : ($page['image'] ?? null),
 
                         'sort_order' => $page['sort_order'] ?? 1,
 
@@ -270,6 +287,26 @@ class CreateContentItem extends CreateRecord
                 : 0,
 
         ];
+    }
+
+    /**
+     * مجموع حجم تصاویر همه‌ی صفحات گام‌به‌گام را حساب می‌کند
+     * (برای پر کردن ستون file_size رکورد «ظرف» step_by_steps).
+     */
+    protected function sumImageSizes(array $pages): int
+    {
+        $disk = Storage::disk('public');
+
+        return collect($pages)->sum(function ($page) use ($disk) {
+
+            $imagePath = is_array($page['image'] ?? null)
+                ? collect($page['image'])->first()
+                : ($page['image'] ?? null);
+
+            return ($imagePath && $disk->exists($imagePath))
+                ? $disk->size($imagePath)
+                : 0;
+        });
     }
 
     protected function getRedirectUrl(): string

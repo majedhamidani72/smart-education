@@ -272,27 +272,35 @@ class EditContentItem extends EditRecord
 
             case 'step_by_step':
 
-                $step = StepByStep::firstOrCreate(
+                $pages = data_get($this->data, 'stepByStep', []);
+
+                $step = StepByStep::updateOrCreate(
 
                     [
                         'content_item_id' => $record->id,
+                    ],
+
+                    [
+                        'uploaded_by' => $record->stepByStep?->uploaded_by ?? auth()->id(),
+
+                        'directory' => 'step-by-step',
+
+                        'filename' => 'content-'.$record->id,
+
+                        'original_name' => 'content-'.$record->id,
+
+                        'extension' => '',
+
+                        'mime_type' => 'application/octet-stream',
+
+                        'file_size' => $this->sumImageSizes($pages),
                     ]
 
                 );
 
                 $step->pages()->delete();
 
-                foreach (
-
-                    data_get(
-                        $this->data,
-                        'stepByStep',
-                        []
-                    )
-
-                    as $page
-
-                ) {
+                foreach ($pages as $page) {
 
                     StepByStepPage::create([
 
@@ -302,12 +310,13 @@ class EditContentItem extends EditRecord
 
                         'page_number' => $page['sort_order'] ?? 1,
 
-                        'image' => $page['image'],
+                        'image' => is_array($page['image'] ?? null)
+                            ? collect($page['image'])->first()
+                            : ($page['image'] ?? null),
 
                         'sort_order' => $page['sort_order'] ?? 1,
 
                         'is_free' => false,
-
 
                     ]);
                 }
@@ -348,6 +357,26 @@ class EditContentItem extends EditRecord
      * ستون‌های اجباری جدول‌های videos و pdf_files را می‌سازد.
      * همان منطق CreateContentItem::extractFileMeta.
      */
+    /**
+     * مجموع حجم تصاویر همه‌ی صفحات گام‌به‌گام (همان منطق
+     * CreateContentItem::sumImageSizes).
+     */
+    protected function sumImageSizes(array $pages): int
+    {
+        $disk = Storage::disk('public');
+
+        return collect($pages)->sum(function ($page) use ($disk) {
+
+            $imagePath = is_array($page['image'] ?? null)
+                ? collect($page['image'])->first()
+                : ($page['image'] ?? null);
+
+            return ($imagePath && $disk->exists($imagePath))
+                ? $disk->size($imagePath)
+                : 0;
+        });
+    }
+
     protected function extractFileMeta(string|array|null $path): array
     {
         if (is_array($path)) {

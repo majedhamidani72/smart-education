@@ -848,6 +848,8 @@ class ContentItemResource extends Resource
                                 ->label('تصویر')
                                 ->directory('step-by-step')
                                 ->image()
+                                ->imagePreviewHeight('180')
+                                ->panelLayout('integrated')
                                 ->openable()
                                 ->required(),
 
