@@ -125,9 +125,20 @@ class QuizResource extends Resource
                         })
                         ->searchable()
                         ->preload()
+                        ->getOptionLabelUsing(fn($value) => App::find($value)?->title)
                         ->live()
                         ->required()
                         ->dehydrated(false)
+                        ->default(function () use ($isTeacher, $teacherBooks) {
+
+                            if (! $isTeacher) {
+                                return null;
+                            }
+
+                            $appIds = $teacherBooks->pluck('appGradeSubject.app_id')->unique();
+
+                            return $appIds->count() === 1 ? $appIds->first() : null;
+                        })
                         ->afterStateUpdated(function (Set $set) {
 
                             $set('grade_id', null);
@@ -141,21 +152,24 @@ class QuizResource extends Resource
                         ->label('پایه')
                         ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
-                            if (! $get('app_id')) {
-                                return [];
-                            }
-
                             if ($isTeacher) {
                                 return $teacherBooks
-                                    ->filter(
-                                        fn($book) =>
-                                        $book->appGradeSubject?->app_id == $get('app_id')
+                                    ->when(
+                                        $get('app_id'),
+                                        fn($collection) => $collection->filter(
+                                            fn($book) =>
+                                            $book->appGradeSubject?->app_id == $get('app_id')
+                                        )
                                     )
                                     ->pluck('appGradeSubject.grade_id')
                                     ->unique()
                                     ->mapWithKeys(fn($gradeId) => [
                                         $gradeId => Grade::find($gradeId)?->title,
                                     ]);
+                            }
+
+                            if (! $get('app_id')) {
+                                return [];
                             }
 
                             return Grade::query()
@@ -168,9 +182,20 @@ class QuizResource extends Resource
                         })
                         ->searchable()
                         ->preload()
+                        ->getOptionLabelUsing(fn($value) => Grade::find($value)?->title)
                         ->live()
                         ->required()
                         ->dehydrated(false)
+                        ->default(function () use ($isTeacher, $teacherBooks) {
+
+                            if (! $isTeacher) {
+                                return null;
+                            }
+
+                            $gradeIds = $teacherBooks->pluck('appGradeSubject.grade_id')->unique();
+
+                            return $gradeIds->count() === 1 ? $gradeIds->first() : null;
+                        })
                         ->afterStateUpdated(function (Set $set) {
 
                             $set('subject_id', null);
@@ -183,22 +208,25 @@ class QuizResource extends Resource
                         ->label('درس')
                         ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
-                            if (! $get('grade_id')) {
-                                return [];
-                            }
-
                             if ($isTeacher) {
                                 return $teacherBooks
-                                    ->filter(
-                                        fn($book) =>
-                                        $book->appGradeSubject?->app_id == $get('app_id')
-                                        && $book->appGradeSubject?->grade_id == $get('grade_id')
+                                    ->when(
+                                        $get('grade_id'),
+                                        fn($collection) => $collection->filter(
+                                            fn($book) =>
+                                            $book->appGradeSubject?->app_id == $get('app_id')
+                                            && $book->appGradeSubject?->grade_id == $get('grade_id')
+                                        )
                                     )
                                     ->pluck('appGradeSubject.subject_id')
                                     ->unique()
                                     ->mapWithKeys(fn($subjectId) => [
                                         $subjectId => Subject::find($subjectId)?->title,
                                     ]);
+                            }
+
+                            if (! $get('grade_id')) {
+                                return [];
                             }
 
                             return Subject::query()
@@ -213,9 +241,20 @@ class QuizResource extends Resource
                         })
                         ->searchable()
                         ->preload()
+                        ->getOptionLabelUsing(fn($value) => Subject::find($value)?->title)
                         ->live()
                         ->required()
                         ->dehydrated(false)
+                        ->default(function () use ($isTeacher, $teacherBooks) {
+
+                            if (! $isTeacher) {
+                                return null;
+                            }
+
+                            $subjectIds = $teacherBooks->pluck('appGradeSubject.subject_id')->unique();
+
+                            return $subjectIds->count() === 1 ? $subjectIds->first() : null;
+                        })
                         // با عوض‌شدن درس، «نوع ساختار آزمون» هم ممکن
                         // است عوض شود (مثلاً از ریاضی به فارسی).
                         ->afterStateUpdated(function (Set $set) {
@@ -229,19 +268,22 @@ class QuizResource extends Resource
                         ->label('کتاب')
                         ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
-                            if (! $get('subject_id')) {
-                                return [];
-                            }
-
                             if ($isTeacher) {
                                 return $teacherBooks
-                                    ->filter(
-                                        fn($book) =>
-                                        $book->appGradeSubject?->app_id == $get('app_id')
-                                        && $book->appGradeSubject?->grade_id == $get('grade_id')
-                                        && $book->appGradeSubject?->subject_id == $get('subject_id')
+                                    ->when(
+                                        $get('subject_id'),
+                                        fn($collection) => $collection->filter(
+                                            fn($book) =>
+                                            $book->appGradeSubject?->app_id == $get('app_id')
+                                            && $book->appGradeSubject?->grade_id == $get('grade_id')
+                                            && $book->appGradeSubject?->subject_id == $get('subject_id')
+                                        )
                                     )
                                     ->pluck('title', 'id');
+                            }
+
+                            if (! $get('subject_id')) {
+                                return [];
                             }
 
                             $appGradeSubject = AppGradeSubject::query()
@@ -262,9 +304,16 @@ class QuizResource extends Resource
                         })
                         ->searchable()
                         ->preload()
+                        ->getOptionLabelUsing(fn($value) => Book::find($value)?->title)
                         ->live()
                         ->required()
                         ->dehydrated(false)
+                        ->default(function () use ($isTeacher, $teacherBooks) {
+
+                            return $isTeacher && $teacherBooks->count() === 1
+                                ? $teacherBooks->first()->id
+                                : null;
+                        })
                         ->afterStateUpdated(function (Set $set) {
 
                             $set('quizable_type', null);
