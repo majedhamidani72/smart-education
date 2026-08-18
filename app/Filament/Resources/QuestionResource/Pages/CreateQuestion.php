@@ -9,7 +9,6 @@ class CreateQuestion extends CreateRecord
 {
     protected static string $resource = QuestionResource::class;
 
-
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['created_by'] = auth()->id();
@@ -17,12 +16,18 @@ class CreateQuestion extends CreateRecord
         return $data;
     }
 
-
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('index');
+        return static::getResource()::getUrl('index');
     }
 
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getCreateFormAction(),
+            $this->getCancelFormAction(),
+        ];
+    }
 
     protected function getCreatedNotificationTitle(): ?string
     {

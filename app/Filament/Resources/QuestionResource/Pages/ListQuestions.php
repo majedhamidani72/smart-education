@@ -10,7 +10,6 @@ class ListQuestions extends ListRecords
 {
     protected static string $resource = QuestionResource::class;
 
-
     protected function getHeaderActions(): array
     {
         return [
