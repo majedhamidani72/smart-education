@@ -18,7 +18,30 @@ class EditContentItem extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        if (
+        // «ایجادکننده» هرگز نباید با ویرایش عوض شود — این فیلد
+        // فقط یک‌بار، همان لحظه‌ی ساخت اولیه‌ی محتوا مشخص می‌شود
+        // (نگاه کنید به CreateContentItem). این خط صراحتاً از هر
+        // احتمال رونویسی‌شدنِ آن هنگام ذخیره‌ی ویرایش جلوگیری
+        // می‌کند.
+        unset($data['created_by']);
+
+        // محافظت سمت سرور: حتی اگر فرم در رابط کاربری این بخش را
+        // از معلم مخفی می‌کند، تغییر وضعیت (تأیید/رد/انتشار) فقط
+        // باید توسط ادمین یا سوپرادمین ثبت شود — نه با یک درخواست
+        // دستکاری‌شده از سمت معلم.
+        $isReviewer = auth()->user()?->hasRole('Admin')
+            || auth()->user()?->hasRole('SuperAdmin');
+
+        if (! $isReviewer) {
+
+            // وضعیت به همان مقداری که از قبل روی رکورد بوده
+            // برمی‌گردد؛ یعنی معلم عملاً نمی‌تواند وضعیت را از این
+            // مسیر تغییر دهد.
+            $data['status'] = $this->record->status;
+
+            unset($data['reviewed_by'], $data['reviewed_at'], $data['rejection_reason']);
+
+        } elseif (
             isset($data['status']) &&
             in_array(
                 $data['status'],
