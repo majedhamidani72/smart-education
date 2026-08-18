@@ -51,6 +51,60 @@ class QuizResource extends Resource
     */
 
     /**
+     * کتاب واقعی پشت هر quizable را برمی‌گرداند (چه خودِ کتاب باشد،
+     * چه فصل، چه بخش) — برای پیدا کردن پایه/درس/نوع ساختار آزمون
+     * صرف‌نظر از سطح آزمون.
+     */
+    protected static function resolveBook($record): ?Book
+    {
+        return match ($record->quizable_type) {
+
+            Book::class => $record->quizable,
+
+            Chapter::class => $record->quizable?->book,
+
+            Section::class => $record->quizable?->chapter?->book,
+
+            default => null,
+        };
+    }
+
+    protected static function resolveGradeTitle($record): string
+    {
+        return static::resolveBook($record)?->appGradeSubject?->grade?->title ?? '—';
+    }
+
+    protected static function resolveSubjectTitle($record): string
+    {
+        return static::resolveBook($record)?->appGradeSubject?->subject?->title ?? '—';
+    }
+
+    protected static function resolveExamStructure($record): string
+    {
+        return static::resolveBook($record)?->appGradeSubject?->subject?->exam_structure
+            ?? 'chapter_section';
+    }
+
+    /**
+     * یک رنگ ثابت و همیشه‌یکسان برای یک برچسب مشخص برمی‌گرداند —
+     * یعنی مثلاً «پایه پنجم» همیشه همان رنگ را می‌گیرد، هر جای
+     * جدول که باشد، بدون این‌که از قبل رنگ هر پایه را دستی تعریف
+     * کرده باشیم.
+     */
+    protected static function colorForLabel(?string $label): string
+    {
+        $palette = ['primary', 'success', 'warning', 'danger', 'info', 'gray'];
+
+        if (blank($label) || $label === '—') {
+            return 'gray';
+        }
+
+        $index = crc32($label) % count($palette);
+
+        return $palette[$index];
+    }
+
+    /**
      * کتاب‌هایی که معلم فعلی به آن‌ها دسترسی دارد (همان منطق
      * ContentItemResource::teacherAssignedBooks). برای محدود کردن
      * فیلدهای اپلیکیشن/پایه/درس/کتاب به دامنه‌ی واقعی معلم —
@@ -582,17 +636,61 @@ class QuizResource extends Resource
                     ->label('#')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make(
-                    'quizable.appGradeSubject.grade.title'
-                )
+                // بر خلاف قبل، این ستون از روی quizable واقعی (که
+                // می‌تواند کتاب، فصل، یا بخش باشد) پایه را پیدا
+                // می‌کند — قبلاً فقط برای نوع «کتاب» درست کار می‌کرد.
+                Tables\Columns\TextColumn::make('grade')
                     ->label('پایه')
-                    ->searchable(),
+                    ->getStateUsing(fn($record) => static::resolveGradeTitle($record))
+                    ->badge()
+                    ->color(fn($state) => static::colorForLabel($state)),
 
-                Tables\Columns\TextColumn::make(
-                    'quizable.appGradeSubject.subject.title'
-                )
+                Tables\Columns\TextColumn::make('subject')
                     ->label('درس')
-                    ->searchable(),
+                    ->getStateUsing(fn($record) => static::resolveSubjectTitle($record))
+                    ->badge()
+                    ->color(fn($state) => static::colorForLabel($state)),
+
+                // سطح آزمون (بخش/فصل/کتاب یا بعد از هر درس/نوبت) —
+                // رنگش بر اساس نوعِ quizable_type ثابت است، نه
+                // هش‌شده، تا مثلاً همیشه «بخش» یک رنگ خاص و «فصل»
+                // رنگ دیگری داشته باشد.
+                Tables\Columns\BadgeColumn::make('quizable_type')
+                    ->label('سطح آزمون')
+                    ->colors([
+                        'info' => Section::class,
+                        'warning' => Chapter::class,
+                        'success' => Book::class,
+                    ])
+                    ->formatStateUsing(function ($state, $record) {
+
+                        $examStructure = $record->quizable
+                            ? static::resolveExamStructure($record)
+                            : 'chapter_section';
+
+                        if ($state === Section::class) {
+                            return 'بخش';
+                        }
+
+                        if ($state === Chapter::class) {
+                            return $examStructure === 'lesson_term'
+                                ? 'بعد از هر درس'
+                                : 'فصل';
+                        }
+
+                        if ($state === Book::class) {
+
+                            if ($examStructure === 'lesson_term') {
+                                return $record->term_scope == 1
+                                    ? 'نوبت اول'
+                                    : 'نوبت دوم';
+                            }
+
+                            return 'آزمون جامع';
+                        }
+
+                        return $state;
+                    }),
 
                 Tables\Columns\TextColumn::make('quizable.title')
                     ->label('کتاب / فصل / بخش')
@@ -715,6 +813,17 @@ class QuizResource extends Resource
         $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
+            ])
+            ->with([
+                // quizable چندریختی است (می‌تواند کتاب، فصل، یا بخش
+                // باشد)؛ برای بارگذاری درست هرکدام باید زنجیره‌ی
+                // رابطه‌ی مخصوص همان نوع را جدا مشخص کنیم، وگرنه
+                // Eloquent نمی‌داند برای هر نوع کدام رابطه معتبر است.
+                'quizable' => fn($morphTo) => $morphTo->morphWith([
+                    Book::class => ['appGradeSubject.grade', 'appGradeSubject.subject'],
+                    Chapter::class => ['book.appGradeSubject.grade', 'book.appGradeSubject.subject'],
+                    Section::class => ['chapter.book.appGradeSubject.grade', 'chapter.book.appGradeSubject.subject'],
+                ]),
             ]);
 
         $user = auth()->user();

@@ -294,16 +294,20 @@ class QuestionResource extends Resource
 
                     Forms\Components\Textarea::make('question_text')
                         ->label('متن سوال')
-                        ->required()
+                        ->live()
+                        ->required(fn(Get $get) => blank($get('image_path')))
                         ->rows(3)
                         ->columnSpanFull(),
 
                     Forms\Components\FileUpload::make('image_path')
-                        ->label('تصویر سوال (اختیاری)')
+                        ->label('تصویر سوال')
                         ->disk('public')
                         ->directory('questions')
                         ->image()
                         ->openable()
+                        ->live()
+                        ->required(fn(Get $get) => blank($get('question_text')))
+                        ->helperText('حداقل یکی از متن سوال یا تصویر سوال باید پر شود.')
                         ->columnSpanFull(),
 
                 ])
@@ -358,26 +362,13 @@ class QuestionResource extends Resource
                         ->rows(3)
                         ->columnSpanFull(),
 
-                    Forms\Components\FileUpload::make('explanation_image_path')
-                        ->label('تصویر توضیح (اختیاری)')
-                        ->disk('public')
-                        ->directory('question-explanations')
-                        ->image()
-                        ->openable(),
-
                 ]),
 
-            Forms\Components\Section::make('امتیاز و وضعیت')
+            Forms\Components\Section::make('وضعیت')
 
                 ->columns(2)
 
                 ->schema([
-
-                    Forms\Components\TextInput::make('default_score')
-                        ->label('امتیاز پیش‌فرض')
-                        ->numeric()
-                        ->default(1)
-                        ->required(),
 
                     Forms\Components\Toggle::make('is_active')
                         ->label('فعال')
