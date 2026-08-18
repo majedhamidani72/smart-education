@@ -848,7 +848,6 @@ class ContentItemResource extends Resource
                                 ->directory('step-by-step')
                                 ->image()
                                 ->imagePreviewHeight('180')
-                                ->panelLayout('integrated')
                                 ->openable()
                                 ->required(),
 
