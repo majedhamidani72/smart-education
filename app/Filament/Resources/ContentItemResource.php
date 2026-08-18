@@ -821,8 +821,6 @@ class ContentItemResource extends Resource
 
                         ->label('صفحات گام به گام')
 
-                        ->collapsed()
-
                         ->defaultItems(1)
 
                         ->reorderable()
