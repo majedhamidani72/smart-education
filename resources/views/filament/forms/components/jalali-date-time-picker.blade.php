@@ -42,6 +42,7 @@
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
                 <button type="button" @click="prevMonth()" style="padding:0.25rem 0.5rem;border-radius:0.375rem" class="hover:bg-gray-100 dark:hover:bg-gray-700">›</button>
                 <span x-text="monthNames[viewMonth - 1] + ' ' + viewYear" style="font-size:0.875rem;font-weight:500"></span>
+                <button type="button" @click="goToToday()" style="font-size:0.7rem;color:#2563eb;padding:0.15rem 0.5rem;border-radius:0.375rem" class="hover:bg-gray-100 dark:hover:bg-gray-700">امروز</button>
                 <button type="button" @click="nextMonth()" style="padding:0.25rem 0.5rem;border-radius:0.375rem" class="hover:bg-gray-100 dark:hover:bg-gray-700">‹</button>
             </div>
 
@@ -301,6 +302,21 @@
                     nextMonth() {
                         this.viewMonth += 1;
                         if (this.viewMonth > 12) { this.viewMonth = 1; this.viewYear += 1; }
+                        this.buildCalendar();
+                    },
+
+                    // فقط ناوبری تقویم را به ماه/سال فعلی برمی‌گرداند؛
+                    // چیزی را انتخاب نمی‌کند — یعنی اگر چند ماه جلو/عقب
+                    // رفته باشی، این دکمه فقط کمکت می‌کند «گم» نشوی.
+                    goToToday() {
+                        const now = new Date();
+                        const [jy, jm] = gregorianToJalali(
+                            now.getFullYear(),
+                            now.getMonth() + 1,
+                            now.getDate()
+                        );
+                        this.viewYear = jy;
+                        this.viewMonth = jm;
                         this.buildCalendar();
                     },
 
