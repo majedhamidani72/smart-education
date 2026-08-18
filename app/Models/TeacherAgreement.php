@@ -142,6 +142,11 @@ class TeacherAgreement extends Model
 
     /**
      * ثبت پذیرش قوانین
+     * --------------------------------------------------------------------
+     * از updateOrCreate استفاده می‌شود تا اگر کاربر همین نسخه از
+     * قرارداد را قبلاً هم پذیرفته بود (مثلاً با دوبار کلیک روی
+     * دکمه‌ی تایید، یا برگشتن به همین صفحه)، به‌جای خطای یکتایی،
+     * فقط تاریخ/IP/مرورگر رکورد موجود به‌روزرسانی شود.
      */
     public static function accept(
         int $teacherId,
@@ -151,21 +156,25 @@ class TeacherAgreement extends Model
         ?string $userAgent
     ): self {
 
-        return static::create([
+        return static::updateOrCreate(
 
-            'teacher_id' => $teacherId,
+            [
+                'teacher_id' => $teacherId,
 
-            'agreement_type' => $type,
+                'agreement_type' => $type,
 
-            'agreement_version' => $version,
+                'agreement_version' => $version,
+            ],
 
-            'accepted_at' => now(),
+            [
+                'accepted_at' => now(),
 
-            'ip_address' => $ip,
+                'ip_address' => $ip,
 
-            'user_agent' => $userAgent,
+                'user_agent' => $userAgent,
+            ]
 
-        ]);
+        );
 
     }
 
