@@ -16,6 +16,7 @@ use App\Models\TeacherAssignment;
 use App\Support\Jalali;
 use App\Traits\FiltersByTeacherAssignment;
 use Filament\Forms;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -849,7 +850,30 @@ class ContentItemResource extends Resource
                                 ->image()
                                 ->imagePreviewHeight('180')
                                 ->openable()
-                                ->required(),
+                                ->required()
+                                // آیکون داخلی «باز کردن» کمی مخفی و
+                                // کم‌کشف بود؛ این دکمه‌ی صریح کنار
+                                // برچسب فیلد، دقیقاً مثل صفحه‌ی
+                                // «نمایش»، فایل را در سایز کامل و
+                                // در تب جدید باز می‌کند.
+                                ->hintAction(
+                                    FormAction::make('viewFullSize')
+                                        ->label('مشاهده در سایز کامل')
+                                        ->icon('heroicon-o-arrows-pointing-out')
+                                        ->visible(fn(Get $get) => filled($get('image')))
+                                        ->url(function (Get $get) {
+
+                                            $path = $get('image');
+
+                                            $path = is_array($path)
+                                                ? collect($path)->first()
+                                                : $path;
+
+                                            return $path
+                                                ? Storage::disk('public')->url($path)
+                                                : null;
+                                        }, shouldOpenInNewTab: true)
+                                ),
 
                             Forms\Components\TextInput::make('sort_order')
                                 ->label('ترتیب')
