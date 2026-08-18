@@ -20,7 +20,6 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Infolists\Components\Grid as InfolistGrid;
-use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
@@ -1090,9 +1089,9 @@ class ContentItemResource extends Resource
                                 TextEntry::make('sort_order')
                                     ->label('ترتیب'),
 
-                                ImageEntry::make('image')
+                                ViewEntry::make('image')
                                     ->label('تصویر')
-                                    ->height(120),
+                                    ->view('filament.infolists.step-image'),
 
                                 TextEntry::make('image')
                                     ->label('حجم فایل')

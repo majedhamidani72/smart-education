@@ -83,17 +83,27 @@ class EditContentItem extends EditRecord
         } elseif ($typeSlug === 'step_by_step') {
 
             // ۴) صفحات گام‌به‌گام
+            // --------------------------------------------------------------
+            // Repeater در Filament هر آیتم را با یک شناسه‌ی یکتا
+            // (UUID) کلیدگذاری می‌کند، نه با شماره‌ی ساده؛ اگر این
+            // ساختار رعایت نشود، Livewire نمی‌تواند فایل‌های
+            // آپلودشده‌ی هر آیتم را درست رندر کند و عکس خالی
+            // نمایش داده می‌شود.
             $data['stepByStep'] = $record->stepByStep
                 ?->pages()
                 ->orderBy('sort_order')
                 ->get()
-                ->map(fn($page) => [
+                ->mapWithKeys(fn($page) => [
 
-                    'title' => $page->title,
+                    (string) Str::uuid() => [
 
-                    'image' => $page->image,
+                        'title' => $page->title,
 
-                    'sort_order' => $page->sort_order,
+                        'image' => $page->image,
+
+                        'sort_order' => $page->sort_order,
+
+                    ],
 
                 ])
                 ->toArray() ?? [];
