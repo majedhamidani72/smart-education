@@ -36,7 +36,7 @@
             x-show="open"
             x-cloak
             @click.outside="open = false"
-            style="position:absolute;z-index:60;top:100%;margin-top:0.25rem;width:280px;border:1px solid #d1d5db;border-radius:0.75rem;padding:0.75rem;box-shadow:0 8px 24px rgba(0,0,0,0.12);background:#fff"
+            style="position:absolute;z-index:60;bottom:100%;margin-bottom:0.25rem;width:280px;border:1px solid #d1d5db;border-radius:0.75rem;padding:0.75rem;box-shadow:0 8px 24px rgba(0,0,0,0.12);background:#fff"
             class="dark:bg-gray-800 dark:border-gray-600"
         >
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
