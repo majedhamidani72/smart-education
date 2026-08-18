@@ -18,6 +18,12 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Infolists\Components\Grid as InfolistGrid;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\Section as InfolistSection;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -938,6 +944,199 @@ class ContentItemResource extends Resource
 
         ]);
     }
+
+    /**
+     * نمایش کامل اطلاعات یک محتوای آموزشی (دکمه‌ی «نمایش»).
+     * --------------------------------------------------------------------
+     * قبلاً این دکمه چیزی برای نمایش نداشت و به‌جای آن، فرم
+     * پیچیده‌ی «ایجاد/ویرایش» به‌صورت غیرفعال باز می‌شد که چون
+     * فیلدهای کمکی (اپلیکیشن/پایه/درس/کتاب/فصل) مقداردهی اولیه
+     * نمی‌شدند، عملاً خالی به نظر می‌رسید. این infolist مستقل و
+     * فقط-خواندنی است و مستقیماً از روی رابطه‌های واقعی رکورد
+     * (section.chapter.book...) اطلاعات را می‌خواند، نه از فیلدهای
+     * کمکیِ فرم.
+     */
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+
+            InfolistSection::make('مسیر آموزشی')
+
+                ->columns(3)
+
+                ->schema([
+
+                    TextEntry::make('section.chapter.book.appGradeSubject.app.title')
+                        ->label('اپلیکیشن')
+                        ->placeholder('—'),
+
+                    TextEntry::make('section.chapter.book.appGradeSubject.grade.title')
+                        ->label('پایه')
+                        ->placeholder('—'),
+
+                    TextEntry::make('section.chapter.book.appGradeSubject.subject.title')
+                        ->label('درس')
+                        ->placeholder('—'),
+
+                    TextEntry::make('section.chapter.book.title')
+                        ->label('کتاب')
+                        ->placeholder('—'),
+
+                    TextEntry::make('section.chapter.title')
+                        ->label('فصل')
+                        ->placeholder('—'),
+
+                    TextEntry::make('section.title')
+                        ->label('بخش')
+                        ->placeholder('بدون بخش'),
+
+                ]),
+
+            InfolistSection::make('اطلاعات محتوا')
+
+                ->columns(2)
+
+                ->schema([
+
+                    TextEntry::make('contentType.title')
+                        ->label('نوع محتوا')
+                        ->badge(),
+
+                    TextEntry::make('title')
+                        ->label('عنوان'),
+
+                    TextEntry::make('page_number')
+                        ->label('شماره صفحه')
+                        ->placeholder('—'),
+
+                    TextEntry::make('is_free')
+                        ->label('نوع دسترسی')
+                        ->formatStateUsing(fn($state) => $state ? 'رایگان' : 'پولی')
+                        ->badge()
+                        ->color(fn($state) => $state ? 'success' : 'gray'),
+
+                    TextEntry::make('description')
+                        ->label('توضیحات')
+                        ->placeholder('—')
+                        ->columnSpanFull(),
+
+                ]),
+
+            InfolistSection::make('فایل ویدئو')
+
+                ->visible(fn($record) => $record->contentType?->slug === 'teaching')
+
+                ->schema([
+
+                    TextEntry::make('video.title')
+                        ->label('عنوان ویدئو')
+                        ->placeholder('—'),
+
+                    TextEntry::make('video.video_file')
+                        ->label('مسیر فایل')
+                        ->placeholder('—')
+                        ->copyable(),
+
+                ]),
+
+            InfolistSection::make('صفحات گام‌به‌گام')
+
+                ->visible(fn($record) => $record->contentType?->slug === 'step_by_step')
+
+                ->schema([
+
+                    RepeatableEntry::make('stepByStep.pages')
+
+                        ->label('')
+
+                        ->schema([
+
+                            InfolistGrid::make(3)->schema([
+
+                                TextEntry::make('title')
+                                    ->label('عنوان صفحه')
+                                    ->placeholder('—'),
+
+                                TextEntry::make('sort_order')
+                                    ->label('ترتیب'),
+
+                                ImageEntry::make('image')
+                                    ->label('تصویر')
+                                    ->height(80),
+
+                            ]),
+
+                        ]),
+
+                ]),
+
+            InfolistSection::make('فایل نمونه سوالات')
+
+                ->visible(fn($record) => $record->contentType?->slug === 'sample_questions')
+
+                ->schema([
+
+                    TextEntry::make('pdfFile.title')
+                        ->label('عنوان')
+                        ->placeholder('—'),
+
+                    TextEntry::make('pdfFile.file')
+                        ->label('مسیر فایل PDF')
+                        ->placeholder('—')
+                        ->copyable(),
+
+                ]),
+
+            InfolistSection::make('وضعیت بررسی')
+
+                ->columns(2)
+
+                ->schema([
+
+                    TextEntry::make('status')
+                        ->label('وضعیت')
+                        ->badge()
+                        ->formatStateUsing(fn($state) => match ($state) {
+                            'pending' => 'در انتظار بررسی',
+                            'approved' => 'تأیید شده',
+                            'rejected' => 'رد شده',
+                            'published' => 'منتشر شده',
+                            default => $state,
+                        })
+                        ->color(fn($state) => match ($state) {
+                            'approved', 'published' => 'success',
+                            'rejected' => 'danger',
+                            default => 'warning',
+                        }),
+
+                    TextEntry::make('rejection_reason')
+                        ->label('دلیل رد')
+                        ->placeholder('—')
+                        ->color('danger')
+                        ->visible(fn($record) => $record->status === 'rejected'),
+
+                    TextEntry::make('creator.name')
+                        ->label('ایجادکننده')
+                        ->placeholder('—'),
+
+                    TextEntry::make('reviewer.name')
+                        ->label('بررسی‌کننده')
+                        ->placeholder('—'),
+
+                    TextEntry::make('created_at')
+                        ->label('تاریخ ثبت')
+                        ->dateTime('Y/m/d H:i'),
+
+                    TextEntry::make('reviewed_at')
+                        ->label('تاریخ بررسی')
+                        ->dateTime('Y/m/d H:i')
+                        ->placeholder('—'),
+
+                ]),
+
+        ]);
+    }
+
     public static function table(Table $table): Table
     {
         $isTeacher = auth()->user()?->hasRole('Teacher');
