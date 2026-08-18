@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ContentItemResource\Pages;
 
 use App\Filament\Resources\ContentItemResource;
+use App\Models\ContentItem;
 use App\Models\ContentType;
 use App\Models\PdfFile;
 use App\Models\StepByStep;
@@ -26,11 +27,42 @@ class CreateContentItem extends CreateRecord
 
         $data['title'] = $title;
 
-        $data['slug'] = filled($title)
-            ? Str::slug($title)
-            : Str::random(10);
+        $data['slug'] = $this->uniqueSlug(
+            filled($title) ? Str::slug($title) : Str::random(10),
+            $data['section_id'] ?? null
+        );
 
         return $data;
+    }
+
+    /**
+     * یک اسلاگ یکتا برای همین «بخش» می‌سازد.
+     * --------------------------------------------------------------------
+     * یکتایی محتوا در دیتابیس بر اساس ترکیب (section_id, slug) است.
+     * اگر معلم/ادمین دو محتوای متفاوت را با عنوان یکسان در همان
+     * بخش بسازد (مثلاً هم یک ویدئو هم یک PDF به اسم «کاردرکلاس»)،
+     * به‌جای خطای یکتایی، به انتهای اسلاگ یک شماره اضافه می‌شود
+     * (kardrklas-2, kardrklas-3, ...) تا تداخل پیش نیاید.
+     */
+    protected function uniqueSlug(string $baseSlug, ?int $sectionId, ?int $ignoreId = null): string
+    {
+        $slug = $baseSlug;
+
+        $counter = 2;
+
+        while (
+            ContentItem::query()
+                ->where('section_id', $sectionId)
+                ->where('slug', $slug)
+                ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
+                ->exists()
+        ) {
+            $slug = $baseSlug.'-'.$counter;
+
+            $counter++;
+        }
+
+        return $slug;
     }
 
     /**

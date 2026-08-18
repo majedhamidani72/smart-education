@@ -65,10 +65,41 @@ class EditContentItem extends EditRecord
 
             $data['title'] = $title;
 
-            $data['slug'] = Str::slug($title);
+            $data['slug'] = $this->uniqueSlug(
+                Str::slug($title),
+                $data['section_id'] ?? $this->record->section_id,
+                $this->record->id
+            );
         }
 
         return $data;
+    }
+
+    /**
+     * یک اسلاگ یکتا برای همین «بخش» می‌سازد (همان منطق
+     * CreateContentItem::uniqueSlug، با این تفاوت که رکورد خودِ
+     * این محتوا از بررسی تکراری بودن کنار گذاشته می‌شود — وگرنه
+     * ویرایش یک محتوای موجود همیشه با خودش تداخل می‌کرد).
+     */
+    protected function uniqueSlug(string $baseSlug, ?int $sectionId, ?int $ignoreId = null): string
+    {
+        $slug = $baseSlug;
+
+        $counter = 2;
+
+        while (
+            \App\Models\ContentItem::query()
+                ->where('section_id', $sectionId)
+                ->where('slug', $slug)
+                ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
+                ->exists()
+        ) {
+            $slug = $baseSlug.'-'.$counter;
+
+            $counter++;
+        }
+
+        return $slug;
     }
 
     protected function resolveTitle(array $data): ?string
