@@ -17,6 +17,8 @@ class Quiz extends Model
 
         'quizable_id',
 
+        'term_scope',
+
         'created_by',
 
         'reviewed_by',

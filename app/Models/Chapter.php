@@ -24,6 +24,8 @@ class Chapter extends Model
 
         'sort_order',
 
+        'term',
+
         'is_active',
 
     ];

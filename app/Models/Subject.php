@@ -18,6 +18,8 @@ class Subject extends Model
 
         'slug',
 
+        'exam_structure',
+
         'description',
 
         'icon',

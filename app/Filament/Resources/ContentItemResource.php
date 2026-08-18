@@ -399,6 +399,15 @@ class ContentItemResource extends Resource
                                         ->label('عنوان درس')
                                         ->required(),
 
+                                    Forms\Components\Select::make('exam_structure')
+                                        ->label('نوع ساختار آزمون')
+                                        ->options([
+                                            'chapter_section' => 'فصل و بخش (مثل ریاضی)',
+                                            'lesson_term' => 'درس و نیم‌سال (مثل فارسی، مطالعات)',
+                                        ])
+                                        ->default('chapter_section')
+                                        ->required(),
+
                                 ])
                                 ->createOptionUsing(function (array $data, Get $get) {
 
@@ -420,6 +429,7 @@ class ContentItemResource extends Resource
                                     $subject = $existingSubject ?? Subject::create([
                                         'title' => $data['title'],
                                         'slug' => $slug,
+                                        'exam_structure' => $data['exam_structure'] ?? 'chapter_section',
                                         'sort_order' => 1,
                                         'is_active' => true,
                                     ]);
@@ -600,6 +610,14 @@ class ContentItemResource extends Resource
                                 ->numeric()
                                 ->default(1),
 
+                            Forms\Components\Select::make('term')
+                                ->label('نیم‌سال (فقط برای درس‌هایی مثل فارسی/مطالعات لازم است)')
+                                ->options([
+                                    1 => 'نیم‌سال اول',
+                                    2 => 'نیم‌سال دوم',
+                                ])
+                                ->helperText('برای ریاضی خالی بگذارید.'),
+
                             Forms\Components\Toggle::make('is_active')
                                 ->default(true),
 
@@ -631,6 +649,8 @@ class ContentItemResource extends Resource
                                 'slug' => $slug,
 
                                 'sort_order' => $data['sort_order'],
+
+                                'term' => $data['term'] ?? null,
 
                                 'is_active' => $data['is_active'],
 
