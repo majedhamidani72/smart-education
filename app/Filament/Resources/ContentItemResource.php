@@ -1531,7 +1531,18 @@ class ContentItemResource extends Resource
                     ])
                     ->query(fn($query, array $data) => blank($data['page_number'] ?? null)
                         ? $query
-                        : $query->where('page_number', $data['page_number'])),
+                        : $query->where('page_number', $data['page_number']))
+                    // این فیلتر چون سفارشی است (نه SelectFilter
+                    // ساده)، بدون این خط بالای جدول به‌عنوان یه
+                    // «بج» با ضربدر برای حذف نمایش داده نمی‌شد.
+                    ->indicateUsing(function (array $data): array {
+
+                        if (blank($data['page_number'] ?? null)) {
+                            return [];
+                        }
+
+                        return ['شماره صفحه: '.$data['page_number']];
+                    }),
 
                 Tables\Filters\SelectFilter::make('created_by')
                     ->label('ایجادکننده')
