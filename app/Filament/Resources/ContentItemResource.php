@@ -1467,6 +1467,51 @@ class ContentItemResource extends Resource
 
             ->filters([
 
+                Tables\Filters\SelectFilter::make('grade_id')
+                    ->label('پایه')
+                    ->options(\App\Models\Grade::pluck('title', 'id'))
+                    ->query(fn($query, array $data) => blank($data['value'] ?? null)
+                        ? $query
+                        : $query->whereHas(
+                            'section.chapter.book.appGradeSubject',
+                            fn($q) => $q->where('grade_id', $data['value'])
+                        )),
+
+                Tables\Filters\SelectFilter::make('subject_id')
+                    ->label('درس')
+                    ->options(\App\Models\Subject::pluck('title', 'id'))
+                    ->query(fn($query, array $data) => blank($data['value'] ?? null)
+                        ? $query
+                        : $query->whereHas(
+                            'section.chapter.book.appGradeSubject',
+                            fn($q) => $q->where('subject_id', $data['value'])
+                        )),
+
+                Tables\Filters\SelectFilter::make('book_id')
+                    ->label('کتاب')
+                    ->options(\App\Models\Book::pluck('title', 'id'))
+                    ->query(fn($query, array $data) => blank($data['value'] ?? null)
+                        ? $query
+                        : $query->whereHas(
+                            'section.chapter',
+                            fn($q) => $q->where('book_id', $data['value'])
+                        )),
+
+                Tables\Filters\SelectFilter::make('chapter_id')
+                    ->label('فصل')
+                    ->options(\App\Models\Chapter::pluck('title', 'id'))
+                    ->query(fn($query, array $data) => blank($data['value'] ?? null)
+                        ? $query
+                        : $query->whereHas(
+                            'section',
+                            fn($q) => $q->where('chapter_id', $data['value'])
+                        )),
+
+                Tables\Filters\SelectFilter::make('section_id')
+                    ->label('بخش')
+                    ->relationship('section', 'title')
+                    ->searchable(),
+
                 Tables\Filters\TernaryFilter::make('is_free')
                     ->label('رایگان'),
 
@@ -1476,6 +1521,22 @@ class ContentItemResource extends Resource
                         'contentType',
                         'title'
                     ),
+
+                Tables\Filters\Filter::make('page_number')
+                    ->label('شماره صفحه')
+                    ->form([
+                        Forms\Components\TextInput::make('page_number')
+                            ->label('شماره صفحه')
+                            ->numeric(),
+                    ])
+                    ->query(fn($query, array $data) => blank($data['page_number'] ?? null)
+                        ? $query
+                        : $query->where('page_number', $data['page_number'])),
+
+                Tables\Filters\SelectFilter::make('created_by')
+                    ->label('ایجادکننده')
+                    ->relationship('creator', 'name')
+                    ->searchable(),
 
                 Tables\Filters\SelectFilter::make('status')
                     ->label('وضعیت')
