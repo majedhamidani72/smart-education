@@ -1260,7 +1260,65 @@ class ContentItemResource extends Resource
                         'published' => 'منتشر شده',
 
                         default => $state,
-                    }),
+                    })
+                    // فقط ادمین/سوپرادمین با کلیک روی خودِ وضعیت،
+                    // یک پنجره‌ی سریع برای تغییرش باز می‌کند —
+                    // نیازی به رفتن داخل فرم کامل ویرایش نیست.
+                    // معلم برای این ستون فقط نمایش‌گر می‌بیند،
+                    // چون کلیک‌پذیر بودنش هم مشروط شده.
+                    ->action(
+                        Tables\Actions\Action::make('changeStatus')
+                            ->label('تغییر وضعیت')
+                            ->visible(
+                                fn() =>
+                                auth()->user()?->hasRole('Admin')
+                                || auth()->user()?->hasRole('SuperAdmin')
+                            )
+                            ->form([
+
+                                Forms\Components\Select::make('status')
+                                    ->label('وضعیت جدید')
+                                    ->options([
+                                        'pending' => 'در انتظار بررسی',
+                                        'approved' => 'تأیید شده',
+                                        'rejected' => 'رد شده',
+                                        'published' => 'منتشر شده',
+                                    ])
+                                    ->required()
+                                    ->live(),
+
+                                Forms\Components\Textarea::make('rejection_reason')
+                                    ->label('دلیل رد')
+                                    ->required(fn(Get $get) => $get('status') === 'rejected')
+                                    ->visible(fn(Get $get) => $get('status') === 'rejected'),
+
+                            ])
+                            ->fillForm(fn($record) => [
+                                'status' => $record->status,
+                                'rejection_reason' => $record->rejection_reason,
+                            ])
+                            ->action(function (array $data, $record): void {
+
+                                $record->update([
+
+                                    'status' => $data['status'],
+
+                                    'rejection_reason' => $data['status'] === 'rejected'
+                                        ? $data['rejection_reason']
+                                        : null,
+
+                                    'reviewed_by' => auth()->id(),
+
+                                    'reviewed_at' => now(),
+
+                                ]);
+
+                                Notification::make()
+                                    ->title('وضعیت محتوا به‌روزرسانی شد.')
+                                    ->success()
+                                    ->send();
+                            })
+                    ),
 
                 // دلیل رد فقط وقتی وضعیت «رد شده» باشد مقدار
                 // دارد؛ در غیر این صورت خط تیره نمایش داده می‌شود.
@@ -1275,7 +1333,7 @@ class ContentItemResource extends Resource
 
                 Tables\Columns\TextColumn::make('creator.name')
                     ->label('ایجادکننده')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('reviewer.name')
                     ->label('بررسی‌کننده')
