@@ -794,6 +794,7 @@ class ContentItemResource extends Resource
 
                     Forms\Components\FileUpload::make('video.video_file')
                         ->label('فایل ویدئو')
+                        ->disk('public')
                         ->directory('videos')
                         ->acceptedFileTypes([
                             'video/mp4',
@@ -845,6 +846,7 @@ class ContentItemResource extends Resource
 
                             Forms\Components\FileUpload::make('image')
                                 ->label('تصویر')
+                                ->disk('public')
                                 ->directory('step-by-step')
                                 ->image()
                                 ->imagePreviewHeight('180')
@@ -883,6 +885,8 @@ class ContentItemResource extends Resource
                     Forms\Components\FileUpload::make('pdfFile.file')
 
                         ->label('فایل PDF')
+
+                        ->disk('public')
 
                         ->directory('sample-questions')
 
