@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\QuizResource\Pages;
 use App\Filament\Resources\QuizResource\RelationManagers\QuestionsRelationManager;
+use App\Filament\Forms\Components\JalaliDateTimePicker;
 
 use App\Models\App;
 use App\Models\AppGradeSubject;
@@ -556,8 +557,9 @@ class QuizResource extends Resource
                 ->default('draft')
                 ->required(),
 
-            Forms\Components\DateTimePicker::make('published_at')
-                ->label('زمان انتشار'),
+            JalaliDateTimePicker::make('published_at')
+                ->label('زمان انتشار')
+                ->default(now()->format('Y-m-d H:i:s')),
 
         ]);
     }

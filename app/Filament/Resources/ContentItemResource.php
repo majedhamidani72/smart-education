@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ContentItemResource\Pages;
+use App\Filament\Forms\Components\JalaliDateTimePicker;
 use App\Models\App;
 use App\Models\AppGradeSubject;
 use App\Models\Book;
@@ -986,9 +987,11 @@ class ContentItemResource extends Resource
                             $get('status') === 'rejected'
                         ),
 
-                    Forms\Components\DateTimePicker::make('published_at')
+                    JalaliDateTimePicker::make('published_at')
 
-                        ->label('زمان انتشار'),
+                        ->label('زمان انتشار')
+
+                        ->default(now()->format('Y-m-d H:i:s')),
 
                     Forms\Components\TextInput::make('sort_order')
 
