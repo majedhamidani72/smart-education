@@ -13,6 +13,7 @@ use App\Models\Grade;
 use App\Models\Section;
 use App\Models\Subject;
 use App\Models\TeacherAssignment;
+use App\Support\Jalali;
 use App\Traits\FiltersByTeacherAssignment;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -1125,11 +1126,11 @@ class ContentItemResource extends Resource
 
                     TextEntry::make('created_at')
                         ->label('تاریخ ثبت')
-                        ->dateTime('Y/m/d H:i'),
+                        ->formatStateUsing(fn($state) => Jalali::format($state)),
 
                     TextEntry::make('reviewed_at')
                         ->label('تاریخ بررسی')
-                        ->dateTime('Y/m/d H:i')
+                        ->formatStateUsing(fn($state) => Jalali::format($state))
                         ->placeholder('—'),
 
                 ]),
@@ -1265,7 +1266,7 @@ class ContentItemResource extends Resource
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('تاریخ ثبت')
-                    ->dateTime('Y/m/d H:i')
+                    ->formatStateUsing(fn($state) => Jalali::format($state))
                     ->sortable(),
 
             ])
