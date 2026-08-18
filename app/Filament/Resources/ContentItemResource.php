@@ -728,8 +728,16 @@ class ContentItemResource extends Resource
                     // — نگاه کنید به CreateContentItem::resolveTitle
                     // و EditContentItem::resolveTitle.
 
-                    Forms\Components\Hidden::make('title')
-                        ->required(),
+                    // «required» عمداً اینجا گذاشته نمی‌شود: این
+                    // فیلد مخفی فقط موقع ذخیره‌سازی (در سرور، داخل
+                    // resolveTitle) پر می‌شود، نه قبل از آن. اگر
+                    // required باشد، چون فرم قبل از رسیدن به آن
+                    // کد سرور اعتبارسنجی می‌شود، همیشه (به‌صورت
+                    // نامرئی و بدون هیچ پیام خطایی) رد می‌شود.
+                    // اجباری بودن «عنوان» به‌جای این، روی خودِ
+                    // فیلدهای اختصاصی هر نوع محتوا (عنوان ویدئو /
+                    // عنوان صفحه / عنوان PDF) گذاشته شده.
+                    Forms\Components\Hidden::make('title'),
 
                     Forms\Components\Hidden::make('slug'),
 
