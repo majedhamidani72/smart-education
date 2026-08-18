@@ -22,6 +22,17 @@ class QuestionTopicResource extends Resource
 
     protected static ?string $navigationLabel = 'موضوعات سوال';
 
+    /**
+     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود. موضوع
+     * سوال از داخل فرم «بانک سوالات» (QuestionResource) هم انتخاب
+     * می‌شود هم ایجاد — دقیقاً همان الگویی که برای پایه/درس/کتاب/
+     * فصل/بخش هم استفاده شده.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     protected static ?string $modelLabel = 'موضوع سوال';
 
     protected static ?string $pluralModelLabel = 'موضوعات سوال';
