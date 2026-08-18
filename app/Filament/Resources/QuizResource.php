@@ -49,8 +49,34 @@ class QuizResource extends Resource
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * کتاب‌هایی که معلم فعلی به آن‌ها دسترسی دارد (همان منطق
+     * ContentItemResource::teacherAssignedBooks). برای محدود کردن
+     * فیلدهای اپلیکیشن/پایه/درس/کتاب به دامنه‌ی واقعی معلم —
+     * حتی اگر معلم به چند پایه یا چند کتاب مختلف دسترسی داشته
+     * باشد.
+     */
+    protected static function teacherAssignedBooks(): \Illuminate\Support\Collection
+    {
+        $bookIds = \App\Models\TeacherAssignment::query()
+            ->where('teacher_id', auth()->id())
+            ->where('is_active', true)
+            ->pluck('book_id');
+
+        return Book::query()
+            ->whereIn('id', $bookIds)
+            ->where('is_active', true)
+            ->with('appGradeSubject')
+            ->get();
+    }
+
     public static function form(Form $form): Form
     {
+        $isTeacher = auth()->user()?->hasRole('Teacher');
+
+        $teacherBooks = $isTeacher
+            ? static::teacherAssignedBooks()
+            : collect();
         return $form->schema([
 
             Forms\Components\TextInput::make('title')
@@ -81,12 +107,22 @@ class QuizResource extends Resource
 
                     Forms\Components\Select::make('app_id')
                         ->label('اپلیکیشن')
-                        ->options(
-                            App::query()
+                        ->options(function () use ($isTeacher, $teacherBooks) {
+
+                            if ($isTeacher) {
+                                return $teacherBooks
+                                    ->pluck('appGradeSubject.app_id')
+                                    ->unique()
+                                    ->mapWithKeys(fn($appId) => [
+                                        $appId => App::find($appId)?->title,
+                                    ]);
+                            }
+
+                            return App::query()
                                 ->where('is_active', true)
                                 ->orderBy('sort_order')
-                                ->pluck('title', 'id')
-                        )
+                                ->pluck('title', 'id');
+                        })
                         ->searchable()
                         ->preload()
                         ->live()
@@ -103,10 +139,23 @@ class QuizResource extends Resource
 
                     Forms\Components\Select::make('grade_id')
                         ->label('پایه')
-                        ->options(function (Get $get) {
+                        ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
                             if (! $get('app_id')) {
                                 return [];
+                            }
+
+                            if ($isTeacher) {
+                                return $teacherBooks
+                                    ->filter(
+                                        fn($book) =>
+                                        $book->appGradeSubject?->app_id == $get('app_id')
+                                    )
+                                    ->pluck('appGradeSubject.grade_id')
+                                    ->unique()
+                                    ->mapWithKeys(fn($gradeId) => [
+                                        $gradeId => Grade::find($gradeId)?->title,
+                                    ]);
                             }
 
                             return Grade::query()
@@ -132,10 +181,24 @@ class QuizResource extends Resource
 
                     Forms\Components\Select::make('subject_id')
                         ->label('درس')
-                        ->options(function (Get $get) {
+                        ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
                             if (! $get('grade_id')) {
                                 return [];
+                            }
+
+                            if ($isTeacher) {
+                                return $teacherBooks
+                                    ->filter(
+                                        fn($book) =>
+                                        $book->appGradeSubject?->app_id == $get('app_id')
+                                        && $book->appGradeSubject?->grade_id == $get('grade_id')
+                                    )
+                                    ->pluck('appGradeSubject.subject_id')
+                                    ->unique()
+                                    ->mapWithKeys(fn($subjectId) => [
+                                        $subjectId => Subject::find($subjectId)?->title,
+                                    ]);
                             }
 
                             return Subject::query()
@@ -164,10 +227,21 @@ class QuizResource extends Resource
 
                     Forms\Components\Select::make('book_id')
                         ->label('کتاب')
-                        ->options(function (Get $get) {
+                        ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
                             if (! $get('subject_id')) {
                                 return [];
+                            }
+
+                            if ($isTeacher) {
+                                return $teacherBooks
+                                    ->filter(
+                                        fn($book) =>
+                                        $book->appGradeSubject?->app_id == $get('app_id')
+                                        && $book->appGradeSubject?->grade_id == $get('grade_id')
+                                        && $book->appGradeSubject?->subject_id == $get('subject_id')
+                                    )
+                                    ->pluck('title', 'id');
                             }
 
                             $appGradeSubject = AppGradeSubject::query()
@@ -180,25 +254,9 @@ class QuizResource extends Resource
                                 return [];
                             }
 
-                            $query = Book::query()
+                            return Book::query()
                                 ->where('app_grade_subject_id', $appGradeSubject->id)
-                                ->where('is_active', true);
-
-                            // معلم فقط کتاب‌هایی را می‌بیند که خودِ
-                            // سوپرادمین/ادمین برایش مشخص کرده.
-                            $user = auth()->user();
-
-                            if ($user?->hasRole('Teacher')) {
-
-                                $query->whereHas(
-                                    'teacherAssignments',
-                                    fn($assignment) => $assignment
-                                        ->where('teacher_id', $user->id)
-                                        ->where('is_active', true)
-                                );
-                            }
-
-                            return $query
+                                ->where('is_active', true)
                                 ->orderBy('sort_order')
                                 ->pluck('title', 'id');
                         })
