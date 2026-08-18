@@ -24,6 +24,7 @@ use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -31,6 +32,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ContentItemResource extends Resource
@@ -846,6 +848,7 @@ class ContentItemResource extends Resource
                                 ->label('تصویر')
                                 ->directory('step-by-step')
                                 ->image()
+                                ->openable()
                                 ->required(),
 
                             Forms\Components\TextInput::make('sort_order')
@@ -1035,23 +1038,32 @@ class ContentItemResource extends Resource
 
                 ->visible(fn($record) => $record->contentType?->slug === 'teaching')
 
-                ->columns(2)
-
                 ->schema([
 
-                    TextEntry::make('video.video_url')
-                        ->label('لینک فایل')
-                        ->placeholder('—')
-                        ->formatStateUsing(fn($state) => $state ? 'مشاهده / دانلود فایل' : '—')
-                        ->url(fn($record) => $record->video?->video_url, shouldOpenInNewTab: true),
+                    // پخش‌کننده‌ی واقعی — برای بررسی محتوا نیازی
+                    // به دانلود کردن فایل نیست.
+                    ViewEntry::make('video.video_url')
+                        ->label('پیش‌نمایش')
+                        ->view('filament.infolists.video-player')
+                        ->columnSpanFull(),
 
-                    TextEntry::make('video.file_size_readable')
-                        ->label('حجم فایل')
-                        ->placeholder('—'),
+                    InfolistGrid::make(3)->schema([
 
-                    TextEntry::make('video.mime_type')
-                        ->label('نوع فایل')
-                        ->placeholder('—'),
+                        TextEntry::make('video.video_url')
+                            ->label('لینک مستقیم فایل')
+                            ->placeholder('—')
+                            ->copyable()
+                            ->url(fn($record) => $record->video?->video_url, shouldOpenInNewTab: true),
+
+                        TextEntry::make('video.file_size_readable')
+                            ->label('حجم فایل')
+                            ->placeholder('—'),
+
+                        TextEntry::make('video.mime_type')
+                            ->label('نوع فایل')
+                            ->placeholder('—'),
+
+                    ]),
 
                 ]),
 
@@ -1067,7 +1079,7 @@ class ContentItemResource extends Resource
 
                         ->schema([
 
-                            InfolistGrid::make(3)->schema([
+                            InfolistGrid::make(4)->schema([
 
                                 TextEntry::make('title')
                                     ->label('عنوان صفحه')
@@ -1078,7 +1090,22 @@ class ContentItemResource extends Resource
 
                                 ImageEntry::make('image')
                                     ->label('تصویر')
-                                    ->height(80),
+                                    ->height(120),
+
+                                TextEntry::make('image')
+                                    ->label('حجم فایل')
+                                    ->formatStateUsing(function ($state) {
+
+                                        if (blank($state) || ! Storage::disk('public')->exists($state)) {
+                                            return '—';
+                                        }
+
+                                        $bytes = Storage::disk('public')->size($state);
+
+                                        return $bytes > 1024 * 1024
+                                            ? number_format($bytes / 1024 / 1024, 2).' MB'
+                                            : number_format($bytes / 1024, 1).' KB';
+                                    }),
 
                             ]),
 
@@ -1090,19 +1117,26 @@ class ContentItemResource extends Resource
 
                 ->visible(fn($record) => $record->contentType?->slug === 'sample_questions')
 
-                ->columns(2)
-
                 ->schema([
 
-                    TextEntry::make('pdfFile.file_url')
-                        ->label('لینک فایل PDF')
-                        ->placeholder('—')
-                        ->formatStateUsing(fn($state) => $state ? 'مشاهده / دانلود فایل' : '—')
-                        ->url(fn($record) => $record->pdfFile?->file_url, shouldOpenInNewTab: true),
+                    ViewEntry::make('pdfFile.file_url')
+                        ->label('پیش‌نمایش')
+                        ->view('filament.infolists.pdf-preview')
+                        ->columnSpanFull(),
 
-                    TextEntry::make('pdfFile.file_size_readable')
-                        ->label('حجم فایل')
-                        ->placeholder('—'),
+                    InfolistGrid::make(2)->schema([
+
+                        TextEntry::make('pdfFile.file_url')
+                            ->label('لینک مستقیم فایل PDF')
+                            ->placeholder('—')
+                            ->copyable()
+                            ->url(fn($record) => $record->pdfFile?->file_url, shouldOpenInNewTab: true),
+
+                        TextEntry::make('pdfFile.file_size_readable')
+                            ->label('حجم فایل')
+                            ->placeholder('—'),
+
+                    ]),
 
                 ]),
 
@@ -1172,13 +1206,6 @@ class ContentItemResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make(
-                    'section.chapter.book.appGradeSubject.app.title'
-                )
-                    ->label('اپلیکیشن')
-                    ->searchable()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make(
                     'section.chapter.book.appGradeSubject.grade.title'
                 )
                     ->label('پایه')
@@ -1231,6 +1258,48 @@ class ContentItemResource extends Resource
                     ->label('صفحه')
                     ->sortable()
                     ->toggleable(),
+
+                // بسته به نوع محتوا، حجم از جدول مرتبط (ویدئو یا
+                // PDF) خوانده می‌شود. برای گام‌به‌گام، چون چند
+                // تصویر جداگانه دارد، مجموع حجم همه‌ی صفحات نمایش
+                // داده می‌شود.
+                Tables\Columns\TextColumn::make('file_size')
+                    ->label('حجم فایل')
+                    ->state(function ($record) {
+
+                        return match ($record->contentType?->slug) {
+
+                            'teaching' => $record->video?->file_size_readable,
+
+                            'sample_questions' => $record->pdfFile?->file_size_readable,
+
+                            'step_by_step' => $record->stepByStep
+                                ?->pages
+                                ->sum(
+                                    fn($page) =>
+                                    Storage::disk('public')->exists($page->image ?? '')
+                                        ? Storage::disk('public')->size($page->image)
+                                        : 0
+                                ),
+
+                            default => null,
+                        };
+                    })
+                    ->formatStateUsing(function ($state, $record) {
+
+                        // برای گام‌به‌گام، state یک عدد خام بایت
+                        // است و باید خوانا شود؛ برای بقیه، از قبل
+                        // خوانا برگشته (fileSizeReadable).
+                        if ($record->contentType?->slug === 'step_by_step' && is_numeric($state)) {
+
+                            return $state > 0
+                                ? number_format($state / 1024 / 1024, 2).' MB'
+                                : null;
+                        }
+
+                        return $state;
+                    })
+                    ->placeholder('—'),
 
                 Tables\Columns\IconColumn::make('is_free')
                     ->label('رایگان')
@@ -1439,6 +1508,12 @@ class ContentItemResource extends Resource
                 'creator',
 
                 'reviewer',
+
+                'video',
+
+                'pdfFile',
+
+                'stepByStep.pages',
 
                 'section',
 
