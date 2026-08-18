@@ -597,7 +597,6 @@ class ContentItemResource extends Resource
                         ->searchable()
                         ->preload()
                         ->live()
-                        ->dehydrated(false)
                         ->required()
                         ->createOptionForm([
 
@@ -1027,23 +1026,23 @@ class ContentItemResource extends Resource
 
                 ->schema([
 
-                    TextEntry::make('section.chapter.book.appGradeSubject.app.title')
+                    TextEntry::make('chapter.book.appGradeSubject.app.title')
                         ->label('اپلیکیشن')
                         ->placeholder('—'),
 
-                    TextEntry::make('section.chapter.book.appGradeSubject.grade.title')
+                    TextEntry::make('chapter.book.appGradeSubject.grade.title')
                         ->label('پایه')
                         ->placeholder('—'),
 
-                    TextEntry::make('section.chapter.book.appGradeSubject.subject.title')
+                    TextEntry::make('chapter.book.appGradeSubject.subject.title')
                         ->label('درس')
                         ->placeholder('—'),
 
-                    TextEntry::make('section.chapter.book.title')
+                    TextEntry::make('chapter.book.title')
                         ->label('کتاب')
                         ->placeholder('—'),
 
-                    TextEntry::make('section.chapter.title')
+                    TextEntry::make('chapter.title')
                         ->label('فصل')
                         ->placeholder('—'),
 
@@ -1255,28 +1254,28 @@ class ContentItemResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make(
-                    'section.chapter.book.appGradeSubject.grade.title'
+                    'chapter.book.appGradeSubject.grade.title'
                 )
                     ->label('پایه')
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make(
-                    'section.chapter.book.appGradeSubject.subject.title'
+                    'chapter.book.appGradeSubject.subject.title'
                 )
                     ->label('درس')
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make(
-                    'section.chapter.book.title'
+                    'chapter.book.title'
                 )
                     ->label('کتاب')
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make(
-                    'section.chapter.title'
+                    'chapter.title'
                 )
                     ->label('فصل')
                     ->searchable()
@@ -1473,7 +1472,7 @@ class ContentItemResource extends Resource
                     ->query(fn($query, array $data) => blank($data['value'] ?? null)
                         ? $query
                         : $query->whereHas(
-                            'section.chapter.book.appGradeSubject',
+                            'chapter.book.appGradeSubject',
                             fn($q) => $q->where('grade_id', $data['value'])
                         )),
 
@@ -1483,7 +1482,7 @@ class ContentItemResource extends Resource
                     ->query(fn($query, array $data) => blank($data['value'] ?? null)
                         ? $query
                         : $query->whereHas(
-                            'section.chapter.book.appGradeSubject',
+                            'chapter.book.appGradeSubject',
                             fn($q) => $q->where('subject_id', $data['value'])
                         )),
 
@@ -1493,19 +1492,14 @@ class ContentItemResource extends Resource
                     ->query(fn($query, array $data) => blank($data['value'] ?? null)
                         ? $query
                         : $query->whereHas(
-                            'section.chapter',
+                            'chapter',
                             fn($q) => $q->where('book_id', $data['value'])
                         )),
 
                 Tables\Filters\SelectFilter::make('chapter_id')
                     ->label('فصل')
-                    ->options(\App\Models\Chapter::pluck('title', 'id'))
-                    ->query(fn($query, array $data) => blank($data['value'] ?? null)
-                        ? $query
-                        : $query->whereHas(
-                            'section',
-                            fn($q) => $q->where('chapter_id', $data['value'])
-                        )),
+                    ->relationship('chapter', 'title')
+                    ->searchable(),
 
                 Tables\Filters\SelectFilter::make('section_id')
                     ->label('بخش')
@@ -1638,17 +1632,17 @@ class ContentItemResource extends Resource
 
                 'section',
 
-                'section.chapter',
+                'chapter',
 
-                'section.chapter.book',
+                'chapter.book',
 
-                'section.chapter.book.appGradeSubject',
+                'chapter.book.appGradeSubject',
 
-                'section.chapter.book.appGradeSubject.app',
+                'chapter.book.appGradeSubject.app',
 
-                'section.chapter.book.appGradeSubject.grade',
+                'chapter.book.appGradeSubject.grade',
 
-                'section.chapter.book.appGradeSubject.subject',
+                'chapter.book.appGradeSubject.subject',
 
             ]);
 
@@ -1656,7 +1650,7 @@ class ContentItemResource extends Resource
 
             $query,
 
-            'section.chapter.book.teacherAssignments'
+            'chapter.book.teacherAssignments'
 
         );
     }

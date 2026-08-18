@@ -19,6 +19,8 @@ class ContentItem extends Model
 
         'section_id',
 
+        'chapter_id',
+
         'content_type_id',
 
         'created_by',
@@ -75,6 +77,17 @@ class ContentItem extends Model
     {
         return $this->belongsTo(
             Section::class
+        );
+    }
+
+    /**
+     * فصلی که این محتوا به آن تعلق دارد — مستقل از section_id،
+     * چون «بخش» اختیاری است ولی فصل همیشه در فرم انتخاب می‌شود.
+     */
+    public function chapter(): BelongsTo
+    {
+        return $this->belongsTo(
+            \App\Models\Chapter::class
         );
     }
 

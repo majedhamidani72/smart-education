@@ -39,16 +39,18 @@ class EditContentItem extends EditRecord
         /** @var \App\Models\ContentItem $record */
         $record = $this->record;
 
-        // ۱) بازسازی مسیر آموزشی از روی section_id
-        $section = $record->section()
-            ->with('chapter.book.appGradeSubject')
+        // ۱) بازسازی مسیر آموزشی از روی chapter_id (مستقل از
+        // section_id، چون بخش اختیاری است ولی فصل همیشه ذخیره
+        // می‌شود).
+        $chapter = $record->chapter()
+            ->with('book.appGradeSubject')
             ->first();
 
-        if ($section && $section->chapter && $section->chapter->book) {
+        if ($chapter && $chapter->book) {
 
-            $book = $section->chapter->book;
+            $book = $chapter->book;
 
-            $data['chapter_id'] = $section->chapter_id;
+            $data['chapter_id'] = $chapter->id;
 
             $data['book_id'] = $book->id;
 
