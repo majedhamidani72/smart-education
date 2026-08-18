@@ -190,21 +190,32 @@ class ContentItemResource extends Resource
                         ->label('پایه')
                         ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
-                            if (! $get('app_id')) {
-                                return [];
-                            }
-
+                            // برای معلم، لیست پایه‌ها از دامنه‌ی
+                            // خودِ او ساخته می‌شود و منتظر انتخاب
+                            // اپلیکیشن نمی‌ماند — این‌طوری وقتی
+                            // فیلد app_id با مقدار پیش‌فرض پر
+                            // می‌شود، گزینه‌های پایه هم از همون
+                            // ابتدا آماده‌اند و مقدار پیش‌فرضِ
+                            // grade_id هم به‌درستی نمایش داده
+                            // می‌شود (نه خالی).
                             if ($isTeacher) {
                                 return $teacherBooks
-                                    ->filter(
-                                        fn($book) =>
-                                        $book->appGradeSubject?->app_id == $get('app_id')
+                                    ->when(
+                                        $get('app_id'),
+                                        fn($collection) => $collection->filter(
+                                            fn($book) =>
+                                            $book->appGradeSubject?->app_id == $get('app_id')
+                                        )
                                     )
                                     ->pluck('appGradeSubject.grade_id')
                                     ->unique()
                                     ->mapWithKeys(fn($gradeId) => [
                                         $gradeId => Grade::find($gradeId)?->title,
                                     ]);
+                            }
+
+                            if (! $get('app_id')) {
+                                return [];
                             }
 
                             return Grade::query()
@@ -309,22 +320,25 @@ class ContentItemResource extends Resource
                         ->label('درس')
                         ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
-                            if (! $get('grade_id')) {
-                                return [];
-                            }
-
                             if ($isTeacher) {
                                 return $teacherBooks
-                                    ->filter(
-                                        fn($book) =>
-                                        $book->appGradeSubject?->app_id == $get('app_id')
-                                        && $book->appGradeSubject?->grade_id == $get('grade_id')
+                                    ->when(
+                                        $get('grade_id'),
+                                        fn($collection) => $collection->filter(
+                                            fn($book) =>
+                                            $book->appGradeSubject?->app_id == $get('app_id')
+                                            && $book->appGradeSubject?->grade_id == $get('grade_id')
+                                        )
                                     )
                                     ->pluck('appGradeSubject.subject_id')
                                     ->unique()
                                     ->mapWithKeys(fn($subjectId) => [
                                         $subjectId => Subject::find($subjectId)?->title,
                                     ]);
+                            }
+
+                            if (! $get('grade_id')) {
+                                return [];
                             }
 
                             return Subject::query()
@@ -429,19 +443,22 @@ class ContentItemResource extends Resource
                         ->label('کتاب')
                         ->options(function (Get $get) use ($isTeacher, $teacherBooks) {
 
-                            if (! $get('subject_id')) {
-                                return [];
-                            }
-
                             if ($isTeacher) {
                                 return $teacherBooks
-                                    ->filter(
-                                        fn($book) =>
-                                        $book->appGradeSubject?->app_id == $get('app_id')
-                                        && $book->appGradeSubject?->grade_id == $get('grade_id')
-                                        && $book->appGradeSubject?->subject_id == $get('subject_id')
+                                    ->when(
+                                        $get('subject_id'),
+                                        fn($collection) => $collection->filter(
+                                            fn($book) =>
+                                            $book->appGradeSubject?->app_id == $get('app_id')
+                                            && $book->appGradeSubject?->grade_id == $get('grade_id')
+                                            && $book->appGradeSubject?->subject_id == $get('subject_id')
+                                        )
                                     )
                                     ->pluck('title', 'id');
+                            }
+
+                            if (! $get('subject_id')) {
+                                return [];
                             }
 
                             $appGradeSubject = AppGradeSubject::query()
@@ -695,18 +712,17 @@ class ContentItemResource extends Resource
                         ->live()
                         ->required(),
 
-                    Forms\Components\TextInput::make('title')
-                        ->label('عنوان')
-                        ->required()
-                        ->maxLength(255)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(function ($state, Set $set) {
+                    // توجه: دیگر اینجا یک فیلد «عنوان» قابل‌مشاهده
+                    // نیست — چون همین عنوان توی فیلدهای اختصاصی هر
+                    // نوع محتوا (عنوان ویدئو / عنوان صفحه / عنوان
+                    // PDF) هم گرفته می‌شد و برای کاربر گیج‌کننده
+                    // بود. عنوان نهایی، هنگام ذخیره‌سازی (نه اینجا
+                    // در فرم)، از روی همان فیلد اختصاصی ساخته می‌شود
+                    // — نگاه کنید به CreateContentItem::resolveTitle
+                    // و EditContentItem::resolveTitle.
 
-                            $set(
-                                'slug',
-                                Str::slug($state)
-                            );
-                        }),
+                    Forms\Components\Hidden::make('title')
+                        ->required(),
 
                     Forms\Components\Hidden::make('slug'),
 
@@ -747,6 +763,12 @@ class ContentItemResource extends Resource
 
                     Forms\Components\TextInput::make('video.title')
                         ->label('عنوان ویدئو')
+                        ->required(function (Get $get) {
+
+                            return ContentType::query()
+                                ->whereKey($get('content_type_id'))
+                                ->value('slug') === 'teaching';
+                        })
                         ->visible(function (Get $get) {
 
                             return ContentType::query()
@@ -826,6 +848,12 @@ class ContentItemResource extends Resource
 
                     Forms\Components\TextInput::make('pdfFile.title')
                         ->label('عنوان فایل PDF')
+                        ->required(function (Get $get) {
+
+                            return ContentType::query()
+                                ->whereKey($get('content_type_id'))
+                                ->value('slug') === 'sample_questions';
+                        })
                         ->visible(function (Get $get) {
 
                             return ContentType::query()
@@ -1014,8 +1042,18 @@ class ContentItemResource extends Resource
                         'published' => 'منتشر شده',
 
                         default => $state,
-                    })
-                    ->visible(fn() => ! $isTeacher),
+                    }),
+
+                // دلیل رد فقط وقتی وضعیت «رد شده» باشد مقدار
+                // دارد؛ در غیر این صورت خط تیره نمایش داده می‌شود.
+                // معلم با دیدن همین ستون می‌فهمد چرا محتوایش رد
+                // شده، بدون نیاز به باز کردن فرم ویرایش.
+                Tables\Columns\TextColumn::make('rejection_reason')
+                    ->label('دلیل رد')
+                    ->placeholder('—')
+                    ->limit(60)
+                    ->wrap()
+                    ->color('danger'),
 
                 Tables\Columns\TextColumn::make('creator.name')
                     ->label('ایجادکننده')
@@ -1057,8 +1095,7 @@ class ContentItemResource extends Resource
 
                         'published' => 'منتشر شده',
 
-                    ])
-                    ->visible(fn() => ! $isTeacher),
+                    ]),
 
             ])
 

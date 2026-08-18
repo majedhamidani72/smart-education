@@ -9,6 +9,7 @@ use App\Models\StepByStep;
 use App\Models\StepByStepPage;
 use App\Models\Video;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Support\Str;
 
 class CreateContentItem extends CreateRecord
 {
@@ -18,7 +19,43 @@ class CreateContentItem extends CreateRecord
     {
         $data['created_by'] = auth()->id();
 
+        // عنوان نهایی محتوا از روی همان فیلد اختصاصی نوع محتوا
+        // ساخته می‌شود (دیگر فیلد «عنوان» جداگانه‌ای در فرم
+        // وجود ندارد؛ نگاه کنید به ContentItemResource::form).
+        $title = $this->resolveTitle($data);
+
+        $data['title'] = $title;
+
+        $data['slug'] = filled($title)
+            ? Str::slug($title)
+            : Str::random(10);
+
         return $data;
+    }
+
+    /**
+     * بر اساس نوع محتوای انتخاب‌شده، عنوان را از فیلد اختصاصی
+     * همان نوع می‌خواند:
+     * تدریس → عنوان ویدئو، گام‌به‌گام → عنوان اولین صفحه،
+     * نمونه سوالات → عنوان فایل PDF.
+     */
+    protected function resolveTitle(array $data): ?string
+    {
+        $slug = ContentType::query()
+            ->whereKey($data['content_type_id'] ?? null)
+            ->value('slug');
+
+        return match ($slug) {
+
+            'teaching' => data_get($data, 'video.title'),
+
+            'step_by_step' => collect(data_get($data, 'stepByStep', []))
+                ->first()['title'] ?? null,
+
+            'sample_questions' => data_get($data, 'pdfFile.title'),
+
+            default => null,
+        };
     }
 
     protected function afterCreate(): void
@@ -37,11 +74,11 @@ class CreateContentItem extends CreateRecord
 
             /*
             |--------------------------------------------------------------------------
-            | Video
+            | تدریس
             |--------------------------------------------------------------------------
             */
 
-            case 'video':
+            case 'teaching':
 
                 if (
                     filled(data_get($this->data, 'video.title')) ||
@@ -69,7 +106,7 @@ class CreateContentItem extends CreateRecord
 
             /*
             |--------------------------------------------------------------------------
-            | Step By Step
+            | گام به گام
             |--------------------------------------------------------------------------
             */
 
@@ -93,6 +130,8 @@ class CreateContentItem extends CreateRecord
 
                         'step_by_step_id' => $step->id,
 
+                        'title' => $page['title'] ?? null,
+
                         'page_number' => $page['sort_order'] ?? 1,
 
                         'image' => $page['image'],
@@ -108,11 +147,11 @@ class CreateContentItem extends CreateRecord
 
             /*
             |--------------------------------------------------------------------------
-            | Sample Question
+            | نمونه سوال
             |--------------------------------------------------------------------------
             */
 
-            case 'sample_question':
+            case 'sample_questions':
 
                 PdfFile::create([
 

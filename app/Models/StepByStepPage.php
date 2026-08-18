@@ -16,6 +16,8 @@ class StepByStepPage extends Model
 
         'step_by_step_id',
 
+        'title',
+
         'page_number',
 
         'image',

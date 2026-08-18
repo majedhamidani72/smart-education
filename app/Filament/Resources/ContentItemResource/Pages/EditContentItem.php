@@ -10,6 +10,7 @@ use App\Models\StepByStepPage;
 use App\Models\Video;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Str;
 
 class EditContentItem extends EditRecord
 {
@@ -33,7 +34,37 @@ class EditContentItem extends EditRecord
             $data['reviewed_at'] = now();
         }
 
+        // عنوان نهایی محتوا از روی همان فیلد اختصاصی نوع محتوا
+        // بازسازی می‌شود (همان منطق CreateContentItem).
+        $title = $this->resolveTitle($data);
+
+        if (filled($title)) {
+
+            $data['title'] = $title;
+
+            $data['slug'] = Str::slug($title);
+        }
+
         return $data;
+    }
+
+    protected function resolveTitle(array $data): ?string
+    {
+        $slug = ContentType::query()
+            ->whereKey($data['content_type_id'] ?? null)
+            ->value('slug');
+
+        return match ($slug) {
+
+            'teaching' => data_get($data, 'video.title'),
+
+            'step_by_step' => collect(data_get($data, 'stepByStep', []))
+                ->first()['title'] ?? null,
+
+            'sample_questions' => data_get($data, 'pdfFile.title'),
+
+            default => null,
+        };
     }
 
     protected function afterSave(): void
@@ -52,11 +83,11 @@ class EditContentItem extends EditRecord
 
             /*
             |--------------------------------------------------------------------------
-            | Video
+            | تدریس
             |--------------------------------------------------------------------------
             */
 
-            case 'video':
+            case 'teaching':
 
                 Video::updateOrCreate(
 
@@ -83,7 +114,7 @@ class EditContentItem extends EditRecord
 
             /*
             |--------------------------------------------------------------------------
-            | Step By Step
+            | گام به گام
             |--------------------------------------------------------------------------
             */
 
@@ -115,6 +146,8 @@ class EditContentItem extends EditRecord
 
                         'step_by_step_id' => $step->id,
 
+                        'title' => $page['title'] ?? null,
+
                         'page_number' => $page['sort_order'] ?? 1,
 
                         'image' => $page['image'],
@@ -131,11 +164,11 @@ class EditContentItem extends EditRecord
 
             /*
             |--------------------------------------------------------------------------
-            | Sample Question
+            | نمونه سوال
             |--------------------------------------------------------------------------
             */
 
-            case 'sample_question':
+            case 'sample_questions':
 
                 PdfFile::updateOrCreate(
 
