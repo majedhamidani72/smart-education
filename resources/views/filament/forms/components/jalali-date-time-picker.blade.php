@@ -186,13 +186,30 @@
                     return r.leap === 1 ? 30 : 29;
                 }
 
-                window.Alpine.data('jalaliDateTimePicker', ({ state }) => ({
+                window.Alpine.data('jalaliDateTimePicker', ({ state }) => {
+
+                    // مقدار اولیه را همین‌جا (نه توی init) و به‌صورت
+                    // فوری محاسبه می‌کنیم تا هیچ‌وقت viewYear/viewMonth
+                    // خالی (null) نباشند. قبلاً چون این مقادیر تا قبل
+                    // از اجرای init() برابر null بودند، زدن دکمه‌ی
+                    // «ماه قبل» باعث می‌شد null-1 به یک عدد نامعتبر
+                    // (۱-) تبدیل شود و دیگر هیچ‌وقت خودش را درست
+                    // نمی‌کرد — همان چیزی که باعث می‌شد اسم ماه، جای
+                    // فارسی، «undefined» (به نظر انگلیسی) نشان بدهد.
+                    const now = new Date();
+                    const initial = gregorianToJalali(
+                        now.getFullYear(),
+                        now.getMonth() + 1,
+                        now.getDate()
+                    );
+
+                    return {
                     open: false,
                     state,
                     displayValue: '',
-                    jy: null, jm: null, jd: null,
-                    hh: 0, mi: 0,
-                    viewYear: null, viewMonth: null,
+                    jy: initial[0], jm: initial[1], jd: initial[2],
+                    hh: now.getHours(), mi: now.getMinutes(),
+                    viewYear: initial[0], viewMonth: initial[1],
                     monthNames: ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'],
                     weekDays: ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'],
                     calendarCells: [],
@@ -300,7 +317,8 @@
                         const pad = (n) => String(n).padStart(2, '0');
                         this.state = `${gy}-${pad(gm)}-${pad(gd)} ${pad(this.hh)}:${pad(this.mi)}:00`;
                     },
-                }));
+                    };
+                });
             });
         </script>
     @endpush
