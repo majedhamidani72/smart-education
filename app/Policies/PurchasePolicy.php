@@ -30,7 +30,7 @@ class PurchasePolicy
     ): bool
     {
         return $user->can('purchases.view')
-            || $purchase->user_id === $user->id;
+            || (int) $purchase->user_id === (int) $user->id;
     }
 
     /**
