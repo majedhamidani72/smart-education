@@ -117,6 +117,19 @@ class PaymentService
                         $result
 
                     );
+
+                // نکته‌ی مهم: تا اینجا فقط رکورد «تراکنش» به‌روز
+                // می‌شد، ولی خودِ «خرید» (Purchase) که کاربر واقعاً
+                // بر اساس آن به محتوا دسترسی پیدا می‌کند، دست‌نخورده
+                // می‌ماند و همیشه «در انتظار پرداخت» باقی می‌ماند.
+                $transaction->purchase()->update([
+
+                    'status' => 'paid',
+
+                    'paid_at' => now(),
+
+                ]);
+
             } else {
 
                 $this->transactionRepository
