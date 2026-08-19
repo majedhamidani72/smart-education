@@ -88,20 +88,31 @@ class TeacherResource extends Resource
                         ->required()
                         ->tel()
                         ->maxLength(11)
-                        ->unique(
-                            table: User::class,
-                            column: 'mobile',
-                            ignoreRecord: true,
-                            modifyRuleUsing: fn($rule) => $rule->whereNull('deleted_at'),
-                        ),
+                        ->live(onBlur: true)
+                        ->helperText('اگر این شماره از قبل توی سیستم وجود داشته باشد، همان حساب به معلم تبدیل می‌شود و نیازی به وارد کردن رمز نیست.'),
 
                     Forms\Components\TextInput::make('password')
                         ->label('رمز اولیه')
                         ->password()
                         ->revealable()
-                        ->required(fn(string $operation) => $operation === 'create')
+                        ->required(function (string $operation, Get $get) {
+
+                            if ($operation !== 'create') {
+                                return false;
+                            }
+
+                            // اگر این موبایل از قبل (به‌صورت فعال) در
+                            // سیستم وجود داشته باشد، رمز اجباری
+                            // نیست — رمز قبلی همان کاربر دست‌نخورده
+                            // می‌ماند.
+                            $existingUser = User::where('mobile', $get('mobile'))
+                                ->whereNull('deleted_at')
+                                ->exists();
+
+                            return ! $existingUser;
+                        })
                         ->dehydrated(fn($state) => filled($state))
-                        ->helperText('در حالت ویرایش، اگر خالی بماند رمز قبلی تغییر نمی‌کند.'),
+                        ->helperText('در حالت ویرایش (یا وقتی این شماره از قبل وجود دارد)، اگر خالی بماند رمز قبلی تغییر نمی‌کند.'),
 
                     Forms\Components\Toggle::make('must_change_password')
                         ->label('اجبار تغییر رمز در اولین ورود')

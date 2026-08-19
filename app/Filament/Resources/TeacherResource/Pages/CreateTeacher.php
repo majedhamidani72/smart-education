@@ -72,6 +72,43 @@ class CreateTeacher extends CreateRecord
             $this->halt();
         }
 
+        // کاربر فعالِ موجود با همین موبایل (مثلاً دانش‌آموزی که
+        // قرار است حالا معلم هم بشود) — به‌جای رکورد جدید، همین
+        // حساب به‌روزرسانی می‌شود. رمز فقط اگر واقعاً پر شده باشد
+        // تغییر می‌کند، وگرنه رمز قبلی همین کاربر دست‌نخورده
+        // می‌ماند.
+        $existingActiveUser = User::where('mobile', $data['mobile'])
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($existingActiveUser) {
+
+            $existingActiveUser->update([
+
+                'name' => $data['name'],
+
+                'password' => filled($data['password'] ?? null)
+                    ? Hash::make($data['password'])
+                    : $existingActiveUser->password,
+
+                'must_change_password' => $data['must_change_password'] ?? true,
+
+                'is_active' => $data['is_active'] ?? true,
+
+            ]);
+
+            $existingActiveUser->syncRoles(['Teacher']);
+
+            $this->assignBook($existingActiveUser);
+
+            Notification::make()
+                ->title('حساب موجود با همین شماره، به معلم تبدیل شد.')
+                ->success()
+                ->send();
+
+            $this->halt();
+        }
+
         if (isset($data['password']) && filled($data['password'])) {
 
             $data['password'] = Hash::make($data['password']);
