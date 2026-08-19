@@ -188,6 +188,16 @@ class OtpService
 
             );
 
+            // اگر همین الان برای اولین‌بار ساخته شده، نقش «دانش‌آموز»
+            // بهش داده می‌شود — بدون این نقش، تمام مجوزهایی که به
+            // دانش‌آموز تعلق دارند (مثل purchases.create) کار
+            // نمی‌کنند، چون سیستم مجوزها کاملاً بر پایه‌ی نقش است.
+            if ($user->wasRecentlyCreated) {
+
+                $user->assignRole('Student');
+
+            }
+
             $user->update([
 
                 'phone_verified_at' => now(),
