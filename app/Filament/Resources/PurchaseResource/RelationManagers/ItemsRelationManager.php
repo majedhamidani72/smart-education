@@ -12,7 +12,9 @@ class ItemsRelationManager extends RelationManager
 
     protected static ?string $title = 'آیتم‌های خرید';
 
-    public static function canCreate(): bool
+    // نکته: برخلاف Resource، متد canCreate() توی RelationManager
+    // غیر-static است — همون چیزی که باعث خطای Fatal Error شد.
+    public function canCreate(): bool
     {
         return false;
     }
