@@ -59,7 +59,11 @@ class ContentItemController extends Controller
         $contentItem->load([
             'creator',
             'reviewer',
-            'contentable',
+            'contentType',
+            'video',
+            'stepByStep.pages',
+            'pdfFile',
+            'sampleQuestions',
         ]);
 
 
@@ -90,7 +94,11 @@ class ContentItemController extends Controller
 
         $contentItem->load([
             'creator',
-            'contentable',
+            'contentType',
+            'video',
+            'stepByStep.pages',
+            'pdfFile',
+            'sampleQuestions',
         ]);
 
 
@@ -125,7 +133,11 @@ class ContentItemController extends Controller
         $contentItem->load([
             'creator',
             'reviewer',
-            'contentable',
+            'contentType',
+            'video',
+            'stepByStep.pages',
+            'pdfFile',
+            'sampleQuestions',
         ]);
 
 
