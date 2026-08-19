@@ -13,10 +13,12 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
@@ -40,6 +42,39 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Blue,
             ])
+
+            ->collapsibleNavigationGroups(true)
+
+            // رنگ ملایمِ فقط روی آیکون‌های هر گروه منو (نه پس‌زمینه
+            // یا متن) — تا با رنگ‌های وضعیت جداول (موفق/ناموفق و
+            // مشابه) قاطی نشود. چون Filament به‌صورت رسمی رنگ جدا
+            // برای هر NavigationGroup نمی‌دهد، این با تزریق مستقیم
+            // CSS (بدون نیاز به بیلد جداگانه‌ی npm) انجام شده. اگر
+            // بعداً ترتیب گروه‌ها عوض شود، این رنگ‌ها هم باید
+            // به‌روزرسانی شوند (چون بر اساس ترتیب، nth-of-type،
+            // تشخیص داده می‌شوند).
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn() => Blade::render(<<<'HTML'
+                    <style>
+                        .fi-sidebar-group:nth-of-type(1) .fi-sidebar-item-icon {
+                            color: rgb(99 102 241); /* مدیریت آموزش — بنفش */
+                        }
+                        .fi-sidebar-group:nth-of-type(2) .fi-sidebar-item-icon {
+                            color: rgb(217 70 239); /* آزمون آنلاین — صورتی */
+                        }
+                        .fi-sidebar-group:nth-of-type(3) .fi-sidebar-item-icon {
+                            color: rgb(20 184 166); /* مدیریت کاربران — فیروزه‌ای */
+                        }
+                        .fi-sidebar-group:nth-of-type(4) .fi-sidebar-item-icon {
+                            color: rgb(234 179 8); /* مدیریت مالی — کهربایی */
+                        }
+                        .fi-sidebar-group:nth-of-type(5) .fi-sidebar-item-icon {
+                            color: rgb(100 116 139); /* مدیریت سیستم — خاکستری */
+                        }
+                    </style>
+                HTML)
+            )
 
             ->navigationGroups([
 
