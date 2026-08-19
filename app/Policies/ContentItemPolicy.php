@@ -9,23 +9,42 @@ class ContentItemPolicy
 {
     /**
      * مشاهده لیست محتواها
+     * --------------------------------------------------------------------
+     * برای دانش‌آموز، این چک اجازه‌ی «باز کردن لیست» را می‌دهد؛
+     * فیلتر کردن این‌که کدام آیتم‌ها واقعاً قابل‌مشاهده‌اند (رایگان
+     * یا خریداری‌شده) در سطح کوئری/سرویس انجام می‌شود، نه اینجا.
      */
     public function viewAny(
         User $user
     ): bool
     {
-        return $user->can('content-items.view');
+        return $user->can('content-items.view')
+            || $user->hasRole('Student');
     }
 
     /**
      * مشاهده یک محتوا
+     * --------------------------------------------------------------------
+     * سه حالت مجاز است:
+     * ۱) کاربر مجوز مدیریتی عمومی دارد (ادمین/معلم)
+     * ۲) محتوا رایگان است — هرکسی می‌تواند ببیند
+     * ۳) کاربر (دانش‌آموز) اشتراک فعالی دارد که این کتاب یا پایه‌ی
+     *    مربوطه را پوشش می‌دهد
      */
     public function view(
         User $user,
         ContentItem $contentItem
     ): bool
     {
-        return $user->can('content-items.view');
+        if ($user->can('content-items.view')) {
+            return true;
+        }
+
+        if ($contentItem->is_free) {
+            return true;
+        }
+
+        return $user->hasAccessToContentItem($contentItem);
     }
 
     /**

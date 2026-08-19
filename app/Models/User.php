@@ -121,6 +121,70 @@ class User extends Authenticatable implements FilamentUser
     */
 
 
+    /**
+     * آیا این کاربر به یک محتوای مشخص دسترسی دارد؟
+     * --------------------------------------------------------------------
+     * منطق: اشتراک‌های فعال کاربر را می‌گیرد و بررسی می‌کند آیا
+     * پلن هرکدام دقیقاً به «همان کتاب» وصل است (برای پایه‌های
+     * ۷ تا ۱۲، هر کتاب جداگانه خریداری می‌شود)، یا به «همان پایه»
+     * وصل است (برای پایه‌های ۱ تا ۶، یک خرید کل پایه را باز
+     * می‌کند). چون Plan.planable چندریختی است، هر دو حالت را با
+     * همین یک متد پوشش می‌دهیم.
+     */
+    public function hasAccessToContentItem(
+        \App\Models\ContentItem $contentItem
+    ): bool {
+
+        $chapter = $contentItem->chapter()
+            ->with('book.appGradeSubject')
+            ->first();
+
+        if (! $chapter || ! $chapter->book) {
+
+            // اگر مسیر آموزشی محتوا مشخص نباشد، به‌صورت پیش‌فرض
+            // دسترسی داده نمی‌شود (احتیاط، نه سهل‌گیری).
+            return false;
+        }
+
+        $book = $chapter->book;
+
+        $gradeId = $book->appGradeSubject?->grade_id;
+
+        $activeSubscriptions = $this->subscriptions()
+            ->where('status', 'active')
+            ->where('expires_at', '>=', now())
+            ->with('plan')
+            ->get();
+
+        foreach ($activeSubscriptions as $subscription) {
+
+            $plan = $subscription->plan;
+
+            if (! $plan) {
+                continue;
+            }
+
+            // دسترسی «همین کتاب» (پایه‌های ۷ تا ۱۲)
+            if (
+                $plan->planable_type === \App\Models\Book::class
+                && (int) $plan->planable_id === (int) $book->id
+            ) {
+                return true;
+            }
+
+            // دسترسی «کل پایه» (پایه‌های ۱ تا ۶)
+            if (
+                $plan->planable_type === \App\Models\Grade::class
+                && $gradeId
+                && (int) $plan->planable_id === (int) $gradeId
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function canAccessPanel(
         Panel $panel
     ): bool {
