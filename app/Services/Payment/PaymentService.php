@@ -44,7 +44,10 @@ class PaymentService
 
             'gateway' => env('PAYMENT_DEFAULT', 'zibal'),
             
-            'amount' => $purchase->price,
+            // توجه: ستون درست روی جدول purchases خودِ «payable_amount»
+            // است، نه «price» (که اصلاً چنین ستونی وجود ندارد و
+            // همیشه NULL برمی‌گشت).
+            'amount' => $purchase->payable_amount,
 
             'currency' => 'IRT',
 
