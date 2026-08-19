@@ -55,36 +55,46 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     | Education
     |--------------------------------------------------------------------------
+    | نکته‌ی مهم: این بلوک قبلاً هیچ میان‌افزار auth:sanctum نداشت!
+    | یعنی توکن کاربر اصلاً بررسی نمی‌شد و auth()->user() همیشه
+    | خالی می‌ماند — Policy هم چون کاربر نداشت، همیشه به‌صورت
+    | خودکار (و بی‌جزئیات) رد می‌کرد. همین دقیقاً باعث ۴۰۳ی می‌شد
+    | که هیچ‌جوره با تست‌های Tinker (که کاربر واقعی داشت) جور
+    | درنمی‌آمد.
     */
 
-    Route::apiResource('grades', GradeController::class)
-        ->only(['index', 'show']);
+    Route::middleware('auth:sanctum')->group(function () {
 
-    Route::apiResource('subjects', SubjectController::class)
-        ->only(['index', 'show']);
+        Route::apiResource('grades', GradeController::class)
+            ->only(['index', 'show']);
 
-    Route::apiResource('books', BookController::class)
-        ->only(['index', 'show']);
+        Route::apiResource('subjects', SubjectController::class)
+            ->only(['index', 'show']);
 
-    Route::apiResource('chapters', ChapterController::class)
-        ->only(['index', 'show']);
+        Route::apiResource('books', BookController::class)
+            ->only(['index', 'show']);
 
-    Route::apiResource('sections', SectionController::class)
-        ->only(['index', 'show']);
+        Route::apiResource('chapters', ChapterController::class)
+            ->only(['index', 'show']);
+
+        Route::apiResource('sections', SectionController::class)
+            ->only(['index', 'show']);
 
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Content Items
-    |--------------------------------------------------------------------------
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | Content Items
+        |--------------------------------------------------------------------------
+        */
 
-    Route::prefix('content-items')->controller(ContentItemController::class)->group(function () {
+        Route::prefix('content-items')->controller(ContentItemController::class)->group(function () {
 
-        Route::get('/', 'index');
+            Route::get('/', 'index');
 
-        Route::get('/{contentItem}', 'show');
+            Route::get('/{contentItem}', 'show');
+        });
+
     });
 
 
@@ -95,7 +105,7 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::prefix('videos')->controller(VideoController::class)->group(function () {
+    Route::middleware('auth:sanctum')->prefix('videos')->controller(VideoController::class)->group(function () {
 
         Route::get('/', 'index');
 
@@ -110,14 +120,14 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::prefix('quizzes')->controller(QuizController::class)->group(function () {
+    Route::middleware('auth:sanctum')->prefix('quizzes')->controller(QuizController::class)->group(function () {
 
         Route::get('/', 'index');
 
         Route::get('/{quiz}', 'show');
 
 
-        Route::middleware('auth:sanctum')->post('/{quiz}/start', 'start');
+        Route::post('/{quiz}/start', 'start');
     });
     /*
     |--------------------------------------------------------------------------
