@@ -5,9 +5,11 @@ namespace App\Services\Payment;
 use Throwable;
 use App\Models\Purchase;
 use App\Models\PaymentTransaction;
+use App\Models\Subscription;
 use Illuminate\Support\Facades\Log;
 use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Repositories\Interfaces\PaymentTransactionRepositoryInterface;
+use App\Repositories\Interfaces\SubscriptionRepositoryInterface;
 
 class PaymentService
 {
@@ -17,15 +19,23 @@ class PaymentService
     protected PaymentTransactionRepositoryInterface $transactionRepository;
 
     /**
+     * Repository اشتراک‌ها (دسترسی)
+     */
+    protected SubscriptionRepositoryInterface $subscriptionRepository;
+
+    /**
      * درگاه پرداخت
      */
     protected PaymentGatewayInterface $gateway;
 
     public function __construct(
         PaymentTransactionRepositoryInterface $transactionRepository,
+        SubscriptionRepositoryInterface $subscriptionRepository,
         PaymentGatewayInterface $gateway
     ) {
         $this->transactionRepository = $transactionRepository;
+
+        $this->subscriptionRepository = $subscriptionRepository;
 
         $this->gateway = $gateway;
     }
@@ -130,6 +140,17 @@ class PaymentService
 
                 ]);
 
+                // به ازای هر آیتم خرید که به یک «پلن» وصل است، یک
+                // رکورد Subscription (دسترسی) ساخته می‌شود — این
+                // همان چیزی است که واقعاً به دانش‌آموز اجازه‌ی
+                // استفاده می‌دهد. توجه: خودِ Plan مشخص می‌کند این
+                // دسترسی به یک «پایه‌ی کامل» تعلق دارد (پایه‌های
+                // ۱ تا ۶) یا به یک «کتاب مشخص» (پایه‌های ۷ تا ۱۲) —
+                // چون planable در جدول plans چندریختی است و می‌تواند
+                // به هرکدام وصل شود؛ این تصمیم از پیش در Plan تعریف
+                // شده، نه اینجا.
+                $this->grantAccessFromPurchase($transaction->purchase);
+
             } else {
 
                 $this->transactionRepository
@@ -201,6 +222,54 @@ class PaymentService
                 'message' => 'Refund failed.',
 
             ];
+        }
+    }
+
+    /**
+     * ساخت رکوردهای دسترسی (Subscription) از روی آیتم‌های یک خرید
+     * پرداخت‌شده.
+     * --------------------------------------------------------------------
+     * قبل از این متد، این بخش کامل جا افتاده بود: پرداخت با
+     * موفقیت ثبت می‌شد ولی هیچ‌جا واقعاً به دانش‌آموز دسترسی داده
+     * نمی‌شد — یعنی خرید می‌کرد ولی هیچی برایش باز نمی‌شد.
+     */
+    protected function grantAccessFromPurchase(
+        Purchase $purchase
+    ): void {
+
+        foreach ($purchase->items as $item) {
+
+            // آیتم‌هایی که به هیچ پلنی وصل نیستند (اگر چنین چیزی
+            // وجود داشته باشد) دسترسی‌ای برای ساختن ندارند.
+            if (! $item->plan_id || ! $item->plan) {
+                continue;
+            }
+
+            $plan = $item->plan;
+
+            // duration_days خالی یعنی دسترسی «دائمی». چون ستون
+            // expires_at در دیتابیس nullable نیست، به‌جای NULL از
+            // یک تاریخ خیلی دور (۱۰۰ سال بعد) به‌عنوان «همیشگی»
+            // استفاده می‌شود — یک قرارداد رایج برای این وضعیت.
+            $expiresAt = $plan->duration_days
+                ? now()->addDays($plan->duration_days)
+                : now()->addYears(100);
+
+            $this->subscriptionRepository->create([
+
+                'user_id' => $purchase->user_id,
+
+                'purchase_id' => $purchase->id,
+
+                'plan_id' => $plan->id,
+
+                'status' => 'active',
+
+                'starts_at' => now(),
+
+                'expires_at' => $expiresAt,
+
+            ]);
         }
     }
 }
