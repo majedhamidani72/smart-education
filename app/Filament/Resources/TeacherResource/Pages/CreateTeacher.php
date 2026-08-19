@@ -69,6 +69,8 @@ class CreateTeacher extends CreateRecord
                 ->success()
                 ->send();
 
+            $this->redirect($this->getRedirectUrl());
+
             $this->halt();
         }
 
@@ -105,6 +107,8 @@ class CreateTeacher extends CreateRecord
                 ->title('حساب موجود با همین شماره، به معلم تبدیل شد.')
                 ->success()
                 ->send();
+
+            $this->redirect($this->getRedirectUrl());
 
             $this->halt();
         }
