@@ -16,6 +16,8 @@ class EditTeacher extends EditRecord
     // دسترسی معلم به‌روزرسانی شود.
     protected ?int $bookIdToAssign = null;
 
+    protected int $commissionPercentageToAssign = 30;
+
     protected function getHeaderActions(): array
     {
         return [
@@ -53,6 +55,8 @@ class EditTeacher extends EditRecord
             $data['grade_id'] = $assignment->book->appGradeSubject->grade_id;
 
             $data['app_id'] = $assignment->book->appGradeSubject->app_id;
+
+            $data['commission_percentage'] = $assignment->commission_percentage;
         }
 
         return $data;
@@ -62,11 +66,14 @@ class EditTeacher extends EditRecord
     {
         $this->bookIdToAssign = $data['book_id'] ?? null;
 
+        $this->commissionPercentageToAssign = $data['commission_percentage'] ?? 30;
+
         unset(
             $data['app_id'],
             $data['grade_id'],
             $data['subject_id'],
             $data['book_id'],
+            $data['commission_percentage'],
         );
 
         if (isset($data['password']) && filled($data['password'])) {
@@ -97,6 +104,7 @@ class EditTeacher extends EditRecord
             ],
             [
                 'assigned_by' => auth()->id(),
+                'commission_percentage' => $this->commissionPercentageToAssign,
                 'is_active' => true,
                 'deleted_at' => null,
             ]

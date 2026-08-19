@@ -394,6 +394,16 @@ class TeacherResource extends Resource
                         })
                         ->helperText('معلم فقط به کتابی که اینجا مشخص می‌شود دسترسی خواهد داشت.'),
 
+                    Forms\Components\TextInput::make('commission_percentage')
+                        ->label('درصد سهم معلم از فروش این کتاب')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->default(30)
+                        ->suffix('%')
+                        ->helperText('برای هر معلم/کتاب می‌تواند متفاوت باشد.')
+                        ->required(),
+
                 ]),
 
         ]);

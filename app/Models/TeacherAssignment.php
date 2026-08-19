@@ -28,6 +28,8 @@ class TeacherAssignment extends Model
 
         'book_id',
 
+        'commission_percentage',
+
         'assigned_by',
 
         'is_active',

@@ -25,6 +25,7 @@ use App\Repositories\Eloquent\StepByStepPageRepository;
 use App\Repositories\Eloquent\SubjectRepository;
 use App\Repositories\Eloquent\SubscriptionRepository;
 use App\Repositories\Eloquent\TeacherAssignmentRepository;
+use App\Repositories\Eloquent\TeacherEarningRepository;
 use App\Repositories\Eloquent\VideoRepository;
 use App\Repositories\Interfaces\BookRepositoryInterface;
 use App\Repositories\Interfaces\ChapterRepositoryInterface;
@@ -49,6 +50,7 @@ use App\Repositories\Interfaces\StepByStepPageRepositoryInterface;
 use App\Repositories\Interfaces\SubjectRepositoryInterface;
 use App\Repositories\Interfaces\SubscriptionRepositoryInterface;
 use App\Repositories\Interfaces\TeacherAssignmentRepositoryInterface;
+use App\Repositories\Interfaces\TeacherEarningRepositoryInterface;
 use App\Repositories\Interfaces\VideoRepositoryInterface;
 use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Services\Payment\Providers\ZibalProvider;
@@ -202,6 +204,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(
             TeacherAssignmentRepositoryInterface::class,
             TeacherAssignmentRepository::class
+        );
+
+        // Teacher Earning
+        $this->app->singleton(
+            TeacherEarningRepositoryInterface::class,
+            TeacherEarningRepository::class
         );
 
         $this->app->bind(

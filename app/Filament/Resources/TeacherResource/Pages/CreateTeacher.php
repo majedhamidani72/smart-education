@@ -22,9 +22,13 @@ class CreateTeacher extends CreateRecord
     // همین کتاب بودند، خودشان ذخیره نمی‌شوند.
     protected ?int $bookIdToAssign = null;
 
+    protected int $commissionPercentageToAssign = 30;
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->bookIdToAssign = $data['book_id'] ?? null;
+
+        $this->commissionPercentageToAssign = $data['commission_percentage'] ?? 30;
 
         unset(
             $data['app_id'],
@@ -103,6 +107,7 @@ class CreateTeacher extends CreateRecord
             ],
             [
                 'assigned_by' => auth()->id(),
+                'commission_percentage' => $this->commissionPercentageToAssign,
                 'is_active' => true,
                 'deleted_at' => null,
             ]
