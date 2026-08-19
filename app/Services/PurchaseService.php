@@ -4,7 +4,11 @@ namespace App\Services;
 
 use Throwable;
 use App\Models\Purchase;
+use App\Models\Plan;
+use App\Models\Book;
+use App\Models\Grade;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Repositories\Interfaces\PurchaseRepositoryInterface;
@@ -80,6 +84,108 @@ class PurchaseService
 
     /**
      * ثبت خرید
+     */
+    /**
+     * ساخت خرید از روی یک یا چند پلن.
+     * --------------------------------------------------------------------
+     * تنها راه معتبر ساخت خرید — قیمت‌ها و شماره‌ی فاکتور همیشه
+     * همین‌جا (سمت سرور) از روی خودِ پلن محاسبه می‌شوند، نه از
+     * روی چیزی که کلاینت فرستاده؛ این‌طوری هیچ کلاینتی نمی‌تواند
+     * قیمت را دستکاری کند.
+     *
+     * @param  array<int>  $planIds
+     */
+    public function createFromPlans(
+        int $userId,
+        array $planIds,
+        ?string $notes = null
+    ): Purchase {
+
+        return DB::transaction(function () use ($userId, $planIds, $notes) {
+
+            $plans = Plan::query()
+                ->whereIn('id', $planIds)
+                ->where('is_active', true)
+                ->get();
+
+            if ($plans->isEmpty()) {
+
+                throw new \InvalidArgumentException(
+                    'هیچ پلن فعالی با این شناسه‌ها یافت نشد.'
+                );
+            }
+
+            $totalAmount = 0;
+
+            $discountAmount = 0;
+
+            foreach ($plans as $plan) {
+
+                $totalAmount += $plan->price;
+
+                $discountAmount += $plan->discountAmount();
+            }
+
+            $purchase = $this->repository->create([
+
+                'user_id' => $userId,
+
+                // شماره‌ی فاکتور یکتا و خودکار — دیگر از کلاینت
+                // گرفته نمی‌شود.
+                'invoice_number' => 'INV-'
+                    .now()->format('YmdHis')
+                    .'-'
+                    .random_int(100, 999),
+
+                'total_amount' => $totalAmount,
+
+                'discount_amount' => $discountAmount,
+
+                'payable_amount' => $totalAmount - $discountAmount,
+
+                'status' => 'pending',
+
+                'notes' => $notes,
+
+            ]);
+
+            foreach ($plans as $plan) {
+
+                $purchase->items()->create([
+
+                    'plan_id' => $plan->id,
+
+                    // نوع آیتم از روی چیزی که پلن واقعاً به آن
+                    // وصل است (planable) تشخیص داده می‌شود؛ کتاب
+                    // برای پایه‌های ۷ تا ۱۲، پایه برای ۱ تا ۶.
+                    'item_type' => match ($plan->planable_type) {
+                        Book::class => 'book',
+                        Grade::class => 'grade',
+                        default => 'package',
+                    },
+
+                    'item_id' => $plan->planable_id,
+
+                    'title' => $plan->title,
+
+                    'price' => $plan->price,
+
+                    'discount_amount' => $plan->discountAmount(),
+
+                    'final_price' => $plan->finalPrice(),
+
+                    'quantity' => 1,
+
+                ]);
+            }
+
+            return $purchase->fresh('items');
+        });
+    }
+
+    /**
+     * ساخت مستقیم (فقط برای استفاده‌ی داخلی/مدیریتی — نه از
+     * طریق API عمومی کاربران).
      */
     public function create(
         array $data

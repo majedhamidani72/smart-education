@@ -4,61 +4,37 @@ namespace App\Http\Requests\Purchase;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * ثبت خرید
+ * --------------------------------------------------------------------
+ * قبلاً کلاینت مستقیم user_id، مبلغ‌ها، شماره‌ی فاکتور و وضعیت
+ * را می‌فرستاد — یعنی هرکسی می‌توانست برای کاربر دیگری خرید ثبت
+ * کند یا قیمت را خودش دستکاری کند. حالا کلاینت فقط می‌گوید
+ * «کدام پلن(ها) را می‌خواهم»؛ کاربر، قیمت، شماره‌ی فاکتور و
+ * وضعیت اولیه، همگی سمت سرور (در PurchaseService) محاسبه/تعیین
+ * می‌شوند.
+ */
 class StorePurchaseRequest extends FormRequest
 {
-    /**
-     * اجازه دسترسی
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * قوانین اعتبارسنجی
-     */
     public function rules(): array
     {
         return [
 
-            'user_id' => [
+            'plan_ids' => [
                 'required',
-                'exists:users,id',
+                'array',
+                'min:1',
             ],
 
-            'invoice_number' => [
-                'required',
-                'string',
-                'max:255',
-                'unique:purchases,invoice_number',
-            ],
-
-            'total_amount' => [
+            'plan_ids.*' => [
                 'required',
                 'integer',
-                'min:0',
-            ],
-
-            'discount_amount' => [
-                'nullable',
-                'integer',
-                'min:0',
-            ],
-
-            'payable_amount' => [
-                'required',
-                'integer',
-                'min:0',
-            ],
-
-            'status' => [
-                'required',
-                'in:pending,paid,failed,cancelled,refunded',
-            ],
-
-            'paid_at' => [
-                'nullable',
-                'date',
+                'exists:plans,id',
             ],
 
             'notes' => [
@@ -69,28 +45,13 @@ class StorePurchaseRequest extends FormRequest
         ];
     }
 
-    /**
-     * پیام‌ها
-     */
     public function messages(): array
     {
         return [
 
-            'user_id.required' => 'کاربر الزامی است.',
+            'plan_ids.required' => 'حداقل یک پلن باید انتخاب شود.',
 
-            'user_id.exists' => 'کاربر معتبر نیست.',
-
-            'invoice_number.required' => 'شماره فاکتور الزامی است.',
-
-            'invoice_number.unique' => 'شماره فاکتور تکراری است.',
-
-            'total_amount.required' => 'مبلغ کل الزامی است.',
-
-            'payable_amount.required' => 'مبلغ قابل پرداخت الزامی است.',
-
-            'status.required' => 'وضعیت پرداخت الزامی است.',
-
-            'status.in' => 'وضعیت پرداخت نامعتبر است.',
+            'plan_ids.*.exists' => 'پلن انتخاب‌شده معتبر نیست.',
 
         ];
     }

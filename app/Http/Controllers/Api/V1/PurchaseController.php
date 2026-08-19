@@ -85,9 +85,18 @@ class PurchaseController extends Controller
             Purchase::class
         );
 
-        $purchase = $this->service->create(
+        $validated = $request->validated();
 
-            $request->validated()
+        $purchase = $this->service->createFromPlans(
+
+            // user_id همیشه از روی کاربر واقعاً واردشده تعیین
+            // می‌شود، نه از ورودی کلاینت — تا کسی نتواند برای
+            // کاربر دیگری خرید ثبت کند.
+            auth()->id(),
+
+            $validated['plan_ids'],
+
+            $validated['notes'] ?? null
 
         );
 
