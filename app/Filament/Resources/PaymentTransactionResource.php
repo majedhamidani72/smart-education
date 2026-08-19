@@ -33,7 +33,7 @@ class PaymentTransactionResource extends Resource
 
     protected static ?string $pluralModelLabel = 'تراکنش‌های پرداخت';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     public static function canCreate(): bool
     {
