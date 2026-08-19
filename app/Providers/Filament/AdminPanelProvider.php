@@ -63,6 +63,9 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('مدیریت کاربران')
                     ->collapsed(false),
 
+                NavigationGroup::make('مدیریت مالی')
+                    ->collapsed(false),
+
                 NavigationGroup::make('مدیریت سیستم')
                     ->collapsed(false),
 
