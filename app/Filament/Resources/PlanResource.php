@@ -196,6 +196,10 @@ class PlanResource extends Resource
 
             ->columns([
 
+                Tables\Columns\TextColumn::make('id')
+                    ->label('#')
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('title')
                     ->label('عنوان')
                     ->searchable(),
