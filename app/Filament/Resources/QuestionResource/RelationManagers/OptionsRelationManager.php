@@ -66,6 +66,8 @@ class OptionsRelationManager extends RelationManager
 
                 ->numeric()
 
+                ->minValue(1)
+
                 ->default(1)
 
                 ->required(),

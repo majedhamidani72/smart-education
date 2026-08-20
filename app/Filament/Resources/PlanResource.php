@@ -157,6 +157,7 @@ class PlanResource extends Resource
                     Forms\Components\TextInput::make('price')
                         ->label('قیمت (تومان)')
                         ->numeric()
+                        ->minValue(0)
                         ->mask(RawJs::make('$money($input, \',\', \'.\', 0)'))
                         ->stripCharacters(',')
                         ->required(),
@@ -164,6 +165,7 @@ class PlanResource extends Resource
                     Forms\Components\TextInput::make('discount_price')
                         ->label('قیمت با تخفیف (تومان، اختیاری)')
                         ->numeric()
+                        ->minValue(0)
                         ->mask(RawJs::make('$money($input, \',\', \'.\', 0)'))
                         ->stripCharacters(','),
 
@@ -180,6 +182,7 @@ class PlanResource extends Resource
                     Forms\Components\TextInput::make('duration_days')
                         ->label('مدت دسترسی (روز)')
                         ->numeric()
+                        ->minValue(1)
                         ->required(fn(Get $get) => $get('purchase_type') === 'subscription')
                         ->helperText(fn(Get $get) => $get('purchase_type') === 'subscription'
                             ? 'برای پلن اشتراکی، مدت دسترسی اجباری است.'
@@ -192,6 +195,7 @@ class PlanResource extends Resource
                     Forms\Components\TextInput::make('sort_order')
                         ->label('ترتیب نمایش')
                         ->numeric()
+                        ->minValue(1)
                         ->default(1),
 
                 ]),

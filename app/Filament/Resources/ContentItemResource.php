@@ -275,6 +275,7 @@ class ContentItemResource extends Resource
                                     Forms\Components\TextInput::make('grade_number')
                                         ->label('شماره پایه')
                                         ->numeric()
+                                        ->minValue(1)
                                         ->required(),
 
                                 ])
@@ -526,6 +527,7 @@ class ContentItemResource extends Resource
 
                                     Forms\Components\TextInput::make('sort_order')
                                         ->numeric()
+                                        ->minValue(1)
                                         ->default(1),
 
                                     Forms\Components\Toggle::make('is_active')
@@ -608,6 +610,7 @@ class ContentItemResource extends Resource
 
                             Forms\Components\TextInput::make('sort_order')
                                 ->numeric()
+                                ->minValue(1)
                                 ->default(1),
 
                             Forms\Components\Select::make('term')
@@ -689,6 +692,7 @@ class ContentItemResource extends Resource
 
                             Forms\Components\TextInput::make('sort_order')
                                 ->numeric()
+                                ->minValue(1)
                                 ->default(1),
 
                             Forms\Components\Toggle::make('is_active')
@@ -770,7 +774,8 @@ class ContentItemResource extends Resource
 
                     Forms\Components\TextInput::make('page_number')
                         ->label('شماره صفحه')
-                        ->numeric(),
+                        ->numeric()
+                        ->minValue(0),
 
                     Forms\Components\Toggle::make('is_free')
                         ->label('رایگان')
@@ -898,6 +903,7 @@ class ContentItemResource extends Resource
                             Forms\Components\TextInput::make('sort_order')
                                 ->label('ترتیب')
                                 ->numeric()
+                                ->minValue(1)
                                 ->default(1),
 
                         ]),
@@ -997,6 +1003,8 @@ class ContentItemResource extends Resource
                         ->label('ترتیب نمایش')
 
                         ->numeric()
+
+                        ->minValue(1)
 
                         ->default(1),
 
@@ -1521,7 +1529,8 @@ class ContentItemResource extends Resource
                     ->form([
                         Forms\Components\TextInput::make('page_number')
                             ->label('شماره صفحه')
-                            ->numeric(),
+                            ->numeric()
+                            ->minValue(0),
                     ])
                     ->query(fn($query, array $data) => blank($data['page_number'] ?? null)
                         ? $query

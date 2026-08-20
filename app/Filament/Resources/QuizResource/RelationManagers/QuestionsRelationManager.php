@@ -35,6 +35,8 @@ class QuestionsRelationManager extends RelationManager
 
                 ->numeric()
 
+                ->minValue(0)
+
                 ->default(1)
 
                 ->required(),
@@ -46,6 +48,8 @@ class QuestionsRelationManager extends RelationManager
                 ->label('ترتیب نمایش')
 
                 ->numeric()
+
+                ->minValue(1)
 
                 ->default(1)
 

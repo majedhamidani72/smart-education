@@ -567,17 +567,20 @@ class QuizResource extends Resource
             Forms\Components\TextInput::make('questions_count')
                 ->label('تعداد سوال')
                 ->numeric()
+                ->minValue(1)
                 ->default(10)
                 ->required(),
 
             Forms\Components\TextInput::make('time_limit')
                 ->label('زمان آزمون (دقیقه)')
                 ->numeric()
+                ->minValue(0)
                 ->default(20),
 
             Forms\Components\TextInput::make('max_attempts')
                 ->label('حداکثر دفعات شرکت')
                 ->numeric()
+                ->minValue(1)
                 ->default(1),
 
             Forms\Components\Toggle::make('randomize_questions')

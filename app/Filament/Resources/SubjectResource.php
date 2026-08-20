@@ -70,6 +70,7 @@ class SubjectResource extends Resource
             TextInput::make('sort_order')
                 ->label('ترتیب نمایش')
                 ->numeric()
+                ->minValue(1)
                 ->default(1)
                 ->required(),
 
