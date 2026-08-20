@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\TeacherProfile;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -10,9 +11,10 @@ use Filament\Pages\Page;
 /**
  * پروفایل من (مخصوص ادمین)
  * --------------------------------------------------------------------
- * فقط عکس پروفایل — ادمین برخلاف معلم، فیلد سابقه/شماره‌کارت
- * ندارد (چون این‌ها مخصوص چیزهایی است که مرتبط با تدریس/تسویه‌ی
- * معلم است).
+ * عکس پروفایل + شماره کارت. شماره کارت را روی همان جدول
+ * teacher_profiles ذخیره می‌کند — چون طبق تصمیم پروژه، ادمین
+ * معمولاً همان معلم است (یک نفر، دو نقش)، پس شماره کارتش هم
+ * باید یکی باشد، صرف‌نظر از این‌که با کدام نقش وارد پنل شده.
  */
 class MyAdminProfile extends Page
 {
@@ -37,8 +39,14 @@ class MyAdminProfile extends Page
 
     public function mount(): void
     {
+        $user = auth()->user();
+
         $this->form->fill([
-            'avatar' => auth()->user()->avatar,
+
+            'avatar' => $user->avatar,
+
+            'card_number' => $user->teacherProfile?->card_number,
+
         ]);
     }
 
@@ -56,6 +64,13 @@ class MyAdminProfile extends Page
                     ->imageEditor()
                     ->circleCropper(),
 
+                Forms\Components\TextInput::make('card_number')
+                    ->label('شماره کارت (برای تسویه‌حساب درآمد ادمینی)')
+                    ->mask('9999-9999-9999-9999')
+                    ->placeholder('xxxx-xxxx-xxxx-xxxx')
+                    ->maxLength(19)
+                    ->helperText('اگر همزمان نقش معلم هم داری، همین شماره برای تسویه‌ی درآمد معلمی‌ات هم استفاده می‌شود.'),
+
             ])
             ->statePath('data');
     }
@@ -64,11 +79,39 @@ class MyAdminProfile extends Page
     {
         $data = $this->form->getState();
 
-        auth()->user()->update($data);
+        $user = auth()->user();
+
+        $user->update([
+            'avatar' => $data['avatar'],
+        ]);
+
+        TeacherProfile::updateOrCreate(
+
+            ['user_id' => $user->id],
+
+            ['card_number' => $data['card_number']]
+
+        );
 
         Notification::make()
             ->title('پروفایل با موفقیت ذخیره شد.')
             ->success()
             ->send();
+    }
+
+    /**
+     * اگر همین کاربر نقش معلم هم دارد (که طبق تصمیم پروژه حالت
+     * رایجی است)، یک لینک سریع برای رفتن به صفحه‌ی مدیریت
+     * کتاب‌های تدریسی خودش (بدون نیاز به خروج کامل از سیستم).
+     */
+    public function getTeacherEditUrl(): ?string
+    {
+        $user = auth()->user();
+
+        if (! $user->hasRole('Teacher')) {
+            return null;
+        }
+
+        return \App\Filament\Resources\TeacherResource::getUrl('edit', ['record' => $user]);
     }
 }

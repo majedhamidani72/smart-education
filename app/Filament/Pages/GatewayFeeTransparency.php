@@ -47,6 +47,7 @@ class GatewayFeeTransparency extends Page
         return $user
             && (
                 $user->hasRole('SuperAdmin')
+                || $user->hasRole('Admin')
                 || $user->hasRole('Teacher')
             );
     }

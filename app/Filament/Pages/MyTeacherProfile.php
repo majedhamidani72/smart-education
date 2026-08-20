@@ -102,4 +102,17 @@ class MyTeacherProfile extends Page
             ->success()
             ->send();
     }
+
+    /**
+     * اگر همین کاربر نقش ادمین هم دارد، لینک سریع برگشت به
+     * پروفایل ادمینی‌اش.
+     */
+    public function getAdminProfileUrl(): ?string
+    {
+        if (! auth()->user()->hasRole('Admin')) {
+            return null;
+        }
+
+        return \App\Filament\Pages\MyAdminProfile::getUrl();
+    }
 }

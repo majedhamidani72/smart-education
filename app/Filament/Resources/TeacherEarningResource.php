@@ -39,9 +39,16 @@ class TeacherEarningResource extends Resource
      */
     public static function getNavigationLabel(): string
     {
-        return auth()->user()?->hasRole('Teacher')
-            ? 'درآمد معلم'
-            : 'درآمد ادمین';
+        $user = auth()->user();
+
+        if ($user?->hasRole('SuperAdmin')) {
+
+            return 'درآمد معلمان';
+        }
+
+        return $user?->hasRole('Admin')
+            ? 'درآمد ادمین'
+            : 'درآمد معلم';
     }
 
     public static function getModelLabel(): string
@@ -71,7 +78,7 @@ class TeacherEarningResource extends Resource
     {
         $user = auth()->user();
 
-        return $user?->hasRole('SuperAdmin') || $user?->hasRole('Teacher');
+        return $user?->hasRole('SuperAdmin') || $user?->hasRole('Teacher') || $user?->hasRole('Admin');
     }
 
     public static function canViewAny(): bool
@@ -360,10 +367,12 @@ class TeacherEarningResource extends Resource
 
         $user = auth()->user();
 
-        // معلم فقط باید درآمد خودش را ببیند — نه معلم‌های دیگر را.
-        if ($user?->hasRole('Teacher')) {
+        // معلم و ادمین (که معمولاً خودش هم معلم است) فقط باید
+        // درآمد خودشان را ببینند — نه بقیه را. فقط سوپرادمین همه
+        // را می‌بیند.
+        if (! ($user?->hasRole('SuperAdmin') ?? false)) {
 
-            return $query->where('teacher_id', $user->id);
+            return $query->where('teacher_id', $user?->id);
         }
 
         return $query;
