@@ -26,6 +26,17 @@ class CreateQuiz extends CreateRecord
             $data['created_by'] = $user->id;
         }
 
+        // معلم نمی‌تواند وضعیت را خودش تعیین کند — همیشه با «در
+        // انتظار بررسی» شروع می‌شود.
+        $isReviewer = $user?->hasRole('SuperAdmin') || $user?->hasRole('Admin');
+
+        if (! $isReviewer) {
+
+            $data['status'] = 'pending';
+
+            $data['rejection_reason'] = null;
+        }
+
 
 
         return $data;

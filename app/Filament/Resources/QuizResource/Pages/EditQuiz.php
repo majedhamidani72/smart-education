@@ -64,18 +64,40 @@ class EditQuiz extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        /*
-        |--------------------------------------------------------------------------
-        | ثبت مدیر تایید کننده
-        |--------------------------------------------------------------------------
-        */
+        $isReviewer = auth()->user()?->hasRole('SuperAdmin')
+            || auth()->user()?->hasRole('Admin');
 
-        if (isset($data['status']) && $data['status'] === 'active') {
+        if ($isReviewer) {
 
-            $user = Auth::user();
+            /*
+            |--------------------------------------------------------------------------
+            | ثبت مدیر تایید کننده
+            |--------------------------------------------------------------------------
+            */
 
-            if ($user) {
-                $data['reviewed_by'] = $user->id;
+            if (in_array($data['status'] ?? null, ['active', 'rejected'], true)) {
+
+                $data['reviewed_by'] = auth()->id();
+            }
+
+        } else {
+
+            // معلم نمی‌تواند وضعیت را مستقیم تغییر بدهد. اگر آزمون
+            // قبلاً رد شده بود و معلم دارد اصلاحش می‌کند، وضعیت
+            // خودکار به «در انتظار بررسی» برمی‌گردد تا ادمین/
+            // سوپرادمین دوباره بررسی کنند؛ دلیل رد قبلی هم پاک
+            // می‌شود چون دیگر معتبر نیست.
+            if ($this->record->status === 'rejected') {
+
+                $data['status'] = 'pending';
+
+                $data['rejection_reason'] = null;
+
+                $data['reviewed_by'] = null;
+
+            } else {
+
+                unset($data['status']);
             }
         }
 

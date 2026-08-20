@@ -617,10 +617,20 @@ class QuizResource extends Resource
                     'pending' => 'در انتظار بررسی',
                     'active' => 'فعال',
                     'inactive' => 'غیرفعال',
+                    'rejected' => 'رد شده',
                 ])
                 ->default('draft')
                 ->required()
+                ->live()
                 ->visible(fn() => auth()->user()?->hasRole('SuperAdmin') || auth()->user()?->hasRole('Admin')),
+
+            Forms\Components\Textarea::make('rejection_reason')
+                ->label('دلیل رد')
+                ->rows(2)
+                ->visible(fn(Forms\Get $get) =>
+                    (auth()->user()?->hasRole('SuperAdmin') || auth()->user()?->hasRole('Admin'))
+                    && $get('status') === 'rejected')
+                ->required(fn(Forms\Get $get) => $get('status') === 'rejected'),
 
             JalaliDateTimePicker::make('published_at')
                 ->label('زمان انتشار')
@@ -727,8 +737,16 @@ class QuizResource extends Resource
                         'gray' => 'draft',
                         'warning' => 'pending',
                         'success' => 'active',
-                        'danger' => 'inactive',
-                    ]),
+                        'danger' => ['inactive', 'rejected'],
+                    ])
+                    ->formatStateUsing(fn($state) => match ($state) {
+                        'draft' => 'پیش نویس',
+                        'pending' => 'در انتظار بررسی',
+                        'active' => 'فعال',
+                        'inactive' => 'غیرفعال',
+                        'rejected' => 'رد شده',
+                        default => $state,
+                    }),
 
                 Tables\Columns\IconColumn::make('is_free')
                     ->label('رایگان')
