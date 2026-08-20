@@ -399,13 +399,12 @@ class PaymentService
         // اول کارمزد واقعی درگاه (که یک عدد سراسری و سیستمی است،
         // نه چیزی که هر معلم/کتاب جدا داشته باشد) از مبلغ فروش
         // کسر می‌شود؛ سهم معلم روی همین مبلغ باقی‌مانده حساب
-        // می‌شود، نه روی قیمت کامل.
-        $gatewayFeePercentage = app(SettingService::class)
-            ->gatewayFeePercentage($gateway);
+        // می‌شود، نه روی قیمت کامل. برای زیبال این محاسبه شامل
+        // کف/سقف و مالیات بر ارزش‌افزوده هم می‌شود.
+        $gatewayFee = app(SettingService::class)
+            ->gatewayFeeAmount($gateway, $saleAmount);
 
-        $netAmount = $saleAmount - (int) round(
-            $saleAmount * $gatewayFeePercentage / 100
-        );
+        $netAmount = $saleAmount - $gatewayFee;
 
         $amount = (int) round(
             $netAmount * $assignment->commission_percentage / 100

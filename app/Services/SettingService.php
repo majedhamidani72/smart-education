@@ -198,18 +198,49 @@ class SettingService
      * درصد کارمزدی که یک درگاه مشخص از مبلغ فروش کسر می‌کند —
      * پیش از محاسبه‌ی سهم معلم از این عدد استفاده می‌شود.
      */
-    public function gatewayFeePercentage(string $gateway): float
+    /**
+     * مبلغ دقیق کارمزدی که یک درگاه مشخص، از یک مبلغ فروش مشخص
+     * کسر می‌کند — پیش از محاسبه‌ی سهم معلم از این عدد استفاده
+     * می‌شود.
+     * --------------------------------------------------------------------
+     * زیبال فرمول دقیق‌تری دارد (درصد پایه + کف/سقف + مالیات بر
+     * ارزش‌افزوده روی خودِ کارمزد)؛ بازار/مایکت فعلاً درصد ساده.
+     */
+    public function gatewayFeeAmount(string $gateway, int $amount): int
     {
-        $key = match ($gateway) {
+        if ($gateway === 'bazaar') {
 
-            'bazaar' => 'gateway_fee_bazaar',
+            return (int) round(
+                $amount * (float) $this->getValue('gateway_fee_bazaar', '15') / 100
+            );
+        }
 
-            'myket' => 'gateway_fee_myket',
+        if ($gateway === 'myket') {
 
-            default => 'gateway_fee_zibal',
-        };
+            return (int) round(
+                $amount * (float) $this->getValue('gateway_fee_myket', '15') / 100
+            );
+        }
 
-        return (float) $this->getValue($key, '1');
+        // پیش‌فرض: زیبال
+        $percentage = (float) $this->getValue('gateway_fee_zibal_percentage', '1');
+
+        $min = (int) $this->getValue('gateway_fee_zibal_min', '2000');
+
+        $max = (int) $this->getValue('gateway_fee_zibal_max', '20000');
+
+        $vatPercentage = (float) $this->getValue('gateway_fee_zibal_vat_percentage', '10');
+
+        $baseFee = $amount * $percentage / 100;
+
+        // اعمال کف و سقف
+        $baseFee = max($baseFee, $min);
+
+        $baseFee = min($baseFee, $max);
+
+        $vat = $baseFee * $vatPercentage / 100;
+
+        return (int) round($baseFee + $vat);
     }
 
     /*
