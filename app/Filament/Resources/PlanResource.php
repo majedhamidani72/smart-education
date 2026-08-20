@@ -174,12 +174,16 @@ class PlanResource extends Resource
                             'subscription' => 'اشتراکی',
                         ])
                         ->required()
+                        ->live()
                         ->default('one_time'),
 
                     Forms\Components\TextInput::make('duration_days')
                         ->label('مدت دسترسی (روز)')
                         ->numeric()
-                        ->helperText('خالی بگذارید یعنی دسترسی دائمی است.'),
+                        ->required(fn(Get $get) => $get('purchase_type') === 'subscription')
+                        ->helperText(fn(Get $get) => $get('purchase_type') === 'subscription'
+                            ? 'برای پلن اشتراکی، مدت دسترسی اجباری است.'
+                            : 'خالی بگذارید یعنی دسترسی دائمی است.'),
 
                     Forms\Components\Toggle::make('is_active')
                         ->label('فعال')
