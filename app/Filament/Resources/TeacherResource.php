@@ -78,18 +78,29 @@ class TeacherResource extends Resource
 
                 ->schema([
 
-                    Forms\Components\TextInput::make('name')
-                        ->label('نام معلم')
-                        ->required()
-                        ->maxLength(255),
-
                     Forms\Components\TextInput::make('mobile')
                         ->label('شماره موبایل')
                         ->required()
                         ->tel()
                         ->maxLength(11)
                         ->live(onBlur: true)
-                        ->helperText('اگر این شماره از قبل توی سیستم وجود داشته باشد، همان حساب به معلم تبدیل می‌شود و نیازی به وارد کردن رمز نیست.'),
+                        ->afterStateUpdated(function ($state, Set $set) {
+
+                            $existingUser = User::where('mobile', $state)
+                                ->whereNull('deleted_at')
+                                ->first();
+
+                            if ($existingUser && $existingUser->name) {
+
+                                $set('name', $existingUser->name);
+                            }
+                        })
+                        ->helperText('اگر این شماره از قبل توی سیستم وجود داشته باشد، همان حساب به معلم تبدیل می‌شود، نام آن خودکار پر می‌شود، و نیازی به وارد کردن رمز نیست.'),
+
+                    Forms\Components\TextInput::make('name')
+                        ->label('نام معلم')
+                        ->required()
+                        ->maxLength(255),
 
                     Forms\Components\TextInput::make('password')
                         ->label('رمز اولیه')
