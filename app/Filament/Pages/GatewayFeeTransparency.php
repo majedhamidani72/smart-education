@@ -34,6 +34,12 @@ class GatewayFeeTransparency extends Page
      * برخلاف بقیه‌ی صفحات مالی، این صفحه عمداً برای معلم هم باز
      * است — چون هدفش دقیقاً شفافیت برای خودِ معلم‌هاست.
      */
+    /**
+     * برخلاف بقیه‌ی صفحات مالی، این صفحه عمداً برای معلم هم باز
+     * است — چون هدفش دقیقاً شفافیت برای خودِ معلم‌هاست. ادمین
+     * اما کارش فقط بخش آموزشی است، نه مالی، پس اینجا هم نباید
+     * دسترسی داشته باشد.
+     */
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -41,7 +47,6 @@ class GatewayFeeTransparency extends Page
         return $user
             && (
                 $user->hasRole('SuperAdmin')
-                || $user->hasRole('Admin')
                 || $user->hasRole('Teacher')
             );
     }

@@ -43,6 +43,17 @@ class PurchaseResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasRole('SuperAdmin') ?? false;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasRole('SuperAdmin') ?? false;
+    }
+
+
     public static function canCreate(): bool
     {
         return false;

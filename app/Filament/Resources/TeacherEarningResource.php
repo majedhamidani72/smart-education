@@ -62,6 +62,32 @@ class TeacherEarningResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    /**
+     * فقط سوپرادمین و معلم به این صفحه دسترسی دارند — ادمین
+     * اصلاً نباید درآمد معلمان را ببیند (کارش فقط بخش آموزشی
+     * است، نه مالی).
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+
+        return $user?->hasRole('SuperAdmin') || $user?->hasRole('Teacher');
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::shouldRegisterNavigation();
+    }
+
+    /**
+     * تغییر وضعیت (تسویه) فقط کار سوپرادمین است — نه معلم، نه
+     * ادمین. معلم/ادمین فقط می‌توانند وضعیت را ببینند.
+     */
+    public static function canEdit($record): bool
+    {
+        return auth()->user()?->hasRole('SuperAdmin') ?? false;
+    }
+
     public static function canCreate(): bool
     {
         return false;
@@ -242,7 +268,8 @@ class TeacherEarningResource extends Resource
                     ->label('تسویه شد')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn(TeacherEarning $record) => $record->status === 'pending')
+                    ->visible(fn(TeacherEarning $record) => $record->status === 'pending'
+                        && (auth()->user()?->hasRole('SuperAdmin') ?? false))
                     ->requiresConfirmation()
                     ->form([
 
@@ -266,46 +293,55 @@ class TeacherEarningResource extends Resource
                     }),
 
                 Tables\Actions\EditAction::make()
-                    ->label('ویرایش'),
+                    ->label('ویرایش')
+                    ->visible(fn() => auth()->user()?->hasRole('SuperAdmin') ?? false),
 
             ])
 
-            ->bulkActions([
+            ->bulkActions(
 
-                Tables\Actions\BulkAction::make('settleBulk')
-                    ->label('تسویه‌ی دسته‌جمعی')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->form([
+                (auth()->user()?->hasRole('SuperAdmin') ?? false)
 
-                        Forms\Components\TextInput::make('settlement_number')
-                            ->label('شماره تسویه')
-                            ->required(),
+                    ? [
 
-                    ])
-                    ->action(function ($records, array $data) {
+                        Tables\Actions\BulkAction::make('settleBulk')
+                            ->label('تسویه‌ی دسته‌جمعی')
+                            ->icon('heroicon-o-check-circle')
+                            ->color('success')
+                            ->requiresConfirmation()
+                            ->form([
 
-                        foreach ($records as $record) {
+                                Forms\Components\TextInput::make('settlement_number')
+                                    ->label('شماره تسویه')
+                                    ->required(),
 
-                            if ($record->status !== 'pending') {
-                                continue;
-                            }
+                            ])
+                            ->action(function ($records, array $data) {
 
-                            $record->update([
-                                'status' => 'paid',
-                                'settlement_number' => $data['settlement_number'],
-                                'paid_at' => now(),
-                            ]);
-                        }
+                                foreach ($records as $record) {
 
-                        Notification::make()
-                            ->title('تسویه‌ی دسته‌جمعی انجام شد.')
-                            ->success()
-                            ->send();
-                    }),
+                                    if ($record->status !== 'pending') {
+                                        continue;
+                                    }
 
-            ]);
+                                    $record->update([
+                                        'status' => 'paid',
+                                        'settlement_number' => $data['settlement_number'],
+                                        'paid_at' => now(),
+                                    ]);
+                                }
+
+                                Notification::make()
+                                    ->title('تسویه‌ی دسته‌جمعی انجام شد.')
+                                    ->success()
+                                    ->send();
+                            }),
+
+                    ]
+
+                    : []
+
+            );
     }
 
     public static function getPages(): array

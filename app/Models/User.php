@@ -48,6 +48,9 @@ class User extends Authenticatable implements FilamentUser, \Filament\Models\Con
         'mobile',
 
 
+        'avatar',
+
+
         'password',
 
 
@@ -200,8 +203,20 @@ class User extends Authenticatable implements FilamentUser, \Filament\Models\Con
      * نشان می‌دهد — از همان عکسی که خودِ معلم توی «پروفایل من»
      * آپلود کرده می‌آید.
      */
+    /**
+     * عکس پروفایل که Filament بالای هر صفحه (کنار نام کاربر)
+     * نشان می‌دهد. اول ستون عمومی avatar (که هر نقشی، از جمله
+     * ادمین، می‌تواند داشته باشد) چک می‌شود؛ اگر نبود، برای
+     * سازگاری با معلم‌هایی که از قبل عکس‌شان را جای دیگری
+     * (teacher_profiles) گذاشته بودند، آن مسیر هم امتحان می‌شود.
+     */
     public function getFilamentAvatarUrl(): ?string
     {
+        if ($this->avatar) {
+
+            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->avatar);
+        }
+
         return $this->teacherProfile?->photo_url;
     }
 
