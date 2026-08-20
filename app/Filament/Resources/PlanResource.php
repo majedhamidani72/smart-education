@@ -12,6 +12,7 @@ use App\Models\Subject;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Support\RawJs;
 use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -156,11 +157,15 @@ class PlanResource extends Resource
                     Forms\Components\TextInput::make('price')
                         ->label('قیمت (تومان)')
                         ->numeric()
+                        ->mask(RawJs::make('$money($input, \',\')'))
+                        ->stripCharacters(',')
                         ->required(),
 
                     Forms\Components\TextInput::make('discount_price')
                         ->label('قیمت با تخفیف (تومان، اختیاری)')
-                        ->numeric(),
+                        ->numeric()
+                        ->mask(RawJs::make('$money($input, \',\')'))
+                        ->stripCharacters(','),
 
                     Forms\Components\Select::make('purchase_type')
                         ->label('نوع خرید')
