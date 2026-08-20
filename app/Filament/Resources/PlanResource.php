@@ -58,6 +58,7 @@ class PlanResource extends Resource
             Forms\Components\Textarea::make('description')
                 ->label('توضیحات')
                 ->rows(2)
+                ->placeholder('مثلاً: دسترسی به تمام ویدئوها، آزمون‌ها و نمونه‌سوالات ریاضی پایه پنجم به مدت یک سال')
                 ->columnSpanFull(),
 
             Forms\Components\Section::make('این پلن چه چیزی را باز می‌کند؟')
