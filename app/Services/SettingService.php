@@ -156,6 +156,11 @@ class SettingService
         return $this->getValue('app_logo');
     }
 
+    public function aboutUs(): ?string
+    {
+        return $this->getValue('about_us');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Agreements
