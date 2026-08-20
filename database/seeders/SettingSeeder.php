@@ -19,12 +19,14 @@ class SettingSeeder extends Seeder
 
             [
                 'key' => 'app_name',
+                'group' => 'برنامه و برنامک',
                 'value' => 'اسمارت اجوکیشن',
                 'description' => 'نام سامانه',
             ],
 
             [
                 'key' => 'app_logo',
+                'group' => 'برنامه و برنامک',
                 'value' => null,
                 'description' => 'لوگوی سامانه',
             ],
@@ -39,6 +41,7 @@ class SettingSeeder extends Seeder
 
             [
                 'key' => 'teacher_agreement',
+                'group' => 'قرارداد و شرایط استفاده',
                 'value' => 'قرارداد همکاری و شرایط استفاده معلمان Smart Education
 
 آخرین بروزرسانی: نسخه 1.0
@@ -109,6 +112,7 @@ class SettingSeeder extends Seeder
 
             [
                 'key' => 'teacher_agreement_version',
+                'group' => 'قرارداد و شرایط استفاده',
                 'value' => '1.0',
                 'description' => 'نسخه قوانین معلمان',
             ],
@@ -121,6 +125,7 @@ class SettingSeeder extends Seeder
 
             [
                 'key' => 'admin_agreement',
+                'group' => 'قرارداد و شرایط استفاده',
                 'value' => 'قوانین و شرایط استفاده مدیران سامانه Smart Education
 
 آخرین بروزرسانی: نسخه 1.0
@@ -158,6 +163,7 @@ class SettingSeeder extends Seeder
 
             [
                 'key' => 'admin_agreement_version',
+                'group' => 'قرارداد و شرایط استفاده',
                 'value' => '1.0',
                 'description' => 'نسخه قوانین مدیران',
             ],
@@ -179,42 +185,49 @@ class SettingSeeder extends Seeder
 
             [
                 'key' => 'gateway_fee_zibal_percentage',
+                'group' => 'کارمزد درگاه‌ها و سهم معلم',
                 'value' => '1',
                 'description' => 'کارمزد پایه‌ی زیبال (درصد از مبلغ تراکنش)',
             ],
 
             [
                 'key' => 'gateway_fee_zibal_min',
+                'group' => 'کارمزد درگاه‌ها و سهم معلم',
                 'value' => '2000',
                 'description' => 'کف کارمزد زیبال (تومان) — اگر کارمزد محاسبه‌شده کمتر از این باشد، همین عدد لحاظ می‌شود',
             ],
 
             [
                 'key' => 'gateway_fee_zibal_max',
+                'group' => 'کارمزد درگاه‌ها و سهم معلم',
                 'value' => '20000',
                 'description' => 'سقف کارمزد زیبال (تومان) — اگر کارمزد محاسبه‌شده بیشتر از این باشد، همین عدد لحاظ می‌شود',
             ],
 
             [
                 'key' => 'gateway_fee_zibal_vat_percentage',
+                'group' => 'کارمزد درگاه‌ها و سهم معلم',
                 'value' => '10',
                 'description' => 'مالیات بر ارزش‌افزوده روی کارمزد زیبال (درصد) — روی خودِ مبلغ کارمزد اعمال می‌شود، نه روی کل تراکنش',
             ],
 
             [
                 'key' => 'gateway_fee_bazaar',
+                'group' => 'کارمزد درگاه‌ها و سهم معلم',
                 'value' => '15',
                 'description' => 'کارمزد کافه‌بازار (درصد) — تا سقف درآمد سالانه ۱ میلیارد تومان ۱۵٪، بعد از آن ۳۰٪ (فعلاً محافظه‌کارانه ۱۵٪ در نظر گرفته شده؛ هروقت به سقف نزدیک شدیم دستی به ۳۰ تغییر بده)',
             ],
 
             [
                 'key' => 'gateway_fee_myket',
+                'group' => 'کارمزد درگاه‌ها و سهم معلم',
                 'value' => '15',
                 'description' => 'کارمزد مایکت (درصد) — دقیقاً مثل کافه‌بازار: تا ۱ میلیارد تومان سالانه ۱۵٪، بعد از آن ۳۰٪',
             ],
 
             [
                 'key' => 'default_teacher_commission_percentage',
+                'group' => 'کارمزد درگاه‌ها و سهم معلم',
                 'value' => '60',
                 'description' => 'درصد پیش‌فرض سهم معلم (روی مبلغ بعد از کسر کارمزد درگاه پرداخت) — همین یک عدد در فرم ایجاد معلم، فرم افزودن کتاب، و متن قرارداد معلمان استفاده می‌شود. عوض کردنش اینجا خودکار روی فرم‌های بعدی اثر می‌گذارد، ولی معلم‌هایی که قبلاً با عدد قدیمی تنظیم شده‌اند، خودکار عوض نمی‌شوند.',
             ],
@@ -227,12 +240,14 @@ class SettingSeeder extends Seeder
 
             [
                 'key' => 'password_min_length',
+                'group' => 'امنیت',
                 'value' => '8',
                 'description' => 'حداقل طول رمز عبور',
             ],
 
             [
                 'key' => 'force_change_password',
+                'group' => 'امنیت',
                 'value' => '1',
                 'description' => 'اجبار تغییر رمز اولین ورود',
             ],
@@ -246,6 +261,7 @@ class SettingSeeder extends Seeder
 
             [
                 'key' => 'video_max_size',
+                'group' => 'برنامه و برنامک',
                 'value' => '500',
                 'description' => 'حداکثر حجم ویدئو (MB)',
             ],
@@ -260,12 +276,14 @@ class SettingSeeder extends Seeder
 
             [
                 'key' => 'android_min_version',
+                'group' => 'برنامه و برنامک',
                 'value' => '1.0.0',
                 'description' => 'حداقل نسخه اندروید',
             ],
 
             [
                 'key' => 'force_update',
+                'group' => 'برنامه و برنامک',
                 'value' => '0',
                 'description' => 'اجبار بروزرسانی اپلیکیشن',
             ],

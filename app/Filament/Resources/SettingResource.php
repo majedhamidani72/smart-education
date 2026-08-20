@@ -142,6 +142,16 @@ class SettingResource extends Resource
 
             ->striped()
 
+            ->defaultGroup('group')
+
+            ->groups([
+
+                Tables\Grouping\Group::make('group')
+                    ->label('دسته‌بندی')
+                    ->collapsible(),
+
+            ])
+
             ->columns([
 
                 Tables\Columns\TextColumn::make('description')
