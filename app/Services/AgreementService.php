@@ -27,7 +27,7 @@ class AgreementService
         string $type
     ): ?string {
 
-        return match ($type) {
+        $text = match ($type) {
 
             'teacher' => $this->settingService->teacherAgreement(),
 
@@ -36,6 +36,21 @@ class AgreementService
             default => null,
 
         };
+
+        // متن قرارداد به‌جای عدد ثابت، یک جای‌گزین دارد تا همیشه
+        // با تنظیم واقعی «درصد پیش‌فرض سهم معلم» یکدست بماند —
+        // هرجا این تنظیم عوض شود، خودِ متن قرارداد هم بدون نیاز
+        // به ویرایش دستی، همان لحظه به‌روز نمایش داده می‌شود.
+        if ($text) {
+
+            $text = str_replace(
+                '{{TEACHER_DEFAULT_PERCENTAGE}}',
+                (string) $this->settingService->defaultTeacherCommissionPercentage(),
+                $text
+            );
+        }
+
+        return $text;
 
     }
 
