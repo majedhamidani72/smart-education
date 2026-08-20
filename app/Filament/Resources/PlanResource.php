@@ -12,7 +12,6 @@ use App\Models\Subject;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
-use Filament\Support\RawJs;
 use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -158,16 +157,28 @@ class PlanResource extends Resource
                         ->label('قیمت (تومان)')
                         ->numeric()
                         ->minValue(0)
-                        ->mask(RawJs::make('$money($input, \',\', \'.\', 0)'))
-                        ->stripCharacters(',')
+                        ->live(onBlur: true)
                         ->required(),
+
+                    Forms\Components\Placeholder::make('price_preview')
+                        ->label('')
+                        ->content(fn(Get $get) => $get('price')
+                            ? number_format((int) $get('price')).' تومان'
+                            : null)
+                        ->visible(fn(Get $get) => filled($get('price'))),
 
                     Forms\Components\TextInput::make('discount_price')
                         ->label('قیمت با تخفیف (تومان، اختیاری)')
                         ->numeric()
                         ->minValue(0)
-                        ->mask(RawJs::make('$money($input, \',\', \'.\', 0)'))
-                        ->stripCharacters(','),
+                        ->live(onBlur: true),
+
+                    Forms\Components\Placeholder::make('discount_price_preview')
+                        ->label('')
+                        ->content(fn(Get $get) => $get('discount_price')
+                            ? number_format((int) $get('discount_price')).' تومان'
+                            : null)
+                        ->visible(fn(Get $get) => filled($get('discount_price'))),
 
                     Forms\Components\Select::make('purchase_type')
                         ->label('نوع خرید')
