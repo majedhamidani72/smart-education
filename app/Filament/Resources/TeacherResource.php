@@ -174,7 +174,7 @@ class TeacherResource extends Resource
 
                         return $assignments
                             ->map(fn($a) => $a->book->appGradeSubject->grade->title.': '.$a->book->title)
-                            ->implode('، ');
+                            ->implode(' | ');
                     })
                     ->wrap(),
 
