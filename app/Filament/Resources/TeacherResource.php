@@ -10,6 +10,7 @@ use App\Models\Book;
 use App\Models\Grade;
 use App\Models\Subject;
 use App\Models\User;
+use App\Services\SettingService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -145,8 +146,41 @@ class TeacherResource extends Resource
                     Forms\Components\Select::make('first_app_id')
                         ->label('اپلیکیشن')
                         ->options(App::where('is_active', true)->pluck('title', 'id'))
+                        ->searchable()
+                        ->preload()
                         ->live()
                         ->dehydrated(false)
+                        ->getOptionLabelUsing(fn($value) => App::find($value)?->title)
+                        ->createOptionForm([
+
+                            Forms\Components\TextInput::make('title')
+                                ->label('عنوان اپلیکیشن')
+                                ->required(),
+
+                        ])
+                        ->createOptionUsing(function (array $data) {
+
+                            $slug = Str::slug($data['title']);
+
+                            $existing = App::where('slug', $slug)->first();
+
+                            if ($existing) {
+
+                                Notification::make()
+                                    ->title('این اپلیکیشن از قبل وجود دارد و انتخاب شد.')
+                                    ->warning()
+                                    ->send();
+
+                                return $existing->id;
+                            }
+
+                            return App::create([
+                                'title' => $data['title'],
+                                'slug' => $slug,
+                                'sort_order' => 1,
+                                'is_active' => true,
+                            ])->id;
+                        })
                         ->afterStateUpdated(fn(Set $set) => $set('first_grade_id', null) ?: $set('first_subject_id', null) ?: $set('first_book_id', null)),
 
                     Forms\Components\Select::make('first_grade_id')
@@ -157,8 +191,47 @@ class TeacherResource extends Resource
                                 ->orderBy('grade_number')
                                 ->pluck('title', 'id');
                         })
+                        ->searchable()
+                        ->preload()
                         ->live()
                         ->dehydrated(false)
+                        ->getOptionLabelUsing(fn($value) => Grade::find($value)?->title)
+                        ->createOptionForm([
+
+                            Forms\Components\TextInput::make('title')
+                                ->label('عنوان پایه')
+                                ->required(),
+
+                            Forms\Components\TextInput::make('grade_number')
+                                ->label('شماره پایه')
+                                ->numeric()
+                                ->minValue(1)
+                                ->required(),
+
+                        ])
+                        ->createOptionUsing(function (array $data) {
+
+                            $slug = Str::slug($data['title']);
+
+                            $existing = Grade::where('grade_number', $data['grade_number'])->first();
+
+                            if ($existing) {
+
+                                Notification::make()
+                                    ->title('این پایه از قبل وجود دارد و انتخاب شد.')
+                                    ->warning()
+                                    ->send();
+
+                                return $existing->id;
+                            }
+
+                            return Grade::create([
+                                'title' => $data['title'],
+                                'slug' => $slug,
+                                'grade_number' => $data['grade_number'],
+                                'is_active' => true,
+                            ])->id;
+                        })
                         ->afterStateUpdated(fn(Set $set) => $set('first_subject_id', null) ?: $set('first_book_id', null)),
 
                     Forms\Components\Select::make('first_subject_id')
@@ -170,8 +243,47 @@ class TeacherResource extends Resource
                                 ->where('grade_id', $get('first_grade_id')))
                                 ->pluck('title', 'id');
                         })
+                        ->searchable()
+                        ->preload()
                         ->live()
                         ->dehydrated(false)
+                        ->getOptionLabelUsing(fn($value) => Subject::find($value)?->title)
+                        ->createOptionForm([
+
+                            Forms\Components\TextInput::make('title')
+                                ->label('عنوان درس')
+                                ->required(),
+
+                        ])
+                        ->createOptionUsing(function (array $data, Get $get) {
+
+                            $slug = Str::slug($data['title']);
+
+                            $existingSubject = Subject::where('slug', $slug)->first();
+
+                            if ($existingSubject) {
+
+                                Notification::make()
+                                    ->title('این درس از قبل وجود دارد و انتخاب شد.')
+                                    ->warning()
+                                    ->send();
+                            }
+
+                            $subject = $existingSubject ?? Subject::create([
+                                'title' => $data['title'],
+                                'slug' => $slug,
+                                'sort_order' => 1,
+                                'is_active' => true,
+                            ]);
+
+                            AppGradeSubject::firstOrCreate([
+                                'app_id' => $get('first_app_id'),
+                                'grade_id' => $get('first_grade_id'),
+                                'subject_id' => $subject->id,
+                            ]);
+
+                            return $subject->id;
+                        })
                         ->afterStateUpdated(fn(Set $set) => $set('first_book_id', null)),
 
                     Forms\Components\Select::make('first_book_id')
@@ -184,17 +296,58 @@ class TeacherResource extends Resource
                                 ->first();
                             if (! $ags) return [];
                             return Book::where('app_grade_subject_id', $ags->id)->pluck('title', 'id');
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->getOptionLabelUsing(fn($value) => Book::find($value)?->title)
+                        ->createOptionForm([
+
+                            Forms\Components\TextInput::make('title')
+                                ->label('عنوان کتاب')
+                                ->required(),
+
+                        ])
+                        ->createOptionUsing(function (array $data, Get $get) {
+
+                            $ags = AppGradeSubject::where('app_id', $get('first_app_id'))
+                                ->where('grade_id', $get('first_grade_id'))
+                                ->where('subject_id', $get('first_subject_id'))
+                                ->first();
+
+                            $slug = Str::slug($data['title']);
+
+                            $existing = Book::where('app_grade_subject_id', $ags->id)
+                                ->where('slug', $slug)
+                                ->first();
+
+                            if ($existing) {
+
+                                Notification::make()
+                                    ->title('این کتاب از قبل وجود دارد و انتخاب شد.')
+                                    ->warning()
+                                    ->send();
+
+                                return $existing->id;
+                            }
+
+                            return Book::create([
+                                'app_grade_subject_id' => $ags->id,
+                                'title' => $data['title'],
+                                'slug' => $slug,
+                                'sort_order' => 1,
+                                'is_active' => true,
+                            ])->id;
                         }),
 
                     Forms\Components\TextInput::make('first_commission_percentage')
-                        ->label('درصد سهم معلم')
+                        ->label('درصد سهم معلم (پس از کسر کارمزد درگاه پرداخت)')
                         ->numeric()
                         ->minValue(0)
                         ->maxValue(100)
-                        ->default(60)
+                        ->default(fn() => app(SettingService::class)->defaultTeacherCommissionPercentage())
                         ->suffix('%')
                         ->columnSpan(2)
-                        ->helperText('این درصد روی مبلغ بعد از کسر کارمزد درگاه اعمال می‌شود.'),
+                        ->helperText('این درصد روی مبلغ باقی‌مانده‌ی بعد از کسر کارمزد درگاه (زیبال/بازار/مایکت) اعمال می‌شود، نه روی قیمت کامل خرید.'),
 
                 ]),
 

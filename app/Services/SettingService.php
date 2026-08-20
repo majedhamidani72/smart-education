@@ -206,6 +206,16 @@ class SettingService
      * زیبال فرمول دقیق‌تری دارد (درصد پایه + کف/سقف + مالیات بر
      * ارزش‌افزوده روی خودِ کارمزد)؛ بازار/مایکت فعلاً درصد ساده.
      */
+    /**
+     * درصد پیش‌فرض سهم معلم — همین یک عدد در همه‌جا (فرم ایجاد
+     * معلم، فرم افزودن کتاب، متن قرارداد) به‌عنوان پیش‌فرض
+     * استفاده می‌شود تا این اعداد از هم جدا نیفتند.
+     */
+    public function defaultTeacherCommissionPercentage(): int
+    {
+        return (int) $this->getValue('default_teacher_commission_percentage', '60');
+    }
+
     public function gatewayFeeAmount(string $gateway, int $amount): int
     {
         if ($gateway === 'bazaar') {

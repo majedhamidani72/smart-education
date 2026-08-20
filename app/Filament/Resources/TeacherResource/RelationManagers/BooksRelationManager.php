@@ -7,13 +7,16 @@ use App\Models\AppGradeSubject;
 use App\Models\Book;
 use App\Models\Grade;
 use App\Models\Subject;
+use App\Services\SettingService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 /**
  * کتاب‌های تدریسی معلم
@@ -23,7 +26,8 @@ use Filament\Tables\Table;
  * عملاً از دید مخفی می‌شد (نه پاک، فقط دیگر نمایش داده نمی‌شد).
  * این RelationManager این محدودیت را برطرف می‌کند: هر معلم حالا
  * می‌تواند چند کتاب از پایه‌های مختلف داشته باشد، هرکدام با درصد
- * سهم مستقل خودش.
+ * سهم مستقل خودش. فیلدهای اپلیکیشن/پایه/درس/کتاب هم مثل فرم
+ * محتوا، قابل «انتخاب یا ایجاد» هستند.
  */
 class BooksRelationManager extends RelationManager
 {
@@ -40,9 +44,42 @@ class BooksRelationManager extends RelationManager
             Forms\Components\Select::make('app_id')
                 ->label('اپلیکیشن')
                 ->options(App::where('is_active', true)->pluck('title', 'id'))
+                ->searchable()
+                ->preload()
                 ->live()
                 ->dehydrated(false)
                 ->required()
+                ->getOptionLabelUsing(fn($value) => App::find($value)?->title)
+                ->createOptionForm([
+
+                    Forms\Components\TextInput::make('title')
+                        ->label('عنوان اپلیکیشن')
+                        ->required(),
+
+                ])
+                ->createOptionUsing(function (array $data) {
+
+                    $slug = Str::slug($data['title']);
+
+                    $existing = App::where('slug', $slug)->first();
+
+                    if ($existing) {
+
+                        Notification::make()
+                            ->title('این اپلیکیشن از قبل وجود دارد و انتخاب شد.')
+                            ->warning()
+                            ->send();
+
+                        return $existing->id;
+                    }
+
+                    return App::create([
+                        'title' => $data['title'],
+                        'slug' => $slug,
+                        'sort_order' => 1,
+                        'is_active' => true,
+                    ])->id;
+                })
                 ->afterStateUpdated(fn(Set $set) => $set('grade_id', null) ?: $set('subject_id', null) ?: $set('book_id', null)),
 
             Forms\Components\Select::make('grade_id')
@@ -53,9 +90,50 @@ class BooksRelationManager extends RelationManager
                         ->orderBy('grade_number')
                         ->pluck('title', 'id');
                 })
+                ->searchable()
+                ->preload()
                 ->live()
                 ->dehydrated(false)
                 ->required()
+                ->getOptionLabelUsing(fn($value) => Grade::find($value)?->title)
+                ->createOptionForm([
+
+                    Forms\Components\TextInput::make('title')
+                        ->label('عنوان پایه')
+                        ->required(),
+
+                    Forms\Components\TextInput::make('grade_number')
+                        ->label('شماره پایه')
+                        ->numeric()
+                        ->minValue(1)
+                        ->required(),
+
+                ])
+                ->createOptionUsing(function (array $data, Get $get) {
+
+                    $slug = Str::slug($data['title']);
+
+                    $existing = Grade::where('grade_number', $data['grade_number'])->first();
+
+                    if ($existing) {
+
+                        Notification::make()
+                            ->title('این پایه از قبل وجود دارد و انتخاب شد.')
+                            ->warning()
+                            ->send();
+
+                        return $existing->id;
+                    }
+
+                    $grade = Grade::create([
+                        'title' => $data['title'],
+                        'slug' => $slug,
+                        'grade_number' => $data['grade_number'],
+                        'is_active' => true,
+                    ]);
+
+                    return $grade->id;
+                })
                 ->afterStateUpdated(fn(Set $set) => $set('subject_id', null) ?: $set('book_id', null)),
 
             Forms\Components\Select::make('subject_id')
@@ -67,9 +145,48 @@ class BooksRelationManager extends RelationManager
                         ->where('grade_id', $get('grade_id')))
                         ->pluck('title', 'id');
                 })
+                ->searchable()
+                ->preload()
                 ->live()
                 ->dehydrated(false)
                 ->required()
+                ->getOptionLabelUsing(fn($value) => Subject::find($value)?->title)
+                ->createOptionForm([
+
+                    Forms\Components\TextInput::make('title')
+                        ->label('عنوان درس')
+                        ->required(),
+
+                ])
+                ->createOptionUsing(function (array $data, Get $get) {
+
+                    $slug = Str::slug($data['title']);
+
+                    $existingSubject = Subject::where('slug', $slug)->first();
+
+                    if ($existingSubject) {
+
+                        Notification::make()
+                            ->title('این درس از قبل وجود دارد و انتخاب شد.')
+                            ->warning()
+                            ->send();
+                    }
+
+                    $subject = $existingSubject ?? Subject::create([
+                        'title' => $data['title'],
+                        'slug' => $slug,
+                        'sort_order' => 1,
+                        'is_active' => true,
+                    ]);
+
+                    AppGradeSubject::firstOrCreate([
+                        'app_id' => $get('app_id'),
+                        'grade_id' => $get('grade_id'),
+                        'subject_id' => $subject->id,
+                    ]);
+
+                    return $subject->id;
+                })
                 ->afterStateUpdated(fn(Set $set) => $set('book_id', null)),
 
             Forms\Components\Select::make('book_id')
@@ -83,17 +200,57 @@ class BooksRelationManager extends RelationManager
                     if (! $ags) return [];
                     return Book::where('app_grade_subject_id', $ags->id)->pluck('title', 'id');
                 })
+                ->searchable()
+                ->preload()
                 ->getOptionLabelUsing(fn($value) => Book::find($value)?->title)
-                ->required(),
+                ->required()
+                ->createOptionForm([
+
+                    Forms\Components\TextInput::make('title')
+                        ->label('عنوان کتاب')
+                        ->required(),
+
+                ])
+                ->createOptionUsing(function (array $data, Get $get) {
+
+                    $ags = AppGradeSubject::where('app_id', $get('app_id'))
+                        ->where('grade_id', $get('grade_id'))
+                        ->where('subject_id', $get('subject_id'))
+                        ->first();
+
+                    $slug = Str::slug($data['title']);
+
+                    $existing = Book::where('app_grade_subject_id', $ags->id)
+                        ->where('slug', $slug)
+                        ->first();
+
+                    if ($existing) {
+
+                        Notification::make()
+                            ->title('این کتاب از قبل وجود دارد و انتخاب شد.')
+                            ->warning()
+                            ->send();
+
+                        return $existing->id;
+                    }
+
+                    return Book::create([
+                        'app_grade_subject_id' => $ags->id,
+                        'title' => $data['title'],
+                        'slug' => $slug,
+                        'sort_order' => 1,
+                        'is_active' => true,
+                    ])->id;
+                }),
 
             Forms\Components\TextInput::make('commission_percentage')
                 ->label('درصد سهم معلم (پس از کسر کارمزد درگاه پرداخت)')
                 ->numeric()
                 ->minValue(0)
                 ->maxValue(100)
-                ->default(60)
+                ->default(fn() => app(SettingService::class)->defaultTeacherCommissionPercentage())
                 ->suffix('%')
-                ->helperText('این درصد روی مبلغ باقی‌مانده بعد از کسر کارمزد درگاه (زیبال/بازار/مایکت) اعمال می‌شود، نه روی قیمت کامل.')
+                ->helperText('این درصد روی مبلغ باقی‌مانده‌ی بعد از کسر کارمزد درگاه (زیبال/بازار/مایکت) اعمال می‌شود، نه روی قیمت کامل خرید.')
                 ->required(),
 
             Forms\Components\Toggle::make('is_active')
@@ -152,7 +309,7 @@ class BooksRelationManager extends RelationManager
                     ->label('درس'),
 
                 Tables\Columns\TextColumn::make('commission_percentage')
-                    ->label('درصد سهم معلم')
+                    ->label('درصد سهم معلم (بعد کسر کارمزد درگاه)')
                     ->formatStateUsing(fn($state) => $state.'٪'),
 
                 Tables\Columns\IconColumn::make('is_active')
