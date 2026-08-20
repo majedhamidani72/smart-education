@@ -52,13 +52,13 @@ class PlanResource extends Resource
                 ->label('عنوان پلن')
                 ->required()
                 ->maxLength(255)
-                ->placeholder('مثلاً: دسترسی کامل پایه پنجم — یک‌ساله')
+                ->default('دسترسی کامل پایه پنجم — یک‌ساله')
                 ->columnSpanFull(),
 
             Forms\Components\Textarea::make('description')
                 ->label('توضیحات')
                 ->rows(2)
-                ->placeholder('مثلاً: دسترسی به تمام ویدئوها، آزمون‌ها و نمونه‌سوالات ریاضی پایه پنجم به مدت یک سال')
+                ->default('دسترسی به تمام ویدئوها، آزمون‌ها و نمونه‌سوالات ریاضی پایه پنجم به مدت یک سال')
                 ->columnSpanFull(),
 
             Forms\Components\Section::make('این پلن چه چیزی را باز می‌کند؟')
