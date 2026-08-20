@@ -925,12 +925,24 @@ class QuizResource extends Resource
 
         if ($user->hasRole('Teacher')) {
 
-            return $query->whereHas(
+            // quizable می‌تواند کتاب، فصل، یا بخش باشد — فقط خودِ
+            // کتاب رابطه‌ی مستقیم teacherAssignments دارد؛ برای
+            // فصل و بخش باید از مسیر book عبور کرد. همین ناهماهنگی
+            // قبلاً باعث خطای ۵۰۰ می‌شد (چون کد فرض کرده بود هر
+            // سه نوع مستقیم این رابطه را دارند).
+            return $query->whereHasMorph(
                 'quizable',
-                function ($builder) use ($user) {
+                [Book::class, Chapter::class, Section::class],
+                function ($builder, $type) use ($user) {
+
+                    $relation = match ($type) {
+                        Book::class => 'teacherAssignments',
+                        Chapter::class => 'book.teacherAssignments',
+                        Section::class => 'chapter.book.teacherAssignments',
+                    };
 
                     $builder->whereHas(
-                        'teacherAssignments',
+                        $relation,
                         function ($assignment) use ($user) {
 
                             $assignment
