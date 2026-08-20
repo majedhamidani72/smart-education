@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TeacherResource\Pages;
+use App\Filament\Resources\TeacherResource\RelationManagers;
 use App\Models\App;
 use App\Models\AppGradeSubject;
 use App\Models\Book;
@@ -112,10 +113,6 @@ class TeacherResource extends Resource
                                 return false;
                             }
 
-                            // اگر این موبایل از قبل (به‌صورت فعال) در
-                            // سیستم وجود داشته باشد، رمز اجباری
-                            // نیست — رمز قبلی همان کاربر دست‌نخورده
-                            // می‌ماند.
                             $existingUser = User::where('mobile', $get('mobile'))
                                 ->whereNull('deleted_at')
                                 ->exists();
@@ -126,305 +123,12 @@ class TeacherResource extends Resource
                         ->helperText('در حالت ویرایش (یا وقتی این شماره از قبل وجود دارد)، اگر خالی بماند رمز قبلی تغییر نمی‌کند.'),
 
                     Forms\Components\Toggle::make('must_change_password')
-                        ->label('اجبار تغییر رمز در اولین ورود')
+                        ->label('اجبار به تغییر رمز در اولین ورود')
                         ->default(true),
 
                     Forms\Components\Toggle::make('is_active')
                         ->label('فعال')
                         ->default(true),
-
-                ]),
-
-            Forms\Components\Section::make('دسترسی آموزشی معلم')
-
-                ->columns(2)
-
-                ->description('کتابی که این معلم اجازه‌ی مدیریت محتوای آن را دارد.')
-
-                ->schema([
-
-                    Forms\Components\Select::make('app_id')
-                        ->label('اپلیکیشن')
-                        ->options(
-                            App::query()
-                                ->where('is_active', true)
-                                ->orderBy('sort_order')
-                                ->pluck('title', 'id')
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->getOptionLabelUsing(fn($value) => App::find($value)?->title)
-                        ->live()
-                        ->dehydrated(false)
-                        ->required()
-                        ->createOptionForm([
-
-                            Forms\Components\TextInput::make('title')
-                                ->label('عنوان اپلیکیشن')
-                                ->required(),
-
-                            Forms\Components\Toggle::make('is_active')
-                                ->label('فعال')
-                                ->default(true),
-
-                        ])
-                        ->createOptionUsing(function (array $data) {
-
-                            $slug = Str::slug($data['title']);
-
-                            $existing = App::where('slug', $slug)->first();
-
-                            if ($existing) {
-
-                                Notification::make()
-                                    ->title('این اپلیکیشن از قبل وجود دارد و انتخاب شد.')
-                                    ->warning()
-                                    ->send();
-
-                                return $existing->id;
-                            }
-
-                            $app = App::create([
-                                'title' => $data['title'],
-                                'slug' => $slug,
-                                'is_active' => $data['is_active'],
-                                'sort_order' => 1,
-                            ]);
-
-                            return $app->id;
-                        })
-                        ->afterStateUpdated(function (Set $set) {
-
-                            $set('grade_id', null);
-                            $set('subject_id', null);
-                            $set('book_id', null);
-                        }),
-
-                    Forms\Components\Select::make('grade_id')
-                        ->label('پایه')
-                        ->options(function (Get $get) {
-
-                            if (! $get('app_id')) {
-                                return [];
-                            }
-
-                            return Grade::query()
-                                ->whereHas(
-                                    'appGradeSubjects',
-                                    fn($query) => $query->where('app_id', $get('app_id'))
-                                )
-                                ->orderBy('grade_number')
-                                ->pluck('title', 'id');
-                        })
-                        ->searchable()
-                        ->preload()
-                        ->getOptionLabelUsing(fn($value) => Grade::find($value)?->title)
-                        ->live()
-                        ->dehydrated(false)
-                        ->required()
-                        ->createOptionForm([
-
-                            Forms\Components\TextInput::make('title')
-                                ->label('عنوان پایه')
-                                ->required(),
-
-                            Forms\Components\TextInput::make('grade_number')
-                                ->label('شماره پایه')
-                                ->numeric()
-                                ->required(),
-
-                        ])
-                        ->createOptionUsing(function (array $data) {
-
-                            $slug = Str::slug($data['title']);
-
-                            $existing = Grade::where('grade_number', $data['grade_number'])
-                                ->orWhere('slug', $slug)
-                                ->first();
-
-                            if ($existing) {
-
-                                Notification::make()
-                                    ->title('این پایه از قبل وجود دارد و انتخاب شد.')
-                                    ->warning()
-                                    ->send();
-
-                                return $existing->id;
-                            }
-
-                            $grade = Grade::create([
-                                'title' => $data['title'],
-                                'slug' => $slug,
-                                'grade_number' => $data['grade_number'],
-                                'sort_order' => $data['grade_number'],
-                                'is_active' => true,
-                            ]);
-
-                            // توجه: این پایه هنوز به هیچ اپلیکیشنی متصل
-                            // نیست؛ اتصال (app_grade_subjects) در مرحله‌ی
-                            // انتخاب/ایجاد «درس» کامل می‌شود.
-                            return $grade->id;
-                        })
-                        ->afterStateUpdated(function (Set $set) {
-
-                            $set('subject_id', null);
-                            $set('book_id', null);
-                        }),
-
-                    Forms\Components\Select::make('subject_id')
-                        ->label('درس')
-                        ->options(function (Get $get) {
-
-                            if (! $get('grade_id')) {
-                                return [];
-                            }
-
-                            return Subject::query()
-                                ->whereHas(
-                                    'appGradeSubjects',
-                                    fn($query) => $query
-                                        ->where('app_id', $get('app_id'))
-                                        ->where('grade_id', $get('grade_id'))
-                                )
-                                ->orderBy('sort_order')
-                                ->pluck('title', 'id');
-                        })
-                        ->searchable()
-                        ->preload()
-                        ->getOptionLabelUsing(fn($value) => Subject::find($value)?->title)
-                        ->live()
-                        ->dehydrated(false)
-                        ->required()
-                        ->createOptionForm([
-
-                            Forms\Components\TextInput::make('title')
-                                ->label('عنوان درس')
-                                ->required(),
-
-                        ])
-                        ->createOptionUsing(function (array $data, Get $get) {
-
-                            $slug = Str::slug($data['title']);
-
-                            $existingSubject = Subject::where('slug', $slug)->first();
-
-                            if ($existingSubject) {
-
-                                Notification::make()
-                                    ->title('این درس از قبل وجود دارد و انتخاب شد.')
-                                    ->warning()
-                                    ->send();
-                            }
-
-                            $subject = $existingSubject ?? Subject::create([
-                                'title' => $data['title'],
-                                'slug' => $slug,
-                                'sort_order' => 1,
-                                'is_active' => true,
-                            ]);
-
-                            // پیوند سه‌طرفه‌ی اپلیکیشن+پایه+درس همین‌جا
-                            // کامل می‌شود.
-                            AppGradeSubject::firstOrCreate([
-                                'app_id' => $get('app_id'),
-                                'grade_id' => $get('grade_id'),
-                                'subject_id' => $subject->id,
-                            ]);
-
-                            return $subject->id;
-                        })
-                        ->afterStateUpdated(function (Set $set) {
-
-                            $set('book_id', null);
-                        }),
-
-                    Forms\Components\Select::make('book_id')
-                        ->label('کتاب')
-                        ->options(function (Get $get) {
-
-                            if (! $get('subject_id')) {
-                                return [];
-                            }
-
-                            $appGradeSubject = AppGradeSubject::query()
-                                ->where('app_id', $get('app_id'))
-                                ->where('grade_id', $get('grade_id'))
-                                ->where('subject_id', $get('subject_id'))
-                                ->first();
-
-                            if (! $appGradeSubject) {
-                                return [];
-                            }
-
-                            return Book::query()
-                                ->where('app_grade_subject_id', $appGradeSubject->id)
-                                ->where('is_active', true)
-                                ->orderBy('sort_order')
-                                ->pluck('title', 'id');
-                        })
-                        ->searchable()
-                        ->preload()
-                        ->getOptionLabelUsing(fn($value) => Book::find($value)?->title)
-                        ->required()
-                        ->createOptionForm([
-
-                            Forms\Components\TextInput::make('title')
-                                ->label('عنوان کتاب')
-                                ->required(),
-
-                            Forms\Components\TextInput::make('sort_order')
-                                ->numeric()
-                                ->default(1),
-
-                            Forms\Components\Toggle::make('is_active')
-                                ->default(true),
-
-                        ])
-                        ->createOptionUsing(function (array $data, Get $get) {
-
-                            $appGradeSubject = AppGradeSubject::query()
-                                ->where('app_id', $get('app_id'))
-                                ->where('grade_id', $get('grade_id'))
-                                ->where('subject_id', $get('subject_id'))
-                                ->first();
-
-                            $slug = Str::slug($data['title']);
-
-                            $existing = Book::where('app_grade_subject_id', $appGradeSubject->id)
-                                ->where('slug', $slug)
-                                ->first();
-
-                            if ($existing) {
-
-                                Notification::make()
-                                    ->title('این کتاب از قبل وجود دارد و انتخاب شد.')
-                                    ->warning()
-                                    ->send();
-
-                                return $existing->id;
-                            }
-
-                            $book = Book::create([
-                                'app_grade_subject_id' => $appGradeSubject->id,
-                                'title' => $data['title'],
-                                'slug' => $slug,
-                                'sort_order' => $data['sort_order'],
-                                'is_active' => $data['is_active'],
-                            ]);
-
-                            return $book->id;
-                        })
-                        ->helperText('معلم فقط به کتابی که اینجا مشخص می‌شود دسترسی خواهد داشت.'),
-
-                    Forms\Components\TextInput::make('commission_percentage')
-                        ->label('درصد سهم معلم از فروش این کتاب')
-                        ->numeric()
-                        ->minValue(0)
-                        ->maxValue(100)
-                        ->default(30)
-                        ->suffix('%')
-                        ->helperText('برای هر معلم/کتاب می‌تواند متفاوت باشد.')
-                        ->required(),
 
                 ]),
 
@@ -450,15 +154,20 @@ class TeacherResource extends Resource
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('teacherAssignments.book.title')
-                    ->label('کتاب')
+                    ->label('کتاب‌ها')
                     ->getStateUsing(function (User $record) {
 
-                        return $record->teacherAssignments()
+                        $titles = $record->teacherAssignments()
                             ->where('is_active', true)
                             ->with('book')
-                            ->latest()
-                            ->first()?->book?->title ?? '—';
-                    }),
+                            ->get()
+                            ->pluck('book.title')
+                            ->filter()
+                            ->implode('، ');
+
+                        return $titles ?: '—';
+                    })
+                    ->wrap(),
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('فعال')
@@ -505,7 +214,9 @@ class TeacherResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            RelationManagers\BooksRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

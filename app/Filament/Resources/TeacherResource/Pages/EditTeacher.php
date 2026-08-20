@@ -3,20 +3,20 @@
 namespace App\Filament\Resources\TeacherResource\Pages;
 
 use App\Filament\Resources\TeacherResource;
-use App\Models\TeacherAssignment;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Hash;
 
+/**
+ * ویرایش معلم
+ * --------------------------------------------------------------------
+ * فقط اطلاعات حساب (اسم، موبایل، رمز، فعال/غیرفعال). مدیریت
+ * کتاب‌های تدریسی از تب «کتاب‌های تدریسی» پایین همین صفحه انجام
+ * می‌شود (BooksRelationManager) — نه از این فرم.
+ */
 class EditTeacher extends EditRecord
 {
     protected static string $resource = TeacherResource::class;
-
-    // کتابی که در فرم انتخاب شده و باید بعد از ذخیره به‌عنوان
-    // دسترسی معلم به‌روزرسانی شود.
-    protected ?int $bookIdToAssign = null;
-
-    protected int $commissionPercentageToAssign = 30;
 
     protected function getHeaderActions(): array
     {
@@ -31,51 +31,8 @@ class EditTeacher extends EditRecord
         ];
     }
 
-    /**
-     * وقتی فرم ویرایش باز می‌شود، آخرین دسترسیِ فعالِ این معلم
-     * (در صورت وجود) در فیلدهای اپلیکیشن/پایه/درس/کتاب بارگذاری
-     * می‌شود تا سوپرادمین ببیند الان دقیقاً معلم به چه چیزی
-     * دسترسی دارد.
-     */
-    protected function mutateFormDataBeforeFill(array $data): array
-    {
-        $assignment = TeacherAssignment::query()
-            ->where('teacher_id', $this->record->id)
-            ->where('is_active', true)
-            ->with('book.appGradeSubject')
-            ->latest()
-            ->first();
-
-        if ($assignment && $assignment->book && $assignment->book->appGradeSubject) {
-
-            $data['book_id'] = $assignment->book_id;
-
-            $data['subject_id'] = $assignment->book->appGradeSubject->subject_id;
-
-            $data['grade_id'] = $assignment->book->appGradeSubject->grade_id;
-
-            $data['app_id'] = $assignment->book->appGradeSubject->app_id;
-
-            $data['commission_percentage'] = $assignment->commission_percentage;
-        }
-
-        return $data;
-    }
-
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $this->bookIdToAssign = $data['book_id'] ?? null;
-
-        $this->commissionPercentageToAssign = $data['commission_percentage'] ?? 30;
-
-        unset(
-            $data['app_id'],
-            $data['grade_id'],
-            $data['subject_id'],
-            $data['book_id'],
-            $data['commission_percentage'],
-        );
-
         if (isset($data['password']) && filled($data['password'])) {
 
             $data['password'] = Hash::make($data['password']);
@@ -92,23 +49,6 @@ class EditTeacher extends EditRecord
     {
         // نقش Teacher هیچ‌وقت از این کاربر برداشته نمی‌شود.
         $this->record->syncRoles(['Teacher']);
-
-        if (! $this->bookIdToAssign) {
-            return;
-        }
-
-        TeacherAssignment::withTrashed()->updateOrCreate(
-            [
-                'teacher_id' => $this->record->id,
-                'book_id' => $this->bookIdToAssign,
-            ],
-            [
-                'assigned_by' => auth()->id(),
-                'commission_percentage' => $this->commissionPercentageToAssign,
-                'is_active' => true,
-                'deleted_at' => null,
-            ]
-        );
     }
 
     protected function getRedirectUrl(): string

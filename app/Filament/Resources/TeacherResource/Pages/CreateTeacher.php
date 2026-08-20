@@ -3,40 +3,29 @@
 namespace App\Filament\Resources\TeacherResource\Pages;
 
 use App\Filament\Resources\TeacherResource;
-use App\Models\TeacherAssignment;
 use App\Models\User;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Hash;
 
+/**
+ * ایجاد معلم
+ * --------------------------------------------------------------------
+ * این فرم فقط حساب کاربری معلم را می‌سازد. مدیریت کتاب‌های
+ * تدریسی (که می‌تواند چندتا و از پایه‌های مختلف باشد) کاملاً
+ * جدا شده و بعد از ساخت، در تب «کتاب‌های تدریسی» صفحه‌ی ویرایش
+ * همین معلم انجام می‌شود — قبلاً چون این فرم خودش هم یک کتاب
+ * می‌گرفت، انتخاب کتاب دوم برای یک معلم موجود، کتاب اول را از
+ * دید مخفی می‌کرد (چون فقط آخرین تخصیص نمایش داده می‌شد).
+ */
 class CreateTeacher extends CreateRecord
 {
     protected static string $resource = TeacherResource::class;
 
-    // اگر کاربری با همین موبایل قبلاً حذف نرم‌افزاری شده باشد،
-    // به‌جای رکورد جدید، همان بازیابی می‌شود.
     protected ?User $deletedUser = null;
-
-    // کتابی که باید بعد از ساخت کاربر، به‌عنوان دسترسی معلم
-    // ثبت شود. app_id/grade_id/subject_id فقط فیلترِ رسیدن به
-    // همین کتاب بودند، خودشان ذخیره نمی‌شوند.
-    protected ?int $bookIdToAssign = null;
-
-    protected int $commissionPercentageToAssign = 30;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $this->bookIdToAssign = $data['book_id'] ?? null;
-
-        $this->commissionPercentageToAssign = $data['commission_percentage'] ?? 30;
-
-        unset(
-            $data['app_id'],
-            $data['grade_id'],
-            $data['subject_id'],
-            $data['book_id'],
-        );
-
         $this->deletedUser = User::withTrashed()
             ->where('mobile', $data['mobile'])
             ->whereNotNull('deleted_at')
@@ -62,23 +51,20 @@ class CreateTeacher extends CreateRecord
 
             $this->deletedUser->syncRoles(['Teacher']);
 
-            $this->assignBook($this->deletedUser);
-
             Notification::make()
-                ->title('معلم حذف‌شده بازیابی شد.')
+                ->title('معلم حذف‌شده بازیابی شد. برای مدیریت کتاب‌هایش وارد صفحه‌ی ویرایش او شو.')
                 ->success()
                 ->send();
 
-            $this->redirect($this->getRedirectUrl());
+            $this->redirect(
+                TeacherResource::getUrl('edit', ['record' => $this->deletedUser])
+            );
 
             $this->halt();
         }
 
-        // کاربر فعالِ موجود با همین موبایل (مثلاً دانش‌آموزی که
-        // قرار است حالا معلم هم بشود) — به‌جای رکورد جدید، همین
-        // حساب به‌روزرسانی می‌شود. رمز فقط اگر واقعاً پر شده باشد
-        // تغییر می‌کند، وگرنه رمز قبلی همین کاربر دست‌نخورده
-        // می‌ماند.
+        // کاربر فعالِ موجود با همین موبایل — به‌جای رکورد جدید،
+        // همین حساب به‌روزرسانی می‌شود.
         $existingActiveUser = User::where('mobile', $data['mobile'])
             ->whereNull('deleted_at')
             ->first();
@@ -101,14 +87,14 @@ class CreateTeacher extends CreateRecord
 
             $existingActiveUser->syncRoles(['Teacher']);
 
-            $this->assignBook($existingActiveUser);
-
             Notification::make()
-                ->title('حساب موجود با همین شماره، به معلم تبدیل شد.')
+                ->title('حساب موجود با همین شماره، به معلم تبدیل شد. برای مدیریت کتاب‌هایش وارد صفحه‌ی ویرایش او شو.')
                 ->success()
                 ->send();
 
-            $this->redirect($this->getRedirectUrl());
+            $this->redirect(
+                TeacherResource::getUrl('edit', ['record' => $existingActiveUser])
+            );
 
             $this->halt();
         }
@@ -126,42 +112,20 @@ class CreateTeacher extends CreateRecord
         // نقش «Teacher» همیشه به‌صورت خودکار و ثابت اختصاص داده
         // می‌شود؛ در این فرم هیچ انتخاب نقشی از کاربر گرفته نشده.
         $this->record->assignRole('Teacher');
-
-        $this->assignBook($this->record);
     }
 
     /**
-     * کتاب انتخاب‌شده در فرم را به‌عنوان دسترسی معلم ثبت می‌کند.
-     * اگر معلم قبلاً (حتی به‌صورت حذف‌شده) به همین کتاب دسترسی
-     * داشته، به‌جای رکورد تکراری، همان فعال می‌شود.
+     * بعد از ساخت حساب، مستقیم به صفحه‌ی ویرایش همین معلم می‌رویم
+     * (نه لیست) — چون قدم بعدی طبیعی، اضافه‌کردن کتاب(ها) از تب
+     * «کتاب‌های تدریسی» است.
      */
-    protected function assignBook(User $teacher): void
-    {
-        if (! $this->bookIdToAssign) {
-            return;
-        }
-
-        TeacherAssignment::withTrashed()->updateOrCreate(
-            [
-                'teacher_id' => $teacher->id,
-                'book_id' => $this->bookIdToAssign,
-            ],
-            [
-                'assigned_by' => auth()->id(),
-                'commission_percentage' => $this->commissionPercentageToAssign,
-                'is_active' => true,
-                'deleted_at' => null,
-            ]
-        );
-    }
-
     protected function getRedirectUrl(): string
     {
-        return TeacherResource::getUrl('index');
+        return TeacherResource::getUrl('edit', ['record' => $this->record]);
     }
 
     protected function getCreatedNotificationTitle(): ?string
     {
-        return 'معلم با موفقیت ایجاد شد.';
+        return 'معلم با موفقیت ایجاد شد. حالا از تب «کتاب‌های تدریسی» کتاب(ها)ش رو اضافه کن.';
     }
 }
