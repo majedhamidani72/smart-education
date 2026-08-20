@@ -169,6 +169,23 @@ class TeacherResource extends Resource
                     })
                     ->wrap(),
 
+                Tables\Columns\TextColumn::make('grades')
+                    ->label('پایه‌ها')
+                    ->getStateUsing(function (User $record) {
+
+                        $grades = $record->teacherAssignments()
+                            ->where('is_active', true)
+                            ->with('book.appGradeSubject.grade')
+                            ->get()
+                            ->pluck('book.appGradeSubject.grade.title')
+                            ->filter()
+                            ->unique()
+                            ->implode('، ');
+
+                        return $grades ?: '—';
+                    })
+                    ->wrap(),
+
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('فعال')
                     ->boolean(),
