@@ -157,7 +157,7 @@ class PlanResource extends Resource
                         ->label('قیمت (تومان)')
                         ->numeric()
                         ->minValue(0)
-                        ->live(onBlur: true)
+                        ->live(debounce: 300)
                         ->required()
                         ->hint(fn(Get $get) => filled($get('price'))
                             ? number_format((int) $get('price')).' تومان'
@@ -167,7 +167,7 @@ class PlanResource extends Resource
                         ->label('قیمت با تخفیف (تومان، اختیاری)')
                         ->numeric()
                         ->minValue(0)
-                        ->live(onBlur: true)
+                        ->live(debounce: 300)
                         ->hint(fn(Get $get) => filled($get('discount_price'))
                             ? number_format((int) $get('discount_price')).' تومان'
                             : null),
