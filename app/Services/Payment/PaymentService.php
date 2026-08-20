@@ -15,6 +15,7 @@ use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Repositories\Interfaces\PaymentTransactionRepositoryInterface;
 use App\Repositories\Interfaces\SubscriptionRepositoryInterface;
 use App\Repositories\Interfaces\TeacherEarningRepositoryInterface;
+use App\Services\SettingService;
 
 class PaymentService
 {
@@ -395,10 +396,19 @@ class PaymentService
         string $gateway
     ): void {
 
-        $percentage = $assignment->commissionPercentageFor($gateway);
+        // اول کارمزد واقعی درگاه (که یک عدد سراسری و سیستمی است،
+        // نه چیزی که هر معلم/کتاب جدا داشته باشد) از مبلغ فروش
+        // کسر می‌شود؛ سهم معلم روی همین مبلغ باقی‌مانده حساب
+        // می‌شود، نه روی قیمت کامل.
+        $gatewayFeePercentage = app(SettingService::class)
+            ->gatewayFeePercentage($gateway);
+
+        $netAmount = $saleAmount - (int) round(
+            $saleAmount * $gatewayFeePercentage / 100
+        );
 
         $amount = (int) round(
-            $saleAmount * $percentage / 100
+            $netAmount * $assignment->commission_percentage / 100
         );
 
         $this->teacherEarningRepository->create([
@@ -411,7 +421,7 @@ class PaymentService
 
             'sale_amount' => $saleAmount,
 
-            'percentage' => $percentage,
+            'percentage' => $assignment->commission_percentage,
 
             'amount' => $amount,
 
