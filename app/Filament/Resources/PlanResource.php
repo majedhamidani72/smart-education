@@ -183,6 +183,7 @@ class PlanResource extends Resource
                         ->label('مدت دسترسی (روز)')
                         ->numeric()
                         ->minValue(1)
+                        ->visible(fn(Get $get) => $get('purchase_type') === 'subscription')
                         ->required(fn(Get $get) => $get('purchase_type') === 'subscription')
                         ->helperText(fn(Get $get) => $get('purchase_type') === 'subscription'
                             ? 'برای پلن اشتراکی، مدت دسترسی اجباری است.'
