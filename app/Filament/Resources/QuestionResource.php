@@ -408,6 +408,38 @@ class QuestionResource extends Resource
     {
         return $table
             ->defaultSort('created_at', 'desc')
+            ->defaultGroup('content_item_id')
+            ->groups([
+
+                Tables\Grouping\Group::make('content_item_id')
+                    ->label('محتوا')
+                    ->getTitleFromRecordUsing(function ($record) {
+
+                        $item = $record->contentItem;
+
+                        if (! $item) {
+                            return 'بدون محتوای مشخص';
+                        }
+
+                        $chapter = $item->chapter;
+
+                        $section = $item->section;
+
+                        $path = collect([
+
+                            $chapter?->book?->title,
+
+                            $chapter?->title,
+
+                            $section?->title,
+
+                        ])->filter()->implode(' > ');
+
+                        return ($path ? $path.' — ' : '').$item->title;
+                    })
+                    ->collapsible(),
+
+            ])
             ->columns([
 
                 Tables\Columns\TextColumn::make('id')
@@ -501,6 +533,55 @@ class QuestionResource extends Resource
             ])
             ->actions([
 
+                // کلیک روی بادج وضعیت، بدون رفتن به صفحه‌ی ویرایش،
+                // مستقیم یه مودال کوچیک برای تایید/رد باز می‌کنه —
+                // برای بررسی سریعِ تک‌تک سوالات داخل یک گروه.
+                Tables\Actions\Action::make('changeStatus')
+                    ->label('تغییر وضعیت')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('gray')
+                    ->visible(fn() => auth()->user()?->hasRole('SuperAdmin') || auth()->user()?->hasRole('Admin'))
+                    ->form([
+
+                        Forms\Components\Select::make('status')
+                            ->label('وضعیت')
+                            ->options([
+                                'pending' => 'در انتظار بررسی',
+                                'approved' => 'تأیید شده',
+                                'rejected' => 'رد شده',
+                            ])
+                            ->live()
+                            ->required(),
+
+                        Forms\Components\Textarea::make('rejection_reason')
+                            ->label('دلیل رد')
+                            ->rows(2)
+                            ->visible(fn(Get $get) => $get('status') === 'rejected')
+                            ->required(fn(Get $get) => $get('status') === 'rejected'),
+
+                    ])
+                    ->fillForm(fn($record) => [
+                        'status' => $record->status,
+                        'rejection_reason' => $record->rejection_reason,
+                    ])
+                    ->action(function ($record, array $data) {
+
+                        $record->update([
+
+                            'status' => $data['status'],
+
+                            'rejection_reason' => $data['status'] === 'rejected'
+                                ? $data['rejection_reason']
+                                : null,
+
+                        ]);
+
+                        Notification::make()
+                            ->title('وضعیت سوال به‌روزرسانی شد.')
+                            ->success()
+                            ->send();
+                    }),
+
                 Tables\Actions\EditAction::make(),
 
                 Tables\Actions\DeleteAction::make(),
@@ -513,6 +594,56 @@ class QuestionResource extends Resource
             ->bulkActions([
 
                 Tables\Actions\BulkActionGroup::make([
+
+                    // با گروه‌بندی جدول، کاربر می‌تواند از طریق
+                    // چک‌باکس بالای هر گروه، همه‌ی سوالات همان
+                    // محتوا (بخش/فصل) را یک‌جا انتخاب کند و همین‌جا
+                    // با یک کلیک وضعیت همه را باهم عوض کند.
+                    Tables\Actions\BulkAction::make('changeStatusBulk')
+                        ->label('تغییر وضعیت دسته‌جمعی')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->visible(fn() => auth()->user()?->hasRole('SuperAdmin') || auth()->user()?->hasRole('Admin'))
+                        ->requiresConfirmation()
+                        ->form([
+
+                            Forms\Components\Select::make('status')
+                                ->label('وضعیت جدید')
+                                ->options([
+                                    'approved' => 'تأیید شده',
+                                    'rejected' => 'رد شده',
+                                    'pending' => 'در انتظار بررسی',
+                                ])
+                                ->live()
+                                ->required(),
+
+                            Forms\Components\Textarea::make('rejection_reason')
+                                ->label('دلیل رد (برای همه‌ی سوالات انتخاب‌شده)')
+                                ->rows(2)
+                                ->visible(fn(Get $get) => $get('status') === 'rejected')
+                                ->required(fn(Get $get) => $get('status') === 'rejected'),
+
+                        ])
+                        ->action(function ($records, array $data) {
+
+                            foreach ($records as $record) {
+
+                                $record->update([
+
+                                    'status' => $data['status'],
+
+                                    'rejection_reason' => $data['status'] === 'rejected'
+                                        ? $data['rejection_reason']
+                                        : null,
+
+                                ]);
+                            }
+
+                            Notification::make()
+                                ->title('وضعیت '.count($records).' سوال به‌روزرسانی شد.')
+                                ->success()
+                                ->send();
+                        }),
 
                     Tables\Actions\DeleteBulkAction::make(),
 
@@ -548,6 +679,10 @@ class QuestionResource extends Resource
         return parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
+            ])
+            ->with([
+                'contentItem.chapter.book',
+                'contentItem.section',
             ]);
     }
 }
