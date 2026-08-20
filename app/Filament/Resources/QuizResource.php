@@ -603,6 +603,13 @@ class QuizResource extends Resource
                 ->label('رایگان')
                 ->default(false),
 
+            // معلم اصلاً نباید وضعیت رو خودش تغییر بده — پیش‌فرض
+            // «در انتظار بررسی» می‌مونه تا ادمین/سوپرادمین بررسیش
+            // کنه. فقط ادمین/سوپرادمین این فیلد رو به‌صورت قابل‌
+            // تغییر می‌بینند.
+            Forms\Components\Hidden::make('status')
+                ->default('pending'),
+
             Forms\Components\Select::make('status')
                 ->label('وضعیت')
                 ->options([
@@ -612,7 +619,8 @@ class QuizResource extends Resource
                     'inactive' => 'غیرفعال',
                 ])
                 ->default('draft')
-                ->required(),
+                ->required()
+                ->visible(fn() => auth()->user()?->hasRole('SuperAdmin') || auth()->user()?->hasRole('Admin')),
 
             JalaliDateTimePicker::make('published_at')
                 ->label('زمان انتشار')
