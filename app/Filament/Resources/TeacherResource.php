@@ -132,6 +132,72 @@ class TeacherResource extends Resource
 
                 ]),
 
+            Forms\Components\Section::make('کتاب اول (اختیاری)')
+
+                ->description('اگر همین الان می‌خوای یه کتاب هم بهش بدی، اینجا پرش کن. برای کتاب دوم به بعد (یا اگه الان پرش نکنی)، بعد از ایجاد معلم، از تب «کتاب‌های تدریسی» پایین صفحه‌ی ویرایش همین معلم استفاده کن.')
+
+                ->columns(4)
+
+                ->visible(fn(string $operation) => $operation === 'create')
+
+                ->schema([
+
+                    Forms\Components\Select::make('first_app_id')
+                        ->label('اپلیکیشن')
+                        ->options(App::where('is_active', true)->pluck('title', 'id'))
+                        ->live()
+                        ->dehydrated(false)
+                        ->afterStateUpdated(fn(Set $set) => $set('first_grade_id', null) ?: $set('first_subject_id', null) ?: $set('first_book_id', null)),
+
+                    Forms\Components\Select::make('first_grade_id')
+                        ->label('پایه')
+                        ->options(function (Get $get) {
+                            if (! $get('first_app_id')) return [];
+                            return Grade::whereHas('appGradeSubjects', fn($q) => $q->where('app_id', $get('first_app_id')))
+                                ->orderBy('grade_number')
+                                ->pluck('title', 'id');
+                        })
+                        ->live()
+                        ->dehydrated(false)
+                        ->afterStateUpdated(fn(Set $set) => $set('first_subject_id', null) ?: $set('first_book_id', null)),
+
+                    Forms\Components\Select::make('first_subject_id')
+                        ->label('درس')
+                        ->options(function (Get $get) {
+                            if (! $get('first_grade_id')) return [];
+                            return Subject::whereHas('appGradeSubjects', fn($q) => $q
+                                ->where('app_id', $get('first_app_id'))
+                                ->where('grade_id', $get('first_grade_id')))
+                                ->pluck('title', 'id');
+                        })
+                        ->live()
+                        ->dehydrated(false)
+                        ->afterStateUpdated(fn(Set $set) => $set('first_book_id', null)),
+
+                    Forms\Components\Select::make('first_book_id')
+                        ->label('کتاب')
+                        ->options(function (Get $get) {
+                            if (! $get('first_subject_id')) return [];
+                            $ags = AppGradeSubject::where('app_id', $get('first_app_id'))
+                                ->where('grade_id', $get('first_grade_id'))
+                                ->where('subject_id', $get('first_subject_id'))
+                                ->first();
+                            if (! $ags) return [];
+                            return Book::where('app_grade_subject_id', $ags->id)->pluck('title', 'id');
+                        }),
+
+                    Forms\Components\TextInput::make('first_commission_percentage')
+                        ->label('درصد سهم معلم')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->default(60)
+                        ->suffix('%')
+                        ->columnSpan(2)
+                        ->helperText('این درصد روی مبلغ بعد از کسر کارمزد درگاه اعمال می‌شود.'),
+
+                ]),
+
         ]);
     }
 

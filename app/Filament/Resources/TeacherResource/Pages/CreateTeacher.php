@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TeacherResource\Pages;
 
 use App\Filament\Resources\TeacherResource;
+use App\Models\TeacherAssignment;
 use App\Models\User;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -11,12 +12,13 @@ use Illuminate\Support\Facades\Hash;
 /**
  * ایجاد معلم
  * --------------------------------------------------------------------
- * این فرم فقط حساب کاربری معلم را می‌سازد. مدیریت کتاب‌های
- * تدریسی (که می‌تواند چندتا و از پایه‌های مختلف باشد) کاملاً
- * جدا شده و بعد از ساخت، در تب «کتاب‌های تدریسی» صفحه‌ی ویرایش
- * همین معلم انجام می‌شود — قبلاً چون این فرم خودش هم یک کتاب
- * می‌گرفت، انتخاب کتاب دوم برای یک معلم موجود، کتاب اول را از
- * دید مخفی می‌کرد (چون فقط آخرین تخصیص نمایش داده می‌شد).
+ * این فرم حساب کاربری معلم را می‌سازد و به‌صورت اختیاری، یک کتاب
+ * اول هم همین‌جا می‌گیرد (برای این‌که رایج‌ترین حالت — معلم تازه
+ * با یک کتاب — همه‌چیزش توی یک صفحه انجام بشود). برای کتاب دوم
+ * به بعد، باید از تب «کتاب‌های تدریسی» صفحه‌ی ویرایش همین معلم
+ * استفاده کرد — چون قبلاً وقتی این فرم خودش هم یک کتاب می‌گرفت،
+ * انتخاب کتاب دوم برای یک معلم موجود، کتاب اول را از دید مخفی
+ * می‌کرد (چون فقط آخرین تخصیص نمایش داده می‌شد).
  */
 class CreateTeacher extends CreateRecord
 {
@@ -24,8 +26,27 @@ class CreateTeacher extends CreateRecord
 
     protected ?User $deletedUser = null;
 
+    protected ?int $firstBookId = null;
+
+    protected int $firstCommissionPercentage = 60;
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        // فیلدهای مربوط به «کتاب اول» فقط کمکی‌اند و روی خودِ
+        // User ذخیره نمی‌شوند — باید قبل از ساخت کاربر برداشته
+        // شوند.
+        $this->firstBookId = $data['first_book_id'] ?? null;
+
+        $this->firstCommissionPercentage = $data['first_commission_percentage'] ?? 60;
+
+        unset(
+            $data['first_app_id'],
+            $data['first_grade_id'],
+            $data['first_subject_id'],
+            $data['first_book_id'],
+            $data['first_commission_percentage'],
+        );
+
         $this->deletedUser = User::withTrashed()
             ->where('mobile', $data['mobile'])
             ->whereNotNull('deleted_at')
@@ -51,8 +72,10 @@ class CreateTeacher extends CreateRecord
 
             $this->deletedUser->syncRoles(['Teacher']);
 
+            $this->assignFirstBookIfProvided($this->deletedUser);
+
             Notification::make()
-                ->title('معلم حذف‌شده بازیابی شد. برای مدیریت کتاب‌هایش وارد صفحه‌ی ویرایش او شو.')
+                ->title('معلم حذف‌شده بازیابی شد. برای کتاب‌های بیشتر، وارد صفحه‌ی ویرایش او شو.')
                 ->success()
                 ->send();
 
@@ -87,8 +110,10 @@ class CreateTeacher extends CreateRecord
 
             $existingActiveUser->syncRoles(['Teacher']);
 
+            $this->assignFirstBookIfProvided($existingActiveUser);
+
             Notification::make()
-                ->title('حساب موجود با همین شماره، به معلم تبدیل شد. برای مدیریت کتاب‌هایش وارد صفحه‌ی ویرایش او شو.')
+                ->title('حساب موجود با همین شماره، به معلم تبدیل شد. برای کتاب‌های بیشتر، وارد صفحه‌ی ویرایش او شو.')
                 ->success()
                 ->send();
 
@@ -112,12 +137,40 @@ class CreateTeacher extends CreateRecord
         // نقش «Teacher» همیشه به‌صورت خودکار و ثابت اختصاص داده
         // می‌شود؛ در این فرم هیچ انتخاب نقشی از کاربر گرفته نشده.
         $this->record->assignRole('Teacher');
+
+        $this->assignFirstBookIfProvided($this->record);
+    }
+
+    /**
+     * اگر «کتاب اول» توی فرم پر شده باشد، همین‌جا برای معلم ثبت
+     * می‌شود.
+     */
+    protected function assignFirstBookIfProvided(User $teacher): void
+    {
+        if (! $this->firstBookId) {
+            return;
+        }
+
+        TeacherAssignment::updateOrCreate(
+
+            [
+                'teacher_id' => $teacher->id,
+                'book_id' => $this->firstBookId,
+            ],
+
+            [
+                'assigned_by' => auth()->id(),
+                'commission_percentage' => $this->firstCommissionPercentage,
+                'is_active' => true,
+            ]
+
+        );
     }
 
     /**
      * بعد از ساخت حساب، مستقیم به صفحه‌ی ویرایش همین معلم می‌رویم
-     * (نه لیست) — چون قدم بعدی طبیعی، اضافه‌کردن کتاب(ها) از تب
-     * «کتاب‌های تدریسی» است.
+     * (نه لیست) — تا اگه خواست کتاب بیشتری اضافه کند، همان‌جا
+     * تب «کتاب‌های تدریسی» در دسترسش باشد.
      */
     protected function getRedirectUrl(): string
     {
@@ -126,6 +179,6 @@ class CreateTeacher extends CreateRecord
 
     protected function getCreatedNotificationTitle(): ?string
     {
-        return 'معلم با موفقیت ایجاد شد. حالا از تب «کتاب‌های تدریسی» کتاب(ها)ش رو اضافه کن.';
+        return 'معلم با موفقیت ایجاد شد. برای کتاب‌های بیشتر، از تب «کتاب‌های تدریسی» استفاده کن.';
     }
 }
