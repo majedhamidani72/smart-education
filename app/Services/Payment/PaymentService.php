@@ -166,7 +166,10 @@ class PaymentService
 
                 // به همون ترتیب که دسترسی داده می‌شود، سهم معلم(ها)
                 // از این فروش هم محاسبه و ثبت می‌شود.
-                $this->createTeacherEarnings($transaction->purchase);
+                $this->createTeacherEarnings(
+                    $transaction->purchase,
+                    $transaction->gateway
+                );
 
             } else {
 
@@ -304,7 +307,8 @@ class PaymentService
      * دستی از پنل «درآمد معلمان» عدد را اصلاح کند.
      */
     protected function createTeacherEarnings(
-        Purchase $purchase
+        Purchase $purchase,
+        string $gateway
     ): void {
 
         foreach ($purchase->items as $item) {
@@ -329,7 +333,8 @@ class PaymentService
                     $assignment,
                     $purchase,
                     $item,
-                    $item->final_price
+                    $item->final_price,
+                    $gateway
                 );
 
                 continue;
@@ -366,7 +371,8 @@ class PaymentService
                         $assignment,
                         $purchase,
                         $item,
-                        $sharePerBook
+                        $sharePerBook,
+                        $gateway
                     );
                 }
             }
@@ -375,16 +381,24 @@ class PaymentService
 
     /**
      * ثبت یک رکورد درآمد برای یک معلم مشخص.
+     * --------------------------------------------------------------------
+     * درصد سهم بر اساس درگاهی که این پرداخت واقعاً از آن انجام
+     * شده انتخاب می‌شود — چون بازار/مایکت خودشان کارمزد بالایی
+     * می‌گیرند، سهم معلم می‌تواند برای هر درگاه جدا تنظیم شده
+     * باشد.
      */
     protected function recordEarning(
         TeacherAssignment $assignment,
         Purchase $purchase,
         \App\Models\PurchaseItem $item,
-        int $saleAmount
+        int $saleAmount,
+        string $gateway
     ): void {
 
+        $percentage = $assignment->commissionPercentageFor($gateway);
+
         $amount = (int) round(
-            $saleAmount * $assignment->commission_percentage / 100
+            $saleAmount * $percentage / 100
         );
 
         $this->teacherEarningRepository->create([
@@ -397,7 +411,7 @@ class PaymentService
 
             'sale_amount' => $saleAmount,
 
-            'percentage' => $assignment->commission_percentage,
+            'percentage' => $percentage,
 
             'amount' => $amount,
 

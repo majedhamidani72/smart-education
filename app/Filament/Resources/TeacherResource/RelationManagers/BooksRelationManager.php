@@ -86,14 +86,40 @@ class BooksRelationManager extends RelationManager
                 ->getOptionLabelUsing(fn($value) => Book::find($value)?->title)
                 ->required(),
 
-            Forms\Components\TextInput::make('commission_percentage')
-                ->label('درصد سهم معلم')
-                ->numeric()
-                ->minValue(0)
-                ->maxValue(100)
-                ->default(30)
-                ->suffix('%')
-                ->required(),
+            Forms\Components\Fieldset::make('درصد سهم معلم، به تفکیک درگاه فروش')
+
+                ->columns(3)
+
+                ->schema([
+
+                    Forms\Components\TextInput::make('commission_percentage_zibal')
+                        ->label('زیبال (سایت/اپ مستقیم)')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->default(30)
+                        ->suffix('%')
+                        ->required(),
+
+                    Forms\Components\TextInput::make('commission_percentage_bazaar')
+                        ->label('کافه‌بازار')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->default(30)
+                        ->suffix('%')
+                        ->required(),
+
+                    Forms\Components\TextInput::make('commission_percentage_myket')
+                        ->label('مایکت')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->default(30)
+                        ->suffix('%')
+                        ->required(),
+
+                ]),
 
             Forms\Components\Toggle::make('is_active')
                 ->label('فعال')
@@ -150,8 +176,16 @@ class BooksRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('book.appGradeSubject.subject.title')
                     ->label('درس'),
 
-                Tables\Columns\TextColumn::make('commission_percentage')
-                    ->label('درصد سهم')
+                Tables\Columns\TextColumn::make('commission_percentage_zibal')
+                    ->label('زیبال')
+                    ->formatStateUsing(fn($state) => $state.'٪'),
+
+                Tables\Columns\TextColumn::make('commission_percentage_bazaar')
+                    ->label('بازار')
+                    ->formatStateUsing(fn($state) => $state.'٪'),
+
+                Tables\Columns\TextColumn::make('commission_percentage_myket')
+                    ->label('مایکت')
                     ->formatStateUsing(fn($state) => $state.'٪'),
 
                 Tables\Columns\IconColumn::make('is_active')

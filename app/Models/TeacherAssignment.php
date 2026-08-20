@@ -28,7 +28,11 @@ class TeacherAssignment extends Model
 
         'book_id',
 
-        'commission_percentage',
+        'commission_percentage_zibal',
+
+        'commission_percentage_bazaar',
+
+        'commission_percentage_myket',
 
         'assigned_by',
 
@@ -90,6 +94,23 @@ class TeacherAssignment extends Model
     |
     */
 
+
+    /**
+     * درصد سهم معلم را متناسب با درگاهی که فروش از آن آمده
+     * برمی‌گرداند (zibal، bazaar، یا myket). اگر نام درگاه ناشناخته
+     * بود، برای احتیاط از پایین‌ترین/پیش‌فرض زیبال استفاده می‌شود.
+     */
+    public function commissionPercentageFor(string $gateway): int
+    {
+        return match ($gateway) {
+
+            'bazaar' => $this->commission_percentage_bazaar,
+
+            'myket' => $this->commission_percentage_myket,
+
+            default => $this->commission_percentage_zibal,
+        };
+    }
 
     public function book(): BelongsTo
     {
