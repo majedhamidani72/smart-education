@@ -153,36 +153,28 @@ class TeacherResource extends Resource
                     ->label('موبایل')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('teacherAssignments.book.title')
-                    ->label('کتاب‌ها')
+                Tables\Columns\TextColumn::make('books_by_grade')
+                    ->label('پایه و کتاب')
                     ->getStateUsing(function (User $record) {
 
-                        $titles = $record->teacherAssignments()
-                            ->where('is_active', true)
-                            ->with('book')
-                            ->get()
-                            ->pluck('book.title')
-                            ->filter()
-                            ->implode('، ');
-
-                        return $titles ?: '—';
-                    })
-                    ->wrap(),
-
-                Tables\Columns\TextColumn::make('grades')
-                    ->label('پایه‌ها')
-                    ->getStateUsing(function (User $record) {
-
-                        $grades = $record->teacherAssignments()
+                        $assignments = $record->teacherAssignments()
                             ->where('is_active', true)
                             ->with('book.appGradeSubject.grade')
                             ->get()
-                            ->pluck('book.appGradeSubject.grade.title')
-                            ->filter()
-                            ->unique()
-                            ->implode('، ');
+                            ->filter(fn($a) => $a->book?->appGradeSubject?->grade)
+                            // مرتب‌سازی بر اساس شماره‌ی واقعی پایه
+                            // (نه اسمش)، تا «چهارم» همیشه قبل از
+                            // «ششم» بیاید، نه بر اساس هرترتیبی که
+                            // توی دیتابیس ذخیره شده.
+                            ->sortBy(fn($a) => $a->book->appGradeSubject->grade->grade_number);
 
-                        return $grades ?: '—';
+                        if ($assignments->isEmpty()) {
+                            return '—';
+                        }
+
+                        return $assignments
+                            ->map(fn($a) => $a->book->appGradeSubject->grade->title.': '.$a->book->title)
+                            ->implode('، ');
                     })
                     ->wrap(),
 
