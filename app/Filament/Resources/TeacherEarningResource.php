@@ -147,6 +147,12 @@ class TeacherEarningResource extends Resource
                     ->label('معلم')
                     ->searchable(),
 
+                Tables\Columns\TextColumn::make('teacher.teacherProfile.card_number')
+                    ->label('شماره کارت')
+                    ->placeholder('ثبت نشده')
+                    ->copyable()
+                    ->copyMessage('شماره کارت کپی شد.'),
+
                 Tables\Columns\TextColumn::make('purchase.invoice_number')
                     ->label('شماره فاکتور')
                     ->searchable(),
@@ -292,6 +298,6 @@ class TeacherEarningResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['teacher', 'purchase', 'purchaseItem']);
+            ->with(['teacher.teacherProfile', 'purchase', 'purchaseItem']);
     }
 }

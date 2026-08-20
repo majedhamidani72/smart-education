@@ -21,7 +21,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, \Filament\Models\Contracts\HasAvatar
 {
 
 
@@ -183,6 +183,26 @@ class User extends Authenticatable implements FilamentUser
         }
 
         return false;
+    }
+
+    /**
+     * پروفایل معلم — فقط برای کاربرهایی معنا دارد که نقش معلم
+     * دارند، ولی رابطه برای همه‌ی کاربرها تعریف شده (اگر رکوردی
+     * نباشد، فقط null برمی‌گردد).
+     */
+    public function teacherProfile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\TeacherProfile::class);
+    }
+
+    /**
+     * عکس پروفایل که Filament بالای هر صفحه (کنار نام کاربر)
+     * نشان می‌دهد — از همان عکسی که خودِ معلم توی «پروفایل من»
+     * آپلود کرده می‌آید.
+     */
+    public function getFilamentAvatarUrl(): ?string
+    {
+        return $this->teacherProfile?->photo_url;
     }
 
     public function canAccessPanel(
