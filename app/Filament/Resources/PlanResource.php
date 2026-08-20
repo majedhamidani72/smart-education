@@ -52,6 +52,7 @@ class PlanResource extends Resource
                 ->label('عنوان پلن')
                 ->required()
                 ->maxLength(255)
+                ->placeholder('مثلاً: دسترسی کامل پایه پنجم — یک‌ساله')
                 ->columnSpanFull(),
 
             Forms\Components\Textarea::make('description')
