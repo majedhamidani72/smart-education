@@ -157,14 +157,14 @@ class PlanResource extends Resource
                     Forms\Components\TextInput::make('price')
                         ->label('قیمت (تومان)')
                         ->numeric()
-                        ->mask(RawJs::make('$money($input, \',\')'))
+                        ->mask(RawJs::make('$money($input, \',\', \'.\', 0)'))
                         ->stripCharacters(',')
                         ->required(),
 
                     Forms\Components\TextInput::make('discount_price')
                         ->label('قیمت با تخفیف (تومان، اختیاری)')
                         ->numeric()
-                        ->mask(RawJs::make('$money($input, \',\')'))
+                        ->mask(RawJs::make('$money($input, \',\', \'.\', 0)'))
                         ->stripCharacters(','),
 
                     Forms\Components\Select::make('purchase_type')
