@@ -97,6 +97,10 @@ class MyAdminProfile extends Page
             ->title('پروفایل با موفقیت ذخیره شد.')
             ->success()
             ->send();
+
+        // آواتار بالای داشبورد جزو همین Livewire نیست؛ برای دیدن
+        // فوری عکس جدید، صفحه یک‌بار رفرش می‌شود.
+        $this->js('window.location.reload()');
     }
 
     /**
