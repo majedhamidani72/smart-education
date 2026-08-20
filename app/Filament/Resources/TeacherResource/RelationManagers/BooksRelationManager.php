@@ -104,9 +104,12 @@ class BooksRelationManager extends RelationManager
 
     /**
      * موقع ویرایش یک تخصیص موجود، زنجیره‌ی بالا (اپ/پایه/درس) از
-     * روی کتاب واقعی بازسازی می‌شود.
+     * روی کتاب واقعی بازسازی می‌شود. نکته‌ی فنی مهم: چون این
+     * فرم داخل یک اکشن جدولی (نه یک صفحه‌ی مستقل) است، متد
+     * mutateFormDataBeforeFill خودکار صدا زده نمی‌شود — باید
+     * مستقیم روی خودِ EditAction وصل شود.
      */
-    public function mutateFormDataBeforeFill(array $data): array
+    protected function fillEditFormData(array $data): array
     {
         if (! empty($data['book_id'])) {
 
@@ -125,7 +128,7 @@ class BooksRelationManager extends RelationManager
         return $data;
     }
 
-    public function mutateFormDataBeforeCreate(array $data): array
+    protected function fillCreateFormData(array $data): array
     {
         $data['assigned_by'] = auth()->id();
 
@@ -158,10 +161,12 @@ class BooksRelationManager extends RelationManager
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('افزودن کتاب'),
+                    ->label('افزودن کتاب')
+                    ->mutateFormDataUsing(fn(array $data) => $this->fillCreateFormData($data)),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->mutateRecordDataUsing(fn(array $data) => $this->fillEditFormData($data)),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
