@@ -157,28 +157,12 @@ class PlanResource extends Resource
                         ->label('قیمت (تومان)')
                         ->numeric()
                         ->minValue(0)
-                        ->live(onBlur: true)
                         ->required(),
-
-                    Forms\Components\Placeholder::make('price_preview')
-                        ->label('')
-                        ->content(fn(Get $get) => $get('price')
-                            ? number_format((int) $get('price')).' تومان'
-                            : null)
-                        ->visible(fn(Get $get) => filled($get('price'))),
 
                     Forms\Components\TextInput::make('discount_price')
                         ->label('قیمت با تخفیف (تومان، اختیاری)')
                         ->numeric()
-                        ->minValue(0)
-                        ->live(onBlur: true),
-
-                    Forms\Components\Placeholder::make('discount_price_preview')
-                        ->label('')
-                        ->content(fn(Get $get) => $get('discount_price')
-                            ? number_format((int) $get('discount_price')).' تومان'
-                            : null)
-                        ->visible(fn(Get $get) => filled($get('discount_price'))),
+                        ->minValue(0),
 
                     Forms\Components\Select::make('purchase_type')
                         ->label('نوع خرید')
