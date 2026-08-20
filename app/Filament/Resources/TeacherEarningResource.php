@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TeacherEarningResource\Pages;
+use App\Filament\Forms\Components\JalaliDateTimePicker;
 use App\Models\TeacherEarning;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -62,10 +63,10 @@ class TeacherEarningResource extends Resource
                 ->label('شماره تسویه')
                 ->visible(fn(Forms\Get $get) => $get('status') === 'paid'),
 
-            Forms\Components\DateTimePicker::make('paid_at')
+            JalaliDateTimePicker::make('paid_at')
                 ->label('تاریخ تسویه')
                 ->visible(fn(Forms\Get $get) => $get('status') === 'paid')
-                ->default(now()),
+                ->default(now()->format('Y-m-d H:i:s')),
 
             Forms\Components\Textarea::make('notes')
                 ->label('یادداشت')

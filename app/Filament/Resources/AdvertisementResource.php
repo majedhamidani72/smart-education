@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\AdvertisementResource\Pages;
+use App\Filament\Forms\Components\JalaliDateTimePicker;
 use App\Models\Advertisement;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -84,11 +85,11 @@ class AdvertisementResource extends Resource
                 ->default(1)
                 ->required(),
 
-            Forms\Components\DateTimePicker::make('starts_at')
+            JalaliDateTimePicker::make('starts_at')
                 ->label('شروع نمایش (اختیاری)')
                 ->helperText('خالی بگذارید یعنی همین الان.'),
 
-            Forms\Components\DateTimePicker::make('expires_at')
+            JalaliDateTimePicker::make('expires_at')
                 ->label('پایان نمایش (اختیاری)')
                 ->helperText('خالی بگذارید یعنی تا وقتی که دستی غیرفعالش نکنی.'),
 
