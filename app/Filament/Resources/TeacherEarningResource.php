@@ -32,6 +32,28 @@ class TeacherEarningResource extends Resource
 
     protected static ?string $navigationGroup = 'مدیریت مالی';
 
+    /**
+     * اسم این صفحه بسته به نقش کاربر فرق می‌کند: برای معلم چون
+     * فقط درآمد خودش را می‌بیند، «درآمد معلم» (حالت شخصی)؛ برای
+     * ادمین/سوپرادمین که همه را می‌بینند، «درآمد ادمین».
+     */
+    public static function getNavigationLabel(): string
+    {
+        return auth()->user()?->hasRole('Teacher')
+            ? 'درآمد معلم'
+            : 'درآمد ادمین';
+    }
+
+    public static function getModelLabel(): string
+    {
+        return static::getNavigationLabel();
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return static::getNavigationLabel();
+    }
+
     protected static ?string $navigationLabel = 'درآمد معلمان';
 
     protected static ?string $modelLabel = 'درآمد معلم';
@@ -297,7 +319,17 @@ class TeacherEarningResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $query = parent::getEloquentQuery()
             ->with(['teacher.teacherProfile', 'purchase', 'purchaseItem']);
+
+        $user = auth()->user();
+
+        // معلم فقط باید درآمد خودش را ببیند — نه معلم‌های دیگر را.
+        if ($user?->hasRole('Teacher')) {
+
+            return $query->where('teacher_id', $user->id);
+        }
+
+        return $query;
     }
 }
