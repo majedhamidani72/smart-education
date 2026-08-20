@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PurchaseResource\Pages;
+use App\Filament\Forms\Components\JalaliDateTimePicker;
 use App\Filament\Resources\PurchaseResource\RelationManagers;
 use App\Models\Purchase;
 use Filament\Forms;
@@ -224,8 +225,8 @@ class PurchaseResource extends Resource
                 Tables\Filters\Filter::make('created_at')
                     ->label('بازه‌ی تاریخ ثبت')
                     ->form([
-                        Forms\Components\DatePicker::make('from')->label('از'),
-                        Forms\Components\DatePicker::make('until')->label('تا'),
+                        JalaliDateTimePicker::make('from')->label('از'),
+                        JalaliDateTimePicker::make('until')->label('تا'),
                     ])
                     ->query(function ($query, array $data) {
                         return $query
