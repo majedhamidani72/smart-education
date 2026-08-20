@@ -40,6 +40,7 @@
                         <th style="padding:0.75rem 1rem;text-align:right">کارمزد پایه</th>
                         <th style="padding:0.75rem 1rem;text-align:right">کف / سقف</th>
                         <th style="padding:0.75rem 1rem;text-align:right">مالیات ارزش‌افزوده</th>
+                        <th style="padding:0.75rem 1rem;text-align:right">نکته</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -48,18 +49,21 @@
                         <td style="padding:0.75rem 1rem">{{ $fees['zibal']['percentage'] }}٪</td>
                         <td style="padding:0.75rem 1rem">{{ number_format($fees['zibal']['min']) }} تا {{ number_format($fees['zibal']['max']) }} تومان</td>
                         <td style="padding:0.75rem 1rem">{{ $fees['zibal']['vat'] }}٪ روی خودِ کارمزد</td>
+                        <td style="padding:0.75rem 1rem">—</td>
                     </tr>
                     <tr style="border-top:1px solid var(--border,#e5e7eb)">
                         <td style="padding:0.75rem 1rem;font-weight:600">کافه‌بازار</td>
                         <td style="padding:0.75rem 1rem">{{ $fees['bazaar']['percentage'] }}٪</td>
                         <td style="padding:0.75rem 1rem">—</td>
                         <td style="padding:0.75rem 1rem">—</td>
+                        <td style="padding:0.75rem 1rem;font-size:0.8rem;color:var(--text-muted,#6b7280)">پلکانی: تا ۱ میلیارد تومان درآمد سالانه‌ی اپ، ۱۵٪ — بالاتر از آن، ۳۰٪</td>
                     </tr>
                     <tr style="border-top:1px solid var(--border,#e5e7eb)">
                         <td style="padding:0.75rem 1rem;font-weight:600">مایکت</td>
                         <td style="padding:0.75rem 1rem">{{ $fees['myket']['percentage'] }}٪</td>
                         <td style="padding:0.75rem 1rem">—</td>
                         <td style="padding:0.75rem 1rem">—</td>
+                        <td style="padding:0.75rem 1rem;font-size:0.8rem;color:var(--text-muted,#6b7280)">پلکانی: تا ۱ میلیارد تومان درآمد سالانه‌ی اپ، ۱۵٪ — بالاتر از آن، ۳۰٪</td>
                     </tr>
                 </tbody>
             </table>
