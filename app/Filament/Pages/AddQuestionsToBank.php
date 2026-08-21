@@ -298,26 +298,11 @@ class AddQuestionsToBank extends Page implements HasForms
 
                         Forms\Components\Toggle::make('is_correct')->label('پاسخ صحیح')->live()->default(false),
 
-                        Forms\Components\Select::make('recommended_content_item_id')
+                        Forms\Components\Textarea::make('recommendation_text')
                             ->label('پیشنهاد مطالعه در صورت انتخاب این گزینه (اگر غلط باشد)')
-                            ->options(function () {
-                                return \App\Models\ContentItem::with('chapter.book', 'section')
-                                    ->limit(300)
-                                    ->get()
-                                    ->mapWithKeys(function ($item) {
-
-                                        $path = collect([
-                                            $item->chapter?->book?->title,
-                                            $item->chapter?->title,
-                                            $item->section?->title,
-                                        ])->filter()->implode(' > ');
-
-                                        return [$item->id => ($path ? $path.' — ' : '').$item->title];
-                                    });
-                            })
-                            ->searchable()
+                            ->placeholder('مثلاً: صفحه ۴۵ کتاب را دوباره بخوان، یا کلیپ فصل ۳ بخش ۲ را ببین')
+                            ->rows(2)
                             ->visible(fn(Get $get) => ! $get('is_correct'))
-                            ->helperText('مثلاً کلیپ یا صفحه‌ای که این ضعف را جبران می‌کند.')
                             ->columnSpanFull(),
                     ])
                     ->columns(4)
@@ -332,6 +317,14 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->label('توضیح پاسخ')
                     ->required()
                     ->rows(2)
+                    ->columnSpanFull(),
+
+                Forms\Components\FileUpload::make('explanation_image_path')
+                    ->label('تصویر توضیح پاسخ (اختیاری)')
+                    ->disk('public')
+                    ->directory('question-explanations')
+                    ->image()
+                    ->openable()
                     ->columnSpanFull(),
 
             ])
@@ -366,6 +359,10 @@ class AddQuestionsToBank extends Page implements HasForms
 
                 'explanation' => $questionData['explanation'],
 
+                'explanation_image_path' => is_array($questionData['explanation_image_path'] ?? null)
+                    ? collect($questionData['explanation_image_path'])->first()
+                    : ($questionData['explanation_image_path'] ?? null),
+
                 'created_by' => auth()->id(),
 
                 // تا خودِ معلم دکمه‌ی «ارسال برای بررسی» را نزند،
@@ -388,7 +385,7 @@ class AddQuestionsToBank extends Page implements HasForms
                         ? collect($option['image_path'])->first()
                         : ($option['image_path'] ?? null),
 
-                    'recommended_content_item_id' => $option['recommended_content_item_id'] ?? null,
+                    'recommendation_text' => $option['recommendation_text'] ?? null,
 
                     'is_correct' => $option['is_correct'] ?? false,
 

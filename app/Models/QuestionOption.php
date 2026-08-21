@@ -29,8 +29,8 @@ class QuestionOption extends Model
         // گزینه صحیح
 
 
-        'recommended_content_item_id',
-        // پیشنهاد مطالعه اگر دانش‌آموز این گزینه (اشتباه) را زد
+        'recommendation_text',
+        // پیشنهاد مطالعه (متن آزاد) اگر دانش‌آموز این گزینه (اشتباه) را زد
 
 
         'sort_order',
@@ -61,18 +61,6 @@ class QuestionOption extends Model
     {
         return $this->belongsTo(
             Question::class
-        );
-    }
-
-    /**
-     * محتوایی که اگر دانش‌آموز این گزینه‌ی غلط را انتخاب کند،
-     * برای مطالعه به او پیشنهاد می‌شود.
-     */
-    public function recommendedContentItem()
-    {
-        return $this->belongsTo(
-            ContentItem::class,
-            'recommended_content_item_id'
         );
     }
 
