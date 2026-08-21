@@ -79,46 +79,79 @@
 
         </div>
 
-    {{-- سطح ۳: لیست واقعی سوالات --}}
+    {{-- سطح ۳: لیست واقعی سوالات، به تفکیک فصل/بخش --}}
     @else
 
-        @php $questions = $this->getFilteredQuestions(); @endphp
+        @php $grouped = $this->getFilteredQuestionsGrouped(); @endphp
 
-        <button wire:click="backToExamLevels" style="margin-bottom:1.25rem;font-size:.85rem;color:var(--text-muted,#6b7280);background:none;border:none;cursor:pointer">
-            → بازگشت
-        </button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
 
-        @if ($questions->isEmpty())
+            <button wire:click="backToExamLevels" style="font-size:.85rem;color:var(--text-muted,#6b7280);background:none;border:none;cursor:pointer">
+                → بازگشت
+            </button>
+
+            <a href="{{ \App\Filament\Pages\AddQuestionsToBank::getUrl(['book_id' => $selectedBookId]) }}"
+               style="background:rgb(99,102,241);color:#fff;font-weight:600;font-size:.85rem;padding:.55rem 1.1rem;border-radius:.7rem;text-decoration:none">
+                + ایجاد سوال جدید در این کتاب
+            </a>
+
+        </div>
+
+        @if ($grouped->isEmpty())
             <div style="text-align:center;padding:3rem;color:var(--text-muted,#6b7280)">
                 سوالی در این دسته یافت نشد.
             </div>
         @else
-            <div style="overflow-x:auto;border:1px solid var(--border,#e5e7eb);border-radius:1rem">
-                <table style="width:100%;border-collapse:collapse;font-size:.9rem">
-                    <thead>
-                        <tr style="background:var(--surface-2,#f9fafb)">
-                            <th style="padding:.75rem 1rem;text-align:right">متن سوال</th>
-                            <th style="padding:.75rem 1rem;text-align:right">سطح سختی</th>
-                            <th style="padding:.75rem 1rem;text-align:right">وضعیت</th>
-                            <th style="padding:.75rem 1rem;text-align:right"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($questions as $q)
-                            <tr style="border-top:1px solid var(--border,#e5e7eb)">
-                                <td style="padding:.75rem 1rem">{{ \Illuminate\Support\Str::limit($q->question_text ?? '(تصویر)', 60) }}</td>
-                                <td style="padding:.75rem 1rem">{{ $q->difficulty }}</td>
-                                <td style="padding:.75rem 1rem">{{ $q->status }}</td>
-                                <td style="padding:.75rem 1rem">
-                                    <a href="{{ \App\Filament\Resources\QuestionResource::getUrl('edit', ['record' => $q]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
-                                        ویرایش
-                                    </a>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+
+            <div style="display:flex;flex-direction:column;gap:1.25rem">
+                @foreach ($grouped as $subGroup)
+
+                    <div style="border:1px solid var(--border,#e5e7eb);border-radius:1rem;overflow:hidden">
+
+                        <div style="background:var(--surface-2,#f9fafb);padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+
+                            <div style="font-weight:700;font-size:.9rem">
+                                @if ($subGroup['section_title'])
+                                    فصل: {{ $subGroup['chapter_title'] }} — بخش: {{ $subGroup['section_title'] }}
+                                @else
+                                    فصل: {{ $subGroup['chapter_title'] }}
+                                @endif
+                                <span style="font-weight:400;color:var(--text-muted,#6b7280);font-size:.8rem">({{ $subGroup['questions']->count() }} سوال)</span>
+                            </div>
+
+                            <a href="{{ \App\Filament\Pages\AddQuestionsToBank::getUrl([
+                                    'book_id' => $selectedBookId,
+                                    'chapter_id' => $subGroup['chapter_id'],
+                                    'section_id' => $subGroup['section_id'],
+                                ]) }}"
+                               style="background:rgb(20,184,166);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;text-decoration:none;white-space:nowrap">
+                                ادامه‌ی افزودن سوال برای همین قسمت ←
+                            </a>
+
+                        </div>
+
+                        <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+                            <tbody>
+                                @foreach ($subGroup['questions'] as $q)
+                                    <tr style="border-top:1px solid var(--border,#e5e7eb)">
+                                        <td style="padding:.75rem 1.1rem">{{ \Illuminate\Support\Str::limit($q->question_text ?? '(تصویر)', 60) }}</td>
+                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">{{ $q->difficulty }}</td>
+                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">{{ $q->status }}</td>
+                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">
+                                            <a href="{{ \App\Filament\Resources\QuestionResource::getUrl('edit', ['record' => $q]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
+                                                ویرایش
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+
+                    </div>
+
+                @endforeach
             </div>
+
         @endif
 
     @endif

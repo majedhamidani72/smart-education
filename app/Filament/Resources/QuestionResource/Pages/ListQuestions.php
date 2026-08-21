@@ -159,6 +159,30 @@ class ListQuestions extends ListRecords
         return $query->orderByDesc('created_at')->get();
     }
 
+    /**
+     * همان لیست سطح ۳، ولی این‌بار به تفکیک فصل/بخش دقیق گروه‌بندی
+     * شده — هر زیرگروه دکمه‌ی «ادامه‌ی افزودن سوال» مخصوص به خودش
+     * را دارد (با کتاب+فصل+بخش دقیقاً همان زیرگروه، از قبل پرشده).
+     */
+    public function getFilteredQuestionsGrouped()
+    {
+        return $this->getFilteredQuestions()
+            ->groupBy(fn($q) => $q->contentItem->chapter_id.'-'.($q->contentItem->section_id ?? '0'))
+            ->map(function ($questions) {
+
+                $first = $questions->first();
+
+                return [
+                    'chapter_id' => $first->contentItem->chapter_id,
+                    'chapter_title' => $first->contentItem->chapter?->title,
+                    'section_id' => $first->contentItem->section_id,
+                    'section_title' => $first->contentItem->section?->title,
+                    'questions' => $questions,
+                ];
+            })
+            ->values();
+    }
+
     public function backToGroups(): void
     {
         $this->viewLevel = 'groups';
