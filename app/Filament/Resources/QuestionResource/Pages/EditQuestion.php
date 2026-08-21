@@ -85,6 +85,31 @@ class EditQuestion extends EditRecord
         return $data;
     }
 
+    /**
+     * بدون حداقل یک گزینه‌ی «پاسخ صحیح»، سوال اصلاً ذخیره نمی‌شود.
+     * چون گزینه‌ها یک Repeater رابطه‌ای هستند، داخل $data خودِ
+     * mutateFormDataBeforeSave نیستند — باید مستقیم از وضعیت کامل
+     * فرم خوانده شوند.
+     */
+    protected function beforeSave(): void
+    {
+        $options = $this->form->getState()['options'] ?? [];
+
+        $hasCorrect = collect($options)->contains(
+            fn($option) => ($option['is_correct'] ?? false) === true
+        );
+
+        if (! $hasCorrect) {
+
+            \Filament\Notifications\Notification::make()
+                ->title('حداقل یکی از گزینه‌ها باید «پاسخ صحیح» باشد.')
+                ->danger()
+                ->send();
+
+            $this->halt();
+        }
+    }
+
     protected function getRedirectUrl(): string
     {
         return static::getResource()::getUrl('index');

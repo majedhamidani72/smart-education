@@ -426,11 +426,27 @@ class AddQuestionsToBank extends Page implements HasForms
     /**
      * ذخیره‌ی سوال فعلی — مشترک بین دو دکمه.
      */
-    protected function persistQuestion(): void
+    protected function persistQuestion(): bool
     {
         $context = $this->contextForm->getState();
 
         $questionData = $this->questionForm->getState();
+
+        // بدون حداقل یک گزینه‌ی «پاسخ صحیح»، سوال اصلاً ذخیره
+        // نمی‌شود.
+        $hasCorrect = collect($questionData['options'] ?? [])->contains(
+            fn($option) => ($option['is_correct'] ?? false) === true
+        );
+
+        if (! $hasCorrect) {
+
+            Notification::make()
+                ->title('حداقل یکی از گزینه‌ها باید «پاسخ صحیح» باشد.')
+                ->danger()
+                ->send();
+
+            return false;
+        }
 
         DB::transaction(function () use ($context, $questionData) {
 
@@ -488,11 +504,15 @@ class AddQuestionsToBank extends Page implements HasForms
 
         // فقط فرم سوال خالی می‌شود؛ مسیر آموزشی دست‌نخورده می‌ماند.
         $this->questionForm->fill();
+
+        return true;
     }
 
     public function saveAndContinue(): void
     {
-        $this->persistQuestion();
+        if (! $this->persistQuestion()) {
+            return;
+        }
 
         Notification::make()
             ->title('سوال ذخیره شد. می‌توانی سوال بعدی را بنویسی.')
@@ -502,7 +522,9 @@ class AddQuestionsToBank extends Page implements HasForms
 
     public function saveAndExit(): void
     {
-        $this->persistQuestion();
+        if (! $this->persistQuestion()) {
+            return;
+        }
 
         Notification::make()
             ->title($this->savedCount.' سوال به‌صورت پیش‌نویس ذخیره شد.')
