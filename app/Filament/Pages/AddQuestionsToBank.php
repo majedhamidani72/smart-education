@@ -327,14 +327,6 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->searchable()->preload()->live()
                     ->afterStateUpdated(fn(Set $set) => $set('content_item_id', null)),
 
-                Forms\Components\Select::make('content_item_id')
-                    ->label('محتوای آموزشی (کلیپ، اختیاری)')
-                    ->options(function (Get $get) {
-                        if (! $get('section_id')) return [];
-                        return ContentItem::where('section_id', $get('section_id'))->pluck('title', 'id');
-                    })
-                    ->searchable()->preload(),
-
             ])
             ->columns(4)
             ->statePath('context');
@@ -422,6 +414,32 @@ class AddQuestionsToBank extends Page implements HasForms
         $context = $this->contextForm->getState();
 
         $questionData = $this->questionForm->getState();
+
+        // چون دیگر فیلد «محتوای آموزشی» به‌صورت دستی توی فرم
+        // نیست، اینجا خودکار و بی‌صدا از روی بخش/فصلی که انتخاب
+        // شده، اولین محتوای موجود همان‌جا پیدا و وصل می‌شود — تا
+        // این سوال هم توی «بانک سوالات» سه‌سطحی درست دیده شود.
+        if (empty($context['content_item_id'])) {
+
+            $contentItemQuery = ContentItem::query();
+
+            if (! empty($context['section_id'])) {
+
+                $contentItemQuery->where('section_id', $context['section_id']);
+
+            } elseif (! empty($context['chapter_id'])) {
+
+                $contentItemQuery->where('chapter_id', $context['chapter_id']);
+
+            } else {
+
+                $contentItemQuery->whereRaw('1 = 0');
+            }
+
+            $context['content_item_id'] = $contentItemQuery
+                ->orderBy('sort_order')
+                ->value('id');
+        }
 
         // بدون حداقل یک گزینه‌ی «پاسخ صحیح»، سوال اصلاً ذخیره
         // نمی‌شود.
