@@ -75,9 +75,60 @@ class AddQuestionsToBank extends Page implements HasForms
 
     public function mount(): void
     {
-        $this->contextForm->fill();
+        $initial = $this->resolveInitialContext();
+
+        $this->contextForm->fill($initial);
 
         $this->questionForm->fill();
+    }
+
+    /**
+     * اگر از دکمه‌ی «ادامه‌ی افزودن سوال» یک گروه خاص (توی بانک
+     * سوالات) به این صفحه آمده باشیم، مسیر آموزشی همان گروه از
+     * روی content_item_id که توی آدرس فرستاده شده، بازسازی و
+     * از قبل پر می‌شود.
+     */
+    protected function resolveInitialContext(): array
+    {
+        $contentItemId = request()->query('content_item_id');
+
+        $topicId = request()->query('question_topic_id');
+
+        if (! $contentItemId) {
+            return $topicId ? ['question_topic_id' => $topicId] : [];
+        }
+
+        $contentItem = ContentItem::query()
+            ->with('chapter.book.appGradeSubject', 'section')
+            ->find($contentItemId);
+
+        $chapter = $contentItem?->chapter;
+
+        if (! $chapter || ! $chapter->book) {
+            return $topicId ? ['question_topic_id' => $topicId] : [];
+        }
+
+        $book = $chapter->book;
+
+        return [
+
+            'app_id' => $book->appGradeSubject?->app_id,
+
+            'grade_id' => $book->appGradeSubject?->grade_id,
+
+            'subject_id' => $book->appGradeSubject?->subject_id,
+
+            'book_id' => $book->id,
+
+            'chapter_id' => $chapter->id,
+
+            'section_id' => $contentItem->section_id,
+
+            'content_item_id' => $contentItem->id,
+
+            'question_topic_id' => $topicId,
+
+        ];
     }
 
     protected function getForms(): array

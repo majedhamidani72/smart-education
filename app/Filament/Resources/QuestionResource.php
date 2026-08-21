@@ -550,6 +550,22 @@ class QuestionResource extends Resource
             ])
             ->actions([
 
+                // دکمه‌ی «ادامه‌ی افزودن سوال» با همون مسیر آموزشی
+                // این سوال، به «افزودن سریع سوال» می‌رود — دیگر
+                // لازم نیست دوباره اپ/پایه/درس/کتاب را انتخاب کنی.
+                Tables\Actions\Action::make('continueAdding')
+                    ->label('ادامه‌ی افزودن سوال')
+                    ->icon('heroicon-o-plus-circle')
+                    ->color('primary')
+                    ->url(fn($record) => \App\Filament\Pages\AddQuestionsToBank::getUrl([
+                        'content_item_id' => $record->content_item_id,
+                        'question_topic_id' => $record->question_topic_id,
+                    ]))
+                    ->visible(fn($record) => $record->content_item_id
+                        && (auth()->user()?->hasRole('SuperAdmin')
+                            || auth()->user()?->hasRole('Admin')
+                            || $record->created_by === auth()->id())),
+
                 // معلم فقط سوالات «پیش‌نویس» خودش را می‌تواند
                 // «ارسال برای بررسی» کند — از این لحظه به بعد،
                 // دیگر قابل ویرایش مستقیم نیست و در صف تایید ادمین
