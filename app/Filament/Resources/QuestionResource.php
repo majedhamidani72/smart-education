@@ -477,11 +477,13 @@ class QuestionResource extends Resource
                 Tables\Columns\BadgeColumn::make('status')
                     ->label('وضعیت')
                     ->colors([
+                        'gray' => 'draft',
                         'warning' => 'pending',
                         'success' => 'approved',
                         'danger' => 'rejected',
                     ])
                     ->formatStateUsing(fn($state) => match ($state) {
+                        'draft' => 'پیش نویس (ارسال نشده)',
                         'pending' => 'در انتظار بررسی',
                         'approved' => 'تأیید شده',
                         'rejected' => 'رد شده',
@@ -532,6 +534,29 @@ class QuestionResource extends Resource
 
             ])
             ->actions([
+
+                // معلم فقط سوالات «پیش‌نویس» خودش را می‌تواند
+                // «ارسال برای بررسی» کند — از این لحظه به بعد،
+                // دیگر قابل ویرایش مستقیم نیست و در صف تایید ادمین
+                // قرار می‌گیرد.
+                Tables\Actions\Action::make('submitForReview')
+                    ->label('ارسال برای بررسی')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('primary')
+                    ->visible(fn($record) =>
+                        $record->status === 'draft'
+                        && $record->created_by === auth()->id())
+                    ->requiresConfirmation()
+                    ->modalDescription('بعد از ارسال، دیگر نمی‌توانی این سوال را ویرایش کنی تا ادمین بررسی‌اش کند.')
+                    ->action(function ($record) {
+
+                        $record->update(['status' => 'pending']);
+
+                        Notification::make()
+                            ->title('سوال برای بررسی ارسال شد.')
+                            ->success()
+                            ->send();
+                    }),
 
                 // کلیک روی بادج وضعیت، بدون رفتن به صفحه‌ی ویرایش،
                 // مستقیم یه مودال کوچیک برای تایید/رد باز می‌کنه —
@@ -594,6 +619,36 @@ class QuestionResource extends Resource
             ->bulkActions([
 
                 Tables\Actions\BulkActionGroup::make([
+
+                    // معلم می‌تواند چندتا سوال پیش‌نویس خودش را
+                    // (مثلاً همه‌ی سوالاتی که برای یک بخش نوشته)
+                    // با یک کلیک، همه باهم برای بررسی بفرستد.
+                    Tables\Actions\BulkAction::make('submitForReviewBulk')
+                        ->label('ارسال برای بررسی')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('primary')
+                        ->requiresConfirmation()
+                        ->modalDescription('بعد از ارسال، دیگر نمی‌توانی این سوالات را ویرایش کنی تا ادمین بررسی‌شان کند.')
+                        ->action(function ($records) {
+
+                            $count = 0;
+
+                            foreach ($records as $record) {
+
+                                if ($record->status !== 'draft' || $record->created_by !== auth()->id()) {
+                                    continue;
+                                }
+
+                                $record->update(['status' => 'pending']);
+
+                                $count++;
+                            }
+
+                            Notification::make()
+                                ->title($count.' سوال برای بررسی ارسال شد.')
+                                ->success()
+                                ->send();
+                        }),
 
                     // با گروه‌بندی جدول، کاربر می‌تواند از طریق
                     // چک‌باکس بالای هر گروه، همه‌ی سوالات همان
@@ -676,7 +731,7 @@ class QuestionResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ])
@@ -684,5 +739,16 @@ class QuestionResource extends Resource
                 'contentItem.chapter.book',
                 'contentItem.section',
             ]);
+
+        $user = auth()->user();
+
+        // معلم فقط سوالات خودش را می‌بیند، نه سوالات معلم‌های
+        // دیگر را.
+        if ($user?->hasRole('Teacher') && ! $user->hasRole('SuperAdmin') && ! $user->hasRole('Admin')) {
+
+            return $query->where('created_by', $user->id);
+        }
+
+        return $query;
     }
 }
