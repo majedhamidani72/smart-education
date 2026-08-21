@@ -359,7 +359,6 @@ class QuestionResource extends Resource
 
                     Forms\Components\Textarea::make('explanation')
                         ->label('توضیح')
-                        ->required()
                         ->rows(3)
                         ->columnSpanFull(),
 

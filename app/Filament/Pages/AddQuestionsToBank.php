@@ -314,7 +314,6 @@ class AddQuestionsToBank extends Page implements HasForms
 
                 Forms\Components\Textarea::make('explanation')
                     ->label('توضیح پاسخ')
-                    ->required()
                     ->rows(2)
                     ->columnSpanFull(),
 
