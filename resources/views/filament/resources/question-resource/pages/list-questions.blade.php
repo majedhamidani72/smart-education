@@ -110,17 +110,39 @@
             </div>
         @else
 
+            @php
+                // رنگ هر فصل بر اساس هش شناسه‌ی همان فصل ثابت
+                // می‌ماند — یعنی همیشه یک فصل مشخص، همیشه همان رنگ
+                // را دارد (نه رنگ تصادفی هر بار که صفحه باز می‌شود).
+                $chapterPalette = [
+                    ['bg' => 'rgba(99,102,241,0.07)', 'accent' => 'rgb(99,102,241)'],
+                    ['bg' => 'rgba(20,184,166,0.07)', 'accent' => 'rgb(13,148,136)'],
+                    ['bg' => 'rgba(234,179,8,0.07)', 'accent' => 'rgb(202,138,4)'],
+                    ['bg' => 'rgba(217,70,239,0.07)', 'accent' => 'rgb(192,38,211)'],
+                    ['bg' => 'rgba(239,68,68,0.07)', 'accent' => 'rgb(220,38,38)'],
+                    ['bg' => 'rgba(34,197,94,0.07)', 'accent' => 'rgb(21,128,61)'],
+                    ['bg' => 'rgba(59,130,246,0.07)', 'accent' => 'rgb(37,99,235)'],
+                    ['bg' => 'rgba(249,115,22,0.07)', 'accent' => 'rgb(194,65,12)'],
+                ];
+            @endphp
+
             {{-- هر زیرگروه یک <details> جمع‌شونده است — با تعداد
                  زیاد بخش، صفحه شلوغ نمی‌شود چون فقط عنوان‌ها دیده
-                 می‌شوند تا خودت یکی را باز کنی. --}}
+                 می‌شوند تا خودت یکی را باز کنی. رنگ هر فصل با
+                 فصل‌های دیگر فرق دارد تا سریع از هم تشخیص داده
+                 شوند. --}}
             <div style="display:flex;flex-direction:column;gap:.85rem">
                 @foreach ($grouped as $subGroup)
 
-                    <details style="border:1px solid var(--border,#e5e7eb);border-radius:1rem;overflow:hidden">
+                    @php
+                        $chapterColors = $chapterPalette[crc32((string) $subGroup['chapter_id']) % count($chapterPalette)];
+                    @endphp
 
-                        <summary style="cursor:pointer;list-style:none;background:var(--surface-2,#f9fafb);padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+                    <details style="border:1px solid {{ $chapterColors['accent'] }}33;border-right:4px solid {{ $chapterColors['accent'] }};border-radius:1rem;overflow:hidden">
 
-                            <div style="font-weight:700;font-size:.9rem">
+                        <summary style="cursor:pointer;list-style:none;background:{{ $chapterColors['bg'] }};padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+
+                            <div style="font-weight:700;font-size:.9rem;color:{{ $chapterColors['accent'] }}">
                                 @if ($subGroup['section_title'])
                                     فصل: {{ $subGroup['chapter_title'] }} — بخش: {{ $subGroup['section_title'] }}
                                 @else
