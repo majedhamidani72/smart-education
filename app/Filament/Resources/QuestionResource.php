@@ -737,11 +737,20 @@ class QuestionResource extends Resource
 
             'index' => Pages\ListQuestions::route('/'),
 
-            'create' => Pages\CreateQuestion::route('/create'),
-
             'edit' => Pages\EditQuestion::route('/{record}/edit'),
 
         ];
+    }
+
+    /**
+     * مسیر «ایجاد» مستقیم غیرفعال است — تنها راه ساخت سوال جدید،
+     * صفحه‌ی «افزودن سریع سوال» است (که همان کار را بهتر انجام
+     * می‌دهد). ویرایش سوال موجود همچنان از همین Resource ممکن
+     * است.
+     */
+    public static function canCreate(): bool
+    {
+        return false;
     }
 
     public static function getEloquentQuery(): Builder
