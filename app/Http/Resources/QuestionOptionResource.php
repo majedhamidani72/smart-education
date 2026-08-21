@@ -30,7 +30,7 @@ class QuestionOptionResource extends JsonResource
             */
 
             'is_correct' => $this->when(
-                $request->user()?->hasRole('admin'),
+                $request->user()?->hasAnyRole(['SuperAdmin', 'Admin', 'Teacher']),
                 $this->is_correct
             ),
 
