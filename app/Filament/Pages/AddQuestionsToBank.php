@@ -272,6 +272,7 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->label('متن سوال')
                     ->live()
                     ->required(fn(Get $get) => blank($get('image_path')))
+                    ->helperText('حداقل یکی از متن سوال یا تصویر سوال باید پر شود.')
                     ->rows(3)
                     ->columnSpanFull(),
 
@@ -280,6 +281,7 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->disk('public')->directory('questions')->image()->openable()
                     ->live()
                     ->required(fn(Get $get) => blank($get('question_text')))
+                    ->helperText('حداقل یکی از متن سوال یا تصویر سوال باید پر شود.')
                     ->columnSpanFull(),
 
                 Forms\Components\Repeater::make('options')

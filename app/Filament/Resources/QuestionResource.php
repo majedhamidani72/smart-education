@@ -296,6 +296,7 @@ class QuestionResource extends Resource
                         ->label('متن سوال')
                         ->live()
                         ->required(fn(Get $get) => blank($get('image_path')))
+                        ->helperText('حداقل یکی از متن سوال یا تصویر سوال باید پر شود.')
                         ->rows(3)
                         ->columnSpanFull(),
 
