@@ -29,7 +29,7 @@ class ListQuizzes extends ListRecords
 
             Actions\CreateAction::make()
 
-                ->label('ایجاد آزمون'),
+                ->label('ایجاد تنظیمات آزمون'),
 
 
         ];
