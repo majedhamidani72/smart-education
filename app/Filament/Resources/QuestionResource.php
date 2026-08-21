@@ -339,7 +339,30 @@ class QuestionResource extends Resource
 
                             Forms\Components\Toggle::make('is_correct')
                                 ->label('پاسخ صحیح')
+                                ->live()
                                 ->default(false),
+
+                            Forms\Components\Select::make('recommended_content_item_id')
+                                ->label('پیشنهاد مطالعه در صورت انتخاب این گزینه (اگر غلط باشد)')
+                                ->options(function () {
+                                    return \App\Models\ContentItem::with('chapter.book', 'section')
+                                        ->limit(300)
+                                        ->get()
+                                        ->mapWithKeys(function ($item) {
+
+                                            $path = collect([
+                                                $item->chapter?->book?->title,
+                                                $item->chapter?->title,
+                                                $item->section?->title,
+                                            ])->filter()->implode(' > ');
+
+                                            return [$item->id => ($path ? $path.' — ' : '').$item->title];
+                                        });
+                                })
+                                ->searchable()
+                                ->visible(fn(Forms\Get $get) => ! $get('is_correct'))
+                                ->helperText('مثلاً کلیپ یا صفحه‌ای که این ضعف را جبران می‌کند.')
+                                ->columnSpanFull(),
 
                         ])
                         ->columns(4)

@@ -296,7 +296,29 @@ class AddQuestionsToBank extends Page implements HasForms
                             ->image()
                             ->openable(),
 
-                        Forms\Components\Toggle::make('is_correct')->label('پاسخ صحیح')->default(false),
+                        Forms\Components\Toggle::make('is_correct')->label('پاسخ صحیح')->live()->default(false),
+
+                        Forms\Components\Select::make('recommended_content_item_id')
+                            ->label('پیشنهاد مطالعه در صورت انتخاب این گزینه (اگر غلط باشد)')
+                            ->options(function () {
+                                return \App\Models\ContentItem::with('chapter.book', 'section')
+                                    ->limit(300)
+                                    ->get()
+                                    ->mapWithKeys(function ($item) {
+
+                                        $path = collect([
+                                            $item->chapter?->book?->title,
+                                            $item->chapter?->title,
+                                            $item->section?->title,
+                                        ])->filter()->implode(' > ');
+
+                                        return [$item->id => ($path ? $path.' — ' : '').$item->title];
+                                    });
+                            })
+                            ->searchable()
+                            ->visible(fn(Get $get) => ! $get('is_correct'))
+                            ->helperText('مثلاً کلیپ یا صفحه‌ای که این ضعف را جبران می‌کند.')
+                            ->columnSpanFull(),
                     ])
                     ->columns(4)
                     ->defaultItems(4)
@@ -365,6 +387,8 @@ class AddQuestionsToBank extends Page implements HasForms
                     'image_path' => is_array($option['image_path'] ?? null)
                         ? collect($option['image_path'])->first()
                         : ($option['image_path'] ?? null),
+
+                    'recommended_content_item_id' => $option['recommended_content_item_id'] ?? null,
 
                     'is_correct' => $option['is_correct'] ?? false,
 
