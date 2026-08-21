@@ -82,14 +82,52 @@ class AddQuestionsToBank extends Page implements HasForms
         ];
     }
 
+    /**
+     * کتاب‌هایی که معلم فعلی به آن‌ها دسترسی دارد — همان منطق
+     * QuizResource::teacherAssignedBooks. برای محدود کردن فیلدهای
+     * اپلیکیشن/پایه/درس/کتاب فقط به دامنه‌ی واقعی معلم؛ ادمین/
+     * سوپرادمین محدودیتی ندارند.
+     */
+    protected function teacherAssignedBooks(): \Illuminate\Support\Collection
+    {
+        $user = auth()->user();
+
+        if (! $user->hasRole('Teacher') || $user->hasRole('Admin') || $user->hasRole('SuperAdmin')) {
+            return collect();
+        }
+
+        $bookIds = \App\Models\TeacherAssignment::query()
+            ->where('teacher_id', $user->id)
+            ->where('is_active', true)
+            ->pluck('book_id');
+
+        return Book::query()
+            ->whereIn('id', $bookIds)
+            ->where('is_active', true)
+            ->with('appGradeSubject')
+            ->get();
+    }
+
     public function contextForm(Form $form): Form
     {
+        $teacherBooks = $this->teacherAssignedBooks();
+
+        $isScoped = $teacherBooks->isNotEmpty();
+
         return $form
             ->schema([
 
                 Forms\Components\Select::make('app_id')
                     ->label('اپلیکیشن')
-                    ->options(App::where('is_active', true)->orderBy('sort_order')->pluck('title', 'id'))
+                    ->options(function () use ($teacherBooks, $isScoped) {
+
+                        if (! $isScoped) {
+                            return App::where('is_active', true)->orderBy('sort_order')->pluck('title', 'id');
+                        }
+
+                        return App::whereIn('id', $teacherBooks->pluck('appGradeSubject.app_id')->unique())
+                            ->orderBy('sort_order')->pluck('title', 'id');
+                    })
                     ->searchable()->preload()->live()
                     ->afterStateUpdated(function (Set $set) {
                         $set('grade_id', null); $set('subject_id', null); $set('book_id', null);
@@ -99,9 +137,22 @@ class AddQuestionsToBank extends Page implements HasForms
 
                 Forms\Components\Select::make('grade_id')
                     ->label('پایه')
-                    ->options(function (Get $get) {
+                    ->options(function (Get $get) use ($teacherBooks, $isScoped) {
                         if (! $get('app_id')) return [];
-                        return Grade::whereHas('appGradeSubjects', fn($q) => $q->where('app_id', $get('app_id')))
+
+                        if (! $isScoped) {
+                            return Grade::whereHas('appGradeSubjects', fn($q) => $q->where('app_id', $get('app_id')))
+                                ->orderBy('grade_number')->pluck('title', 'id');
+                        }
+
+                        // فقط پایه‌هایی که معلم واقعاً در همان
+                        // اپلیکیشن کتاب دارد.
+                        $gradeIds = $teacherBooks
+                            ->filter(fn($book) => $book->appGradeSubject?->app_id == $get('app_id'))
+                            ->pluck('appGradeSubject.grade_id')
+                            ->unique();
+
+                        return Grade::whereIn('id', $gradeIds)
                             ->orderBy('grade_number')->pluck('title', 'id');
                     })
                     ->searchable()->preload()->live()
@@ -113,10 +164,22 @@ class AddQuestionsToBank extends Page implements HasForms
 
                 Forms\Components\Select::make('subject_id')
                     ->label('درس')
-                    ->options(function (Get $get) {
+                    ->options(function (Get $get) use ($teacherBooks, $isScoped) {
                         if (! $get('grade_id')) return [];
-                        return Subject::whereHas('appGradeSubjects', fn($q) => $q
-                            ->where('app_id', $get('app_id'))->where('grade_id', $get('grade_id')))
+
+                        if (! $isScoped) {
+                            return Subject::whereHas('appGradeSubjects', fn($q) => $q
+                                ->where('app_id', $get('app_id'))->where('grade_id', $get('grade_id')))
+                                ->orderBy('sort_order')->pluck('title', 'id');
+                        }
+
+                        $subjectIds = $teacherBooks
+                            ->filter(fn($book) => $book->appGradeSubject?->app_id == $get('app_id')
+                                && $book->appGradeSubject?->grade_id == $get('grade_id'))
+                            ->pluck('appGradeSubject.subject_id')
+                            ->unique();
+
+                        return Subject::whereIn('id', $subjectIds)
                             ->orderBy('sort_order')->pluck('title', 'id');
                     })
                     ->searchable()->preload()->live()
@@ -128,13 +191,22 @@ class AddQuestionsToBank extends Page implements HasForms
 
                 Forms\Components\Select::make('book_id')
                     ->label('کتاب')
-                    ->options(function (Get $get) {
+                    ->options(function (Get $get) use ($teacherBooks, $isScoped) {
                         if (! $get('subject_id')) return [];
-                        $ags = AppGradeSubject::where('app_id', $get('app_id'))
-                            ->where('grade_id', $get('grade_id'))->where('subject_id', $get('subject_id'))->first();
-                        if (! $ags) return [];
-                        return Book::where('app_grade_subject_id', $ags->id)->where('is_active', true)
-                            ->orderBy('sort_order')->pluck('title', 'id');
+
+                        if (! $isScoped) {
+                            $ags = AppGradeSubject::where('app_id', $get('app_id'))
+                                ->where('grade_id', $get('grade_id'))->where('subject_id', $get('subject_id'))->first();
+                            if (! $ags) return [];
+                            return Book::where('app_grade_subject_id', $ags->id)->where('is_active', true)
+                                ->orderBy('sort_order')->pluck('title', 'id');
+                        }
+
+                        return $teacherBooks
+                            ->filter(fn($book) => $book->appGradeSubject?->app_id == $get('app_id')
+                                && $book->appGradeSubject?->grade_id == $get('grade_id')
+                                && $book->appGradeSubject?->subject_id == $get('subject_id'))
+                            ->pluck('title', 'id');
                     })
                     ->searchable()->preload()->live()
                     ->afterStateUpdated(function (Set $set) {
