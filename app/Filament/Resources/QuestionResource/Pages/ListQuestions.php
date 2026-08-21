@@ -14,8 +14,13 @@ class ListQuestions extends ListRecords
     {
         return [
 
-            Actions\CreateAction::make()
-                ->label('ایجاد سوال'),
+            // به‌جای فرم استاندارد «ایجاد» (که مسیر آموزشی را هر
+            // بار از نو می‌خواست)، مستقیم به صفحه‌ی «افزودن سریع
+            // سوال» می‌رود — که همان کار را بهتر انجام می‌دهد.
+            Actions\Action::make('create')
+                ->label('ایجاد سوال')
+                ->icon('heroicon-o-plus')
+                ->url(\App\Filament\Pages\AddQuestionsToBank::getUrl()),
 
         ];
     }

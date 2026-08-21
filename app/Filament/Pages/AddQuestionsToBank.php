@@ -286,9 +286,17 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->label('گزینه‌ها')
                     ->schema([
                         Forms\Components\TextInput::make('option_text')->label('متن گزینه')->required()->columnSpan(2),
+
+                        Forms\Components\FileUpload::make('image_path')
+                            ->label('تصویر گزینه (اختیاری)')
+                            ->disk('public')
+                            ->directory('question-options')
+                            ->image()
+                            ->openable(),
+
                         Forms\Components\Toggle::make('is_correct')->label('پاسخ صحیح')->default(false),
                     ])
-                    ->columns(3)
+                    ->columns(4)
                     ->defaultItems(4)
                     ->minItems(2)
                     ->maxItems(6)
@@ -351,6 +359,10 @@ class AddQuestionsToBank extends Page implements HasForms
                     'question_id' => $question->id,
 
                     'option_text' => $option['option_text'],
+
+                    'image_path' => is_array($option['image_path'] ?? null)
+                        ? collect($option['image_path'])->first()
+                        : ($option['image_path'] ?? null),
 
                     'is_correct' => $option['is_correct'] ?? false,
 
