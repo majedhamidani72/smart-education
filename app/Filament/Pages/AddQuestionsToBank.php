@@ -335,15 +335,6 @@ class AddQuestionsToBank extends Page implements HasForms
                     })
                     ->searchable()->preload(),
 
-                Forms\Components\Select::make('question_topic_id')
-                    ->label('موضوع سوال')
-                    ->options(QuestionTopic::pluck('title', 'id'))
-                    ->searchable()->preload()->required()
-                    ->createOptionForm([
-                        Forms\Components\TextInput::make('title')->label('عنوان موضوع')->required(),
-                    ])
-                    ->createOptionUsing(fn(array $data) => QuestionTopic::firstOrCreate(['title' => $data['title']])->id),
-
             ])
             ->columns(4)
             ->statePath('context');
@@ -454,7 +445,7 @@ class AddQuestionsToBank extends Page implements HasForms
 
                 'content_item_id' => $context['content_item_id'] ?? null,
 
-                'question_topic_id' => $context['question_topic_id'],
+                'question_topic_id' => $context['question_topic_id'] ?? null,
 
                 'question_text' => $questionData['question_text'] ?? null,
 
