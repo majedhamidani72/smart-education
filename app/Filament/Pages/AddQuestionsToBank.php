@@ -308,15 +308,14 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->required(),
 
                 Forms\Components\Select::make('chapter_id')
-                    ->label('فصل')
+                    ->label('فصل (اختیاری — اگر سوال برای کل کتاب است، خالی بگذار)')
                     ->options(function (Get $get) {
                         if (! $get('book_id')) return [];
                         return Chapter::where('book_id', $get('book_id'))->where('is_active', true)
                             ->orderBy('sort_order')->pluck('title', 'id');
                     })
                     ->searchable()->preload()->live()
-                    ->afterStateUpdated(fn(Set $set) => $set('section_id', null) ?: $set('content_item_id', null))
-                    ->required(),
+                    ->afterStateUpdated(fn(Set $set) => $set('section_id', null) ?: $set('content_item_id', null)),
 
                 Forms\Components\Select::make('section_id')
                     ->label('بخش (اختیاری)')
