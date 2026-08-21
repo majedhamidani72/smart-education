@@ -868,9 +868,24 @@ class QuizResource extends Resource
                 Tables\Actions\Action::make('continueQuestions')
                     ->label(function ($record) {
 
+                        // برخلاف کتاب‌های ریاضی/علوم (که ساختار
+                        // فصل→بخش دارند)، کتاب‌هایی مثل فارسی و
+                        // مطالعات از ساختار «درس» استفاده می‌کنند —
+                        // که همان مدل Chapter است، فقط با معنای
+                        // متفاوت. برای همین به‌جای «فصل»، «درس»
+                        // نوشته می‌شود؛ کتاب و فصل را دیگر جدا
+                        // نمی‌نویسیم چون در این ساختار عملاً یکی‌اند.
+                        $examStructure = $record->quizable
+                            ? static::resolveExamStructure($record)
+                            : 'chapter_section';
+
+                        $chapterLabel = $examStructure === 'lesson_term'
+                            ? 'درس'
+                            : 'فصل';
+
                         $target = match ($record->quizable_type) {
                             Section::class => 'بخش: '.($record->quizable?->title ?? '—'),
-                            Chapter::class => 'فصل: '.($record->quizable?->title ?? '—'),
+                            Chapter::class => $chapterLabel.': '.($record->quizable?->title ?? '—'),
                             Book::class => 'کل کتاب: '.($record->quizable?->title ?? '—'),
                             default => null,
                         };
