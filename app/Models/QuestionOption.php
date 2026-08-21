@@ -29,10 +29,6 @@ class QuestionOption extends Model
         // گزینه صحیح
 
 
-        'recommendation_text',
-        // پیشنهاد مطالعه (متن آزاد) اگر دانش‌آموز این گزینه (اشتباه) را زد
-
-
         'sort_order',
         // ترتیب نمایش
 

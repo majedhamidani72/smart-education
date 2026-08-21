@@ -339,15 +339,7 @@ class QuestionResource extends Resource
 
                             Forms\Components\Toggle::make('is_correct')
                                 ->label('پاسخ صحیح')
-                                ->live()
                                 ->default(false),
-
-                            Forms\Components\Textarea::make('recommendation_text')
-                                ->label('پیشنهاد مطالعه در صورت انتخاب این گزینه (اگر غلط باشد)')
-                                ->placeholder('مثلاً: صفحه ۴۵ کتاب را دوباره بخوان، یا کلیپ فصل ۳ بخش ۲ را ببین')
-                                ->rows(2)
-                                ->visible(fn(Forms\Get $get) => ! $get('is_correct'))
-                                ->columnSpanFull(),
 
                         ])
                         ->columns(4)
@@ -377,6 +369,12 @@ class QuestionResource extends Resource
                         ->directory('question-explanations')
                         ->image()
                         ->openable()
+                        ->columnSpanFull(),
+
+                    Forms\Components\Textarea::make('recommendation_text')
+                        ->label('پیشنهاد مطالعه در صورت جواب اشتباه (اختیاری)')
+                        ->placeholder('مثلاً: صفحه ۴۵ کتاب را دوباره بخوان، یا کلیپ فصل ۳ بخش ۲ را ببین')
+                        ->rows(2)
                         ->columnSpanFull(),
 
                 ]),

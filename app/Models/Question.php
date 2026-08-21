@@ -32,6 +32,8 @@ class Question extends Model
 
         'explanation_image_path',
 
+        'recommendation_text',
+
         'difficulty',
 
         'default_score',

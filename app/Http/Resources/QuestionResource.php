@@ -26,6 +26,8 @@ class QuestionResource extends JsonResource
                 ? Storage::url($this->explanation_image_path)
                 : null,
 
+            'recommendation_text' => $this->recommendation_text,
+
 
             'difficulty' => $this->difficulty,
 

@@ -35,15 +35,6 @@ class QuestionOptionResource extends JsonResource
             ),
 
 
-            // فقط اگر این گزینه غلط باشد و پیشنهادی برایش تعریف
-            // شده باشد، برای گزارش پایان آزمون (وقتی دانش‌آموز این
-            // گزینه را زده) برگردانده می‌شود.
-            'recommendation_text' => $this->when(
-                ! $this->is_correct && filled($this->recommendation_text),
-                $this->recommendation_text
-            ),
-
-
             'sort_order' => $this->sort_order,
 
 

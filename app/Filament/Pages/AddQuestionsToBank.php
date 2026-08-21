@@ -296,14 +296,7 @@ class AddQuestionsToBank extends Page implements HasForms
                             ->image()
                             ->openable(),
 
-                        Forms\Components\Toggle::make('is_correct')->label('پاسخ صحیح')->live()->default(false),
-
-                        Forms\Components\Textarea::make('recommendation_text')
-                            ->label('پیشنهاد مطالعه در صورت انتخاب این گزینه (اگر غلط باشد)')
-                            ->placeholder('مثلاً: صفحه ۴۵ کتاب را دوباره بخوان، یا کلیپ فصل ۳ بخش ۲ را ببین')
-                            ->rows(2)
-                            ->visible(fn(Get $get) => ! $get('is_correct'))
-                            ->columnSpanFull(),
+                        Forms\Components\Toggle::make('is_correct')->label('پاسخ صحیح')->default(false),
                     ])
                     ->columns(4)
                     ->defaultItems(4)
@@ -325,6 +318,12 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->directory('question-explanations')
                     ->image()
                     ->openable()
+                    ->columnSpanFull(),
+
+                Forms\Components\Textarea::make('recommendation_text')
+                    ->label('پیشنهاد مطالعه در صورت جواب اشتباه (اختیاری)')
+                    ->placeholder('مثلاً: صفحه ۴۵ کتاب را دوباره بخوان، یا کلیپ فصل ۳ بخش ۲ را ببین')
+                    ->rows(2)
                     ->columnSpanFull(),
 
             ])
@@ -363,6 +362,8 @@ class AddQuestionsToBank extends Page implements HasForms
                     ? collect($questionData['explanation_image_path'])->first()
                     : ($questionData['explanation_image_path'] ?? null),
 
+                'recommendation_text' => $questionData['recommendation_text'] ?? null,
+
                 'created_by' => auth()->id(),
 
                 // تا خودِ معلم دکمه‌ی «ارسال برای بررسی» را نزند،
@@ -384,8 +385,6 @@ class AddQuestionsToBank extends Page implements HasForms
                     'image_path' => is_array($option['image_path'] ?? null)
                         ? collect($option['image_path'])->first()
                         : ($option['image_path'] ?? null),
-
-                    'recommendation_text' => $option['recommendation_text'] ?? null,
 
                     'is_correct' => $option['is_correct'] ?? false,
 
