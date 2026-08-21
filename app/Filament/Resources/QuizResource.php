@@ -36,11 +36,11 @@ class QuizResource extends Resource
 
     protected static ?string $navigationGroup = 'آزمون آنلاین';
 
-    protected static ?string $navigationLabel = 'آزمون‌ها';
+    protected static ?string $navigationLabel = 'تنظیمات آزمون ارسالی به دانش‌آموز';
 
     protected static ?string $modelLabel = 'آزمون';
 
-    protected static ?string $pluralModelLabel = 'آزمون‌ها';
+    protected static ?string $pluralModelLabel = 'تنظیمات آزمون ارسالی به دانش‌آموز';
 
     protected static ?int $navigationSort = 1;
 

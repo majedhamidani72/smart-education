@@ -48,6 +48,12 @@ class AddQuestionsToBank extends Page implements HasForms
 
     protected static ?string $navigationLabel = 'افزودن سریع سوال';
 
+    /**
+     * این صفحه دیگر یک تب مستقل توی منو نیست — فقط از طریق دکمه‌ی
+     * «ایجاد سوال» داخل «بانک سوالات» به آن می‌رسیم.
+     */
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $title = 'افزودن سریع سوال به بانک';
 
     protected static ?int $navigationSort = 0;
