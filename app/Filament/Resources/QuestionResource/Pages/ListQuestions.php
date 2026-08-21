@@ -58,19 +58,14 @@ class ListQuestions extends ListRecords
 
     /**
      * کوئری پایه — همان محدودیتِ «معلم فقط سوالات خودش را می‌بیند»
-     * که در Resource تعریف شده، به‌علاوه‌ی این‌که ادمین/سوپرادمین
-     * هیچ‌وقت سوالات «پیش‌نویس» (هنوز ارسال‌نشده) را نمی‌بینند —
-     * چون آن‌ها هنوز کار خودِ معلم هستند، نه چیزی برای بررسی.
+     * که در Resource تعریف شده. توجه: برخلاف نسخه‌ی قبلی، اینجا
+     * دیگر چیزی مخفی نمی‌شود — سوالات پیش‌نویس همچنان برای ادمین/
+     * سوپرادمین دیده می‌شوند (شفافیت کامل)، فقط دکمه‌های تایید/رد
+     * روی آن‌ها ظاهر نمی‌شوند (چون هنوز ارسال نشده‌اند).
      */
     protected function baseQuery()
     {
-        $query = QuestionResource::getEloquentQuery();
-
-        if ($this->isReviewer()) {
-            $query->where('status', '!=', 'draft');
-        }
-
-        return $query;
+        return QuestionResource::getEloquentQuery();
     }
 
     /**
@@ -240,6 +235,38 @@ class ListQuestions extends ListRecords
 
         Notification::make()
             ->title($count.' سوال '.($decision === 'approve' ? 'تأیید' : 'رد').' شد.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * تایید یا رد یک سوال مشخص — فقط ادمین/سوپرادمین، فقط روی
+     * سوالات «در انتظار بررسی».
+     */
+    public function reviewSingleQuestion(int $questionId, string $decision): void
+    {
+        if (! $this->isReviewer()) {
+            return;
+        }
+
+        $question = Question::where('id', $questionId)
+            ->where('status', 'pending')
+            ->first();
+
+        if (! $question) {
+            return;
+        }
+
+        $question->update([
+
+            'status' => $decision === 'approve' ? 'approved' : 'rejected',
+
+            'reviewed_by' => auth()->id(),
+
+        ]);
+
+        Notification::make()
+            ->title($decision === 'approve' ? 'سوال تأیید شد.' : 'سوال رد شد.')
             ->success()
             ->send();
     }

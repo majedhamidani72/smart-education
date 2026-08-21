@@ -97,12 +97,10 @@
                 → بازگشت
             </button>
 
-            @unless ($isReviewer)
-                <a href="{{ \App\Filament\Pages\AddQuestionsToBank::getUrl(['book_id' => $selectedBookId]) }}"
-                   style="background:rgb(99,102,241);color:#fff;font-weight:600;font-size:.85rem;padding:.55rem 1.1rem;border-radius:.7rem;text-decoration:none">
-                    + ایجاد سوال جدید در این کتاب
-                </a>
-            @endunless
+            <a href="{{ \App\Filament\Pages\AddQuestionsToBank::getUrl(['book_id' => $selectedBookId]) }}"
+               style="background:rgb(99,102,241);color:#fff;font-weight:600;font-size:.85rem;padding:.55rem 1.1rem;border-radius:.7rem;text-decoration:none">
+                + ایجاد سوال جدید در این کتاب
+            </a>
 
         </div>
 
@@ -154,22 +152,28 @@
                                     </button>
                                 @endif
 
-                                @unless ($isReviewer)
-                                    <a href="{{ \App\Filament\Pages\AddQuestionsToBank::getUrl([
-                                            'book_id' => $selectedBookId,
-                                            'chapter_id' => $subGroup['chapter_id'],
-                                            'section_id' => $subGroup['section_id'],
-                                        ]) }}"
-                                       style="background:rgb(20,184,166);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;text-decoration:none;white-space:nowrap">
-                                        ادامه‌ی افزودن سوال ←
-                                    </a>
-                                @endunless
+                                <a href="{{ \App\Filament\Pages\AddQuestionsToBank::getUrl([
+                                        'book_id' => $selectedBookId,
+                                        'chapter_id' => $subGroup['chapter_id'],
+                                        'section_id' => $subGroup['section_id'],
+                                    ]) }}"
+                                   style="background:rgb(20,184,166);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;text-decoration:none;white-space:nowrap">
+                                    ادامه‌ی افزودن سوال ←
+                                </a>
 
                             </div>
 
                         </summary>
 
                         <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+                            <thead>
+                                <tr style="background:var(--surface-2,#f9fafb);border-top:1px solid var(--border,#e5e7eb)">
+                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">متن سوال</th>
+                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">سطح سختی</th>
+                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">وضعیت</th>
+                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)"></th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 @foreach ($subGroup['questions'] as $q)
                                     <tr style="border-top:1px solid var(--border,#e5e7eb)">
@@ -188,9 +192,26 @@
                                             {{ $statusLabel }}
                                         </td>
                                         <td style="padding:.75rem 1.1rem;white-space:nowrap">
-                                            <a href="{{ \App\Filament\Resources\QuestionResource::getUrl('edit', ['record' => $q]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
-                                                ویرایش
-                                            </a>
+                                            <div style="display:flex;gap:.6rem;align-items:center;justify-content:flex-start">
+
+                                                <a href="{{ \App\Filament\Resources\QuestionResource::getUrl('edit', ['record' => $q]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
+                                                    ویرایش
+                                                </a>
+
+                                                @if ($isReviewer && $q->status === 'pending')
+                                                    <button
+                                                        wire:click="reviewSingleQuestion({{ $q->id }}, 'approve')"
+                                                        style="background:rgb(22,163,74);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
+                                                        تأیید
+                                                    </button>
+                                                    <button
+                                                        wire:click="reviewSingleQuestion({{ $q->id }}, 'reject')"
+                                                        style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
+                                                        رد
+                                                    </button>
+                                                @endif
+
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach
