@@ -862,6 +862,44 @@ class QuizResource extends Resource
 
             ->actions([
 
+                // ادامه‌ی نوشتن سوال برای همون بخش/فصل/کتابی که
+                // این آزمون رویش تعریف شده — با مسیر آموزشی از
+                // قبل پرشده به «افزودن سریع سوال» می‌رود.
+                Tables\Actions\Action::make('continueQuestions')
+                    ->label('ادامه‌ی نوشتن سوال')
+                    ->icon('heroicon-o-plus-circle')
+                    ->color('primary')
+                    ->url(function ($record) {
+
+                        $book = static::resolveBook($record);
+
+                        if (! $book) {
+                            return null;
+                        }
+
+                        $chapterId = null;
+
+                        $sectionId = null;
+
+                        if ($record->quizable_type === Chapter::class) {
+
+                            $chapterId = $record->quizable_id;
+
+                        } elseif ($record->quizable_type === Section::class) {
+
+                            $sectionId = $record->quizable_id;
+
+                            $chapterId = $record->quizable?->chapter_id;
+                        }
+
+                        return \App\Filament\Pages\AddQuestionsToBank::getUrl([
+                            'book_id' => $book->id,
+                            'chapter_id' => $chapterId,
+                            'section_id' => $sectionId,
+                        ]);
+                    })
+                    ->visible(fn($record) => static::resolveBook($record) !== null),
+
                 Tables\Actions\EditAction::make(),
 
                 Tables\Actions\DeleteAction::make(),

@@ -90,9 +90,45 @@ class AddQuestionsToBank extends Page implements HasForms
      */
     protected function resolveInitialContext(): array
     {
+        $topicId = request()->query('question_topic_id');
+
         $contentItemId = request()->query('content_item_id');
 
-        $topicId = request()->query('question_topic_id');
+        // حالت دوم: مستقیم از یک کتاب/فصل/بخش (مثلاً از دکمه‌ی
+        // «ادامه‌ی نوشتن سوال» توی «تنظیمات آزمون») — بدون این‌که
+        // یک محتوای مشخص در کار باشد.
+        $bookId = request()->query('book_id');
+
+        $chapterId = request()->query('chapter_id');
+
+        $sectionId = request()->query('section_id');
+
+        if (! $contentItemId && $bookId) {
+
+            $book = Book::with('appGradeSubject')->find($bookId);
+
+            if (! $book) {
+                return $topicId ? ['question_topic_id' => $topicId] : [];
+            }
+
+            return [
+
+                'app_id' => $book->appGradeSubject?->app_id,
+
+                'grade_id' => $book->appGradeSubject?->grade_id,
+
+                'subject_id' => $book->appGradeSubject?->subject_id,
+
+                'book_id' => $book->id,
+
+                'chapter_id' => $chapterId,
+
+                'section_id' => $sectionId,
+
+                'question_topic_id' => $topicId,
+
+            ];
+        }
 
         if (! $contentItemId) {
             return $topicId ? ['question_topic_id' => $topicId] : [];
