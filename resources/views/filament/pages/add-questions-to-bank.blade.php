@@ -37,18 +37,27 @@
             <div style="margin-top:1.75rem;border-top:1px solid var(--border,#e5e7eb);padding-top:1.25rem;display:flex;gap:0.75rem;flex-wrap:wrap">
 
                 <x-filament::button
-                    wire:click="saveAndContinue"
-                    color="primary"
+                    wire:click="saveAndExit"
+                    color="success"
                     size="lg">
-                    💾 ذخیره و ادامه‌ی سوال بعدی
+                    ✅ ذخیره و خروج
                 </x-filament::button>
 
                 <x-filament::button
-                    wire:click="saveAndExit"
-                    color="gray"
+                    wire:click="saveAndContinue"
+                    color="primary"
                     size="lg">
-                    ✅ ذخیره و خروج به بانک سوالات
+                    💾 ذخیره و ایجاد سوال بعدی
                 </x-filament::button>
+
+                <a href="{{ \App\Filament\Resources\QuestionResource::getUrl('index') }}">
+                    <x-filament::button
+                        color="gray"
+                        size="lg"
+                        tag="span">
+                        لغو
+                    </x-filament::button>
+                </a>
 
             </div>
         </div>
