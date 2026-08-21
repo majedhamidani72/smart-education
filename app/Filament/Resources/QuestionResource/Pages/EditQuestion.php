@@ -26,7 +26,9 @@ class EditQuestion extends EditRecord
 
     /**
      * بازسازی زنجیره‌ی اپلیکیشن/پایه/درس/کتاب/فصل/بخش از روی
-     * content_item_id واقعی رکورد، دقیقاً مثل EditContentItem.
+     * content_item_id واقعی رکورد. مثل EditContentItem، از رابطه‌ی
+     * مستقیم chapter استفاده می‌شود (نه فقط section.chapter) —
+     * چون محتوا می‌تواند بدون بخش، مستقیم به فصل وصل باشد.
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
@@ -35,18 +37,18 @@ class EditQuestion extends EditRecord
         }
 
         $contentItem = ContentItem::query()
-            ->with('section.chapter.book.appGradeSubject')
+            ->with('chapter.book.appGradeSubject', 'section')
             ->find($data['content_item_id']);
 
-        $section = $contentItem?->section;
+        $chapter = $contentItem?->chapter;
 
-        if ($section && $section->chapter && $section->chapter->book) {
+        if ($chapter && $chapter->book) {
 
-            $book = $section->chapter->book;
+            $book = $chapter->book;
 
-            $data['section_id'] = $section->id;
+            $data['section_id'] = $contentItem->section_id;
 
-            $data['chapter_id'] = $section->chapter_id;
+            $data['chapter_id'] = $chapter->id;
 
             $data['book_id'] = $book->id;
 
