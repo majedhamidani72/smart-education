@@ -353,7 +353,7 @@ class QuestionResource extends Resource
 
             Forms\Components\Section::make('توضیح پاسخ')
 
-                ->description('این توضیح بعد از آزمون، در صورت جواب غلط، به دانش‌آموز نمایش داده می‌شود.')
+                ->description('این توضیح، توضیح کلی سوال است — همیشه در اپلیکیشن به‌عنوان توضیح جواب سوال نمایش داده می‌شود (نه فقط در صورت جواب غلط).')
 
                 ->schema([
 
@@ -373,6 +373,7 @@ class QuestionResource extends Resource
                     Forms\Components\Textarea::make('recommendation_text')
                         ->label('پیشنهاد مطالعه در صورت جواب اشتباه (اختیاری)')
                         ->placeholder('مثلاً: صفحه ۴۵ کتاب را دوباره بخوان، یا کلیپ فصل ۳ بخش ۲ را ببین')
+                        ->helperText('برخلاف «توضیح» بالا، این متن فقط در گزارش پایان آزمون (وقتی دانش‌آموز غلط جواب داده) نمایش داده می‌شود.')
                         ->rows(2)
                         ->columnSpanFull(),
 
