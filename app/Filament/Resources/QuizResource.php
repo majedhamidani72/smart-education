@@ -866,7 +866,19 @@ class QuizResource extends Resource
                 // این آزمون رویش تعریف شده — با مسیر آموزشی از
                 // قبل پرشده به «افزودن سریع سوال» می‌رود.
                 Tables\Actions\Action::make('continueQuestions')
-                    ->label('ادامه‌ی نوشتن سوال')
+                    ->label(function ($record) {
+
+                        $target = match ($record->quizable_type) {
+                            Section::class => 'بخش: '.($record->quizable?->title ?? '—'),
+                            Chapter::class => 'فصل: '.($record->quizable?->title ?? '—'),
+                            Book::class => 'کل کتاب: '.($record->quizable?->title ?? '—'),
+                            default => null,
+                        };
+
+                        return $target
+                            ? 'ادامه‌ی نوشتن سوال برای '.$target
+                            : 'ادامه‌ی نوشتن سوال';
+                    })
                     ->icon('heroicon-o-plus-circle')
                     ->color('primary')
                     ->url(function ($record) {
