@@ -440,7 +440,19 @@ class QuestionResource extends Resource
 
                         $section = $item->section;
 
+                        $grade = $chapter?->book?->appGradeSubject?->grade;
+
+                        $subject = $chapter?->book?->appGradeSubject?->subject;
+
+                        // پایه همیشه اول نوشته می‌شود تا سوالات
+                        // پایه‌های مختلف هیچ‌وقت قاطی به‌نظر نرسند —
+                        // حتی اگر دو معلم هم‌زمان روی چند پایه کار
+                        // کنند.
                         $path = collect([
+
+                            $grade ? 'پایه '.$grade->title : null,
+
+                            $subject?->title,
 
                             $chapter?->book?->title,
 
@@ -451,6 +463,23 @@ class QuestionResource extends Resource
                         ])->filter()->implode(' > ');
 
                         return ($path ? $path.' — ' : '').$item->title;
+                    })
+                    // گروه‌ها بر اساس شماره‌ی واقعی پایه مرتب می‌شوند
+                    // (نه بر اساس ترتیب تصادفیِ شناسه‌ی محتوا) — تا
+                    // همه‌ی سوالات یک پایه، پشت‌سرهم و جدا از پایه‌ی
+                    // بعدی/قبلی نمایش داده شوند.
+                    ->orderQueryUsing(function (Builder $query, string $direction) {
+
+                        return $query
+                            ->leftJoin('content_items', 'questions.content_item_id', '=', 'content_items.id')
+                            ->leftJoin('chapters', 'content_items.chapter_id', '=', 'chapters.id')
+                            ->leftJoin('books', 'chapters.book_id', '=', 'books.id')
+                            ->leftJoin('app_grade_subjects', 'books.app_grade_subject_id', '=', 'app_grade_subjects.id')
+                            ->leftJoin('grades', 'app_grade_subjects.grade_id', '=', 'grades.id')
+                            ->orderBy('grades.grade_number', $direction)
+                            ->orderBy('books.sort_order', $direction)
+                            ->orderBy('chapters.sort_order', $direction)
+                            ->select('questions.*');
                     })
                     ->collapsible(),
 
