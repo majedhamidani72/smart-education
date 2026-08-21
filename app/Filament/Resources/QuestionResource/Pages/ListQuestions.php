@@ -4,8 +4,8 @@ namespace App\Filament\Resources\QuestionResource\Pages;
 
 use App\Filament\Resources\QuestionResource;
 use App\Models\Question;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
-use Illuminate\Support\Facades\DB;
 
 /**
  * لیست بانک سوالات — به‌صورت سه‌سطحی (نه یک لیست تخت)
@@ -13,7 +13,11 @@ use Illuminate\Support\Facades\DB;
  * سطح ۱: هر ردیف یک ترکیب «اپلیکیشن + ایجادکننده + پایه + کتاب»ست.
  * سطح ۲: بعد از انتخاب یکی از بالا، سه ردیف: آزمون‌های بخش /
  *        فصل / کل کتاب — هرکدام با تعداد سوالات همان دسته.
- * سطح ۳: لیست واقعی سوالات همان دسته، با امکان ویرایش.
+ * سطح ۳: لیست واقعی سوالات همان دسته، به تفکیک فصل/بخش و
+ *        قابل‌جمع‌شدن (تا با تعداد زیاد بخش، صفحه شلوغ نشود).
+ *        برای ادمین/سوپرادمین، سوالاتِ «پیش‌نویس» (که هنوز معلم
+ *        ارسال نکرده) اصلاً دیده نمی‌شود، و هر زیرگروه یک دکمه‌ی
+ *        تایید/رد دسته‌جمعی دارد.
  */
 class ListQuestions extends ListRecords
 {
@@ -45,13 +49,28 @@ class ListQuestions extends ListRecords
         ];
     }
 
+    protected function isReviewer(): bool
+    {
+        $user = auth()->user();
+
+        return $user?->hasRole('SuperAdmin') || $user?->hasRole('Admin');
+    }
+
     /**
      * کوئری پایه — همان محدودیتِ «معلم فقط سوالات خودش را می‌بیند»
-     * که در Resource تعریف شده.
+     * که در Resource تعریف شده، به‌علاوه‌ی این‌که ادمین/سوپرادمین
+     * هیچ‌وقت سوالات «پیش‌نویس» (هنوز ارسال‌نشده) را نمی‌بینند —
+     * چون آن‌ها هنوز کار خودِ معلم هستند، نه چیزی برای بررسی.
      */
     protected function baseQuery()
     {
-        return QuestionResource::getEloquentQuery();
+        $query = QuestionResource::getEloquentQuery();
+
+        if ($this->isReviewer()) {
+            $query->where('status', '!=', 'draft');
+        }
+
+        return $query;
     }
 
     /**
@@ -90,6 +109,7 @@ class ListQuestions extends ListRecords
                     'book_id' => $book->id,
                     'book_title' => $book->title,
                     'count' => $group->count(),
+                    'pending_count' => $group->where('status', 'pending')->count(),
                 ];
             })
             ->sortBy(fn($g) => $g['grade_id'])
@@ -162,7 +182,8 @@ class ListQuestions extends ListRecords
     /**
      * همان لیست سطح ۳، ولی این‌بار به تفکیک فصل/بخش دقیق گروه‌بندی
      * شده — هر زیرگروه دکمه‌ی «ادامه‌ی افزودن سوال» مخصوص به خودش
-     * را دارد (با کتاب+فصل+بخش دقیقاً همان زیرگروه، از قبل پرشده).
+     * را دارد (با کتاب+فصل+بخش دقیقاً همان زیرگروه، از قبل پرشده)،
+     * و برای ادمین/سوپرادمین، دکمه‌ی تایید/رد دسته‌جمعی هم دارد.
      */
     public function getFilteredQuestionsGrouped()
     {
@@ -173,14 +194,54 @@ class ListQuestions extends ListRecords
                 $first = $questions->first();
 
                 return [
+                    'key' => $first->contentItem->chapter_id.'-'.($first->contentItem->section_id ?? '0'),
                     'chapter_id' => $first->contentItem->chapter_id,
                     'chapter_title' => $first->contentItem->chapter?->title,
                     'section_id' => $first->contentItem->section_id,
                     'section_title' => $first->contentItem->section?->title,
                     'questions' => $questions,
+                    'pending_count' => $questions->where('status', 'pending')->count(),
                 ];
             })
             ->values();
+    }
+
+    /**
+     * تایید یا رد دسته‌جمعی همه‌ی سوالات «در انتظار بررسی» یک
+     * زیرگروه (فصل/بخش) — فقط ادمین/سوپرادمین. سوالات پیش‌نویس یا
+     * قبلاً بررسی‌شده دست‌نخورده می‌مانند.
+     */
+    public function bulkReviewGroup(int $chapterId, ?int $sectionId, string $decision): void
+    {
+        if (! $this->isReviewer()) {
+            return;
+        }
+
+        $query = Question::where('created_by', $this->selectedCreatorId)
+            ->where('status', 'pending')
+            ->whereHas('contentItem', function ($q) use ($chapterId, $sectionId) {
+
+                $q->where('chapter_id', $chapterId);
+
+                $sectionId
+                    ? $q->where('section_id', $sectionId)
+                    : $q->whereNull('section_id');
+            });
+
+        $count = $query->count();
+
+        $query->update([
+
+            'status' => $decision === 'approve' ? 'approved' : 'rejected',
+
+            'reviewed_by' => auth()->id(),
+
+        ]);
+
+        Notification::make()
+            ->title($count.' سوال '.($decision === 'approve' ? 'تأیید' : 'رد').' شد.')
+            ->success()
+            ->send();
     }
 
     public function backToGroups(): void
