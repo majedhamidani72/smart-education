@@ -53,6 +53,49 @@ class ListQuestions extends ListRecords
         ];
     }
 
+    /**
+     * اگر از دکمه‌ی «ذخیره و خروج» توی «افزودن سریع سوال» به اینجا
+     * برگشته باشیم، به‌جای اولین صفحه (لیست کتاب‌ها)، مستقیم به
+     * همان بخش/فصل/کل‌کتابی که رویش کار می‌کردیم می‌رویم — اطلاعات
+     * لازم از طریق پارامترهای آدرس می‌آید.
+     */
+    public function mount(): void
+    {
+        $bookId = request()->query('book_id');
+
+        if (! $bookId) {
+            return;
+        }
+
+        $book = \App\Models\Book::with('appGradeSubject')->find($bookId);
+
+        if (! $book) {
+            return;
+        }
+
+        $chapterId = request()->query('chapter_id');
+
+        $sectionId = request()->query('section_id');
+
+        // ایجادکننده‌ی این دسته، همیشه خودِ کاربر فعلی است — چون
+        // این بازگشت همیشه از فرم «افزودن سریع سوال» خودِ همین
+        // کاربر می‌آید.
+        $this->selectedAppId = $book->appGradeSubject?->app_id;
+        $this->selectedGradeId = $book->appGradeSubject?->grade_id;
+        $this->selectedCreatorId = auth()->id();
+        $this->selectedBookId = $book->id;
+
+        if ($sectionId) {
+            $this->selectedExamLevel = 'section';
+        } elseif ($chapterId) {
+            $this->selectedExamLevel = 'chapter';
+        } else {
+            $this->selectedExamLevel = 'book';
+        }
+
+        $this->viewLevel = 'list';
+    }
+
     protected function isReviewer(): bool
     {
         $user = auth()->user();

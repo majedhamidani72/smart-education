@@ -546,6 +546,16 @@ class AddQuestionsToBank extends Page implements HasForms
             ->success()
             ->send();
 
-        $this->redirect(\App\Filament\Resources\QuestionResource::getUrl('index'));
+        // به‌جای برگشتن به اولین صفحه‌ی «بانک سوالات» (لیست کتاب‌ها)،
+        // مستقیم به همان بخش/فصل/کل‌کتابی که همین الان رویش کار
+        // می‌کردیم برمی‌گردیم — اطلاعات مسیر از طریق آدرس منتقل
+        // می‌شود.
+        $context = $this->contextForm->getState();
+
+        $this->redirect(\App\Filament\Resources\QuestionResource::getUrl('index', [
+            'book_id' => $context['book_id'] ?? null,
+            'chapter_id' => $context['chapter_id'] ?? null,
+            'section_id' => $context['section_id'] ?? null,
+        ]));
     }
 }
