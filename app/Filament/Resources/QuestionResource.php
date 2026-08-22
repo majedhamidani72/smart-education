@@ -339,7 +339,25 @@ class QuestionResource extends Resource
 
                             Forms\Components\Toggle::make('is_correct')
                                 ->label('پاسخ صحیح')
-                                ->default(false),
+                                ->default(false)
+                                ->live()
+                                ->afterStateUpdated(function (bool $state, Forms\Set $set, Forms\Get $get) {
+
+                                    if (! $state) {
+                                        return;
+                                    }
+
+                                    // مثل رادیو-باتن رفتار می‌کند: با تیک‌زدن این
+                                    // گزینه، بقیه‌ی گزینه‌ها خودکار خاموش می‌شوند —
+                                    // چون هر سوال فقط یک پاسخ صحیح دارد.
+                                    $siblings = $get('../../options') ?? [];
+
+                                    foreach (array_keys($siblings) as $key) {
+                                        $set("../../options.{$key}.is_correct", false);
+                                    }
+
+                                    $set('is_correct', true);
+                                }),
 
                         ])
                         ->columns(4)

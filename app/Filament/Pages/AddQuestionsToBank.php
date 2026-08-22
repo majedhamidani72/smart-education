@@ -371,7 +371,24 @@ class AddQuestionsToBank extends Page implements HasForms
                             ->image()
                             ->openable(),
 
-                        Forms\Components\Toggle::make('is_correct')->label('پاسخ صحیح')->default(false),
+                        Forms\Components\Toggle::make('is_correct')
+                            ->label('پاسخ صحیح')
+                            ->default(false)
+                            ->live()
+                            ->afterStateUpdated(function (bool $state, Set $set, Get $get) {
+
+                                if (! $state) {
+                                    return;
+                                }
+
+                                $siblings = $get('../../options') ?? [];
+
+                                foreach (array_keys($siblings) as $key) {
+                                    $set("../../options.{$key}.is_correct", false);
+                                }
+
+                                $set('is_correct', true);
+                            }),
                     ])
                     ->columns(4)
                     ->defaultItems(4)
