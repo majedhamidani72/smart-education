@@ -206,6 +206,15 @@ class ListQuestions extends ListRecords
 
             'book' => $base()->whereNull('chapter_id')->count(),
 
+            // تعداد «در انتظار بررسی» به تفکیک همین سه دسته — تا
+            // همین‌جا (سطح ۲) هم مشخص باشد کدام کارت نیاز به
+            // بررسی دارد.
+            'pending_section' => $base()->where('status', 'pending')->whereNotNull('section_id')->count(),
+
+            'pending_chapter' => $base()->where('status', 'pending')->whereNull('section_id')->whereNotNull('chapter_id')->count(),
+
+            'pending_book' => $base()->where('status', 'pending')->whereNull('chapter_id')->count(),
+
         ];
     }
 
