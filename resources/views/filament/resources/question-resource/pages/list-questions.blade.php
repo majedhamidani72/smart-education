@@ -309,7 +309,7 @@
                                             <div style="display:flex;gap:.6rem;align-items:center;justify-content:flex-start">
 
                                                 <a href="{{ \App\Filament\Resources\QuestionResource::getUrl('edit', ['record' => $q]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
-                                                    ویرایش
+                                                    {{ (! $isReviewer && $q->status === 'pending') ? 'نمایش' : 'ویرایش' }}
                                                 </a>
 
                                                 @if ($isReviewer && $q->status === 'pending')

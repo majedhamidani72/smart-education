@@ -18,6 +18,38 @@ class EditContentItem extends EditRecord
     protected static string $resource = ContentItemResource::class;
 
     /**
+     * وقتی محتوا «در انتظار بررسی» است، معلم فقط می‌تواند ببیندش
+     * (فرم غیرفعال/فقط‌خواندنی) — تا ادمین/سوپرادمین تصمیم بگیرد.
+     * به‌محض رد شدن، دوباره قابل ویرایش می‌شود.
+     */
+    public function form(\Filament\Forms\Form $form): \Filament\Forms\Form
+    {
+        $form = parent::form($form);
+
+        $isReviewer = auth()->user()?->hasRole('SuperAdmin')
+            || auth()->user()?->hasRole('Admin');
+
+        if ($this->record->status === 'pending' && ! $isReviewer) {
+
+            $form = $form->disabled();
+        }
+
+        return $form;
+    }
+
+    protected function getFormActions(): array
+    {
+        $isReviewer = auth()->user()?->hasRole('SuperAdmin')
+            || auth()->user()?->hasRole('Admin');
+
+        if ($this->record->status === 'pending' && ! $isReviewer) {
+            return [];
+        }
+
+        return parent::getFormActions();
+    }
+
+    /**
      * پر کردن فرم ویرایش با اطلاعات واقعی رکورد.
      * --------------------------------------------------------------------
      * چند دسته فیلد در فرم اصلاً ستون مستقیم روی content_items

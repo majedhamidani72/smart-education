@@ -305,7 +305,7 @@
                                                         <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
 
                                                             <a href="{{ \App\Filament\Resources\ContentItemResource::getUrl('edit', ['record' => $item]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
-                                                                ویرایش
+                                                                {{ (! $isReviewer && $item->status === 'pending') ? 'نمایش' : 'ویرایش' }}
                                                             </a>
 
                                                             @if ($isReviewer && $item->status === 'pending')

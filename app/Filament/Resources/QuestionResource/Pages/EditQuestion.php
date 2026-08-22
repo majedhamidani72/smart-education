@@ -25,13 +25,37 @@ class EditQuestion extends EditRecord
     }
 
     /**
-     * بازسازی زنجیره‌ی اپلیکیشن/پایه/درس/کتاب/فصل/بخش از روی
-     * content_item_id واقعی رکورد. مثل EditContentItem، از رابطه‌ی
-     * مستقیم chapter استفاده می‌شود (نه فقط section.chapter) —
-     * چون محتوا می‌تواند بدون بخش، مستقیم به فصل وصل باشد.
+     * بازسازی زنجیره‌ی اپلیکیشن/پایه/درس/کتاب/فصل/بخش — اول از
+     * ستون‌های مستقیم خودِ سوال (book_id/chapter_id/section_id،
+     * که الان مسیر اصلی‌اند)، و فقط اگر آن‌ها خالی بودند، از روی
+     * content_item_id قدیمی.
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
+        if (! empty($data['book_id'])) {
+
+            $book = \App\Models\Book::query()
+                ->with('appGradeSubject')
+                ->find($data['book_id']);
+
+            if ($book) {
+
+                $data['book_id'] = $book->id;
+
+                $data['chapter_id'] = $data['chapter_id'] ?? null;
+
+                $data['section_id'] = $data['section_id'] ?? null;
+
+                $data['subject_id'] = $book->appGradeSubject?->subject_id;
+
+                $data['grade_id'] = $book->appGradeSubject?->grade_id;
+
+                $data['app_id'] = $book->appGradeSubject?->app_id;
+
+                return $data;
+            }
+        }
+
         if (empty($data['content_item_id'])) {
             return $data;
         }
@@ -60,6 +84,38 @@ class EditQuestion extends EditRecord
         }
 
         return $data;
+    }
+
+    /**
+     * وقتی سوال «در انتظار بررسی» است، معلم فقط می‌تواند ببیندش
+     * (فرم غیرفعال/فقط‌خواندنی) — تا ادمین/سوپرادمین تصمیم بگیرد
+     * (تأیید یا رد). به‌محض رد شدن، دوباره قابل ویرایش می‌شود.
+     */
+    public function form(\Filament\Forms\Form $form): \Filament\Forms\Form
+    {
+        $form = parent::form($form);
+
+        $isReviewer = auth()->user()?->hasRole('SuperAdmin')
+            || auth()->user()?->hasRole('Admin');
+
+        if ($this->record->status === 'pending' && ! $isReviewer) {
+
+            $form = $form->disabled();
+        }
+
+        return $form;
+    }
+
+    protected function getFormActions(): array
+    {
+        $isReviewer = auth()->user()?->hasRole('SuperAdmin')
+            || auth()->user()?->hasRole('Admin');
+
+        if ($this->record->status === 'pending' && ! $isReviewer) {
+            return [];
+        }
+
+        return parent::getFormActions();
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
