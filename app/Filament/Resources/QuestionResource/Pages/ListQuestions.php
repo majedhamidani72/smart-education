@@ -108,9 +108,22 @@ class ListQuestions extends ListRecords
      * که در Resource تعریف شده. چیزی مخفی نمی‌شود؛ سوالات پیش‌نویس
      * هم دیده می‌شوند، فقط دکمه‌های تایید/رد رویشان ظاهر نمی‌شود.
      */
+    /**
+     * کوئری پایه — همان محدودیتِ «معلم فقط سوالات خودش را می‌بیند»
+     * که در Resource تعریف شده، به‌علاوه‌ی این‌که ادمین/سوپرادمین
+     * هیچ‌وقت سوالات «پیش‌نویس» (هنوز ارسال‌نشده) را نمی‌بینند —
+     * تا زمانی که خودِ معلم دکمه‌ی «ارسال برای بررسی» را نزند،
+     * این سوالات کاملاً برای بررسی‌کننده نامرئی می‌مانند.
+     */
     protected function baseQuery()
     {
-        return QuestionResource::getEloquentQuery();
+        $query = QuestionResource::getEloquentQuery();
+
+        if ($this->isReviewer()) {
+            $query->where('status', '!=', 'draft');
+        }
+
+        return $query;
     }
 
     /**
@@ -150,6 +163,7 @@ class ListQuestions extends ListRecords
                     'book_title' => $book->title,
                     'count' => $group->count(),
                     'pending_count' => $group->where('status', 'pending')->count(),
+                    'draft_count' => $group->where('status', 'draft')->count(),
                 ];
             })
             ->sortBy(fn($g) => $g['grade_id'])
@@ -235,6 +249,7 @@ class ListQuestions extends ListRecords
                     'section_title' => $first->section?->title,
                     'questions' => $questions,
                     'pending_count' => $questions->where('status', 'pending')->count(),
+                    'draft_count' => $questions->where('status', 'draft')->count(),
                 ];
             })
             ->values();
@@ -282,6 +297,57 @@ class ListQuestions extends ListRecords
      * تایید یا رد یک سوال مشخص — فقط ادمین/سوپرادمین، فقط روی
      * سوالات «در انتظار بررسی».
      */
+    /**
+     * معلم، یک سوال «پیش‌نویس» خودش را برای بررسی ارسال می‌کند —
+     * از این لحظه، ادمین/سوپرادمین می‌توانند ببینندش.
+     */
+    public function submitSingleForReview(int $questionId): void
+    {
+        $question = Question::where('id', $questionId)
+            ->where('status', 'draft')
+            ->where('created_by', auth()->id())
+            ->first();
+
+        if (! $question) {
+            return;
+        }
+
+        $question->update(['status' => 'pending']);
+
+        Notification::make()
+            ->title('سوال برای بررسی ارسال شد.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * ارسال دسته‌جمعی همه‌ی سوالات «پیش‌نویس» یک زیرگروه (فصل/
+     * بخش) برای بررسی — فقط سوالات خودِ همین معلم.
+     */
+    public function submitGroupForReview(?int $chapterId, ?int $sectionId): void
+    {
+        $query = Question::where('created_by', auth()->id())
+            ->where('status', 'draft')
+            ->where('book_id', $this->selectedBookId);
+
+        $chapterId
+            ? $query->where('chapter_id', $chapterId)
+            : $query->whereNull('chapter_id');
+
+        $sectionId
+            ? $query->where('section_id', $sectionId)
+            : $query->whereNull('section_id');
+
+        $count = $query->count();
+
+        $query->update(['status' => 'pending']);
+
+        Notification::make()
+            ->title($count.' سوال برای بررسی ارسال شد.')
+            ->success()
+            ->send();
+    }
+
     public function reviewSingleQuestion(int $questionId, string $decision): void
     {
         if (! $this->isReviewer()) {

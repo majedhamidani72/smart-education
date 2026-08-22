@@ -36,6 +36,12 @@
                             </span>
                         @endif
 
+                        @if (! $isReviewer && $group['draft_count'] > 0)
+                            <span style="position:absolute;top:-.5rem;left:-.5rem;background:rgb(100,116,139);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:.15rem .5rem">
+                                {{ $group['draft_count'] }} پیش‌نویس
+                            </span>
+                        @endif
+
                         <div style="font-weight:700;font-size:1rem;margin-bottom:.5rem;color:{{ $colors['accent'] }}">
                             📱 اپلیکیشن: {{ $group['app_title'] }}
                         </div>
@@ -157,6 +163,12 @@
                                         {{ $subGroup['pending_count'] }} در انتظار بررسی
                                     </span>
                                 @endif
+
+                                @if (! $isReviewer && $subGroup['draft_count'] > 0)
+                                    <span style="background:rgb(100,116,139);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:.15rem .55rem;margin-right:.4rem">
+                                        {{ $subGroup['draft_count'] }} پیش‌نویس (ارسال‌نشده)
+                                    </span>
+                                @endif
                             </div>
 
                             <div style="display:flex;gap:.5rem;flex-wrap:wrap" onclick="event.stopPropagation()">
@@ -173,6 +185,15 @@
                                         wire:confirm="همه‌ی {{ $subGroup['pending_count'] }} سوال در انتظار این قسمت رد شوند؟"
                                         style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;border:none;cursor:pointer">
                                         ❌ رد همه
+                                    </button>
+                                @endif
+
+                                @if (! $isReviewer && $subGroup['draft_count'] > 0)
+                                    <button
+                                        wire:click="submitGroupForReview({{ $subGroup['chapter_id'] ?? 'null' }}, {{ $subGroup['section_id'] ?? 'null' }})"
+                                        wire:confirm="همه‌ی {{ $subGroup['draft_count'] }} سوال پیش‌نویس این قسمت برای بررسی ارسال شوند؟ بعد از ارسال دیگر قابل ویرایش نیستند."
+                                        style="background:rgb(79,70,229);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;border:none;cursor:pointer">
+                                        📤 ارسال همه برای بررسی
                                     </button>
                                 @endif
 
@@ -232,6 +253,14 @@
                                                         wire:click="reviewSingleQuestion({{ $q->id }}, 'reject')"
                                                         style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
                                                         رد
+                                                    </button>
+                                                @endif
+
+                                                @if (! $isReviewer && $q->status === 'draft')
+                                                    <button
+                                                        wire:click="submitSingleForReview({{ $q->id }})"
+                                                        style="background:rgb(79,70,229);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
+                                                        📤 ارسال برای بررسی
                                                     </button>
                                                 @endif
 
