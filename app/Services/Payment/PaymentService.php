@@ -4,6 +4,7 @@ namespace App\Services\Payment;
 
 use Throwable;
 use App\Models\Purchase;
+use App\Jobs\SendSmsJob;
 use App\Models\PaymentTransaction;
 use App\Models\Subscription;
 use App\Models\Book;
@@ -164,6 +165,17 @@ class PaymentService
                 // به هرکدام وصل شود؛ این تصمیم از پیش در Plan تعریف
                 // شده، نه اینجا.
                 $this->grantAccessFromPurchase($transaction->purchase);
+
+                // پیامک تایید خرید — از طریق صف، تا کندی یا خطای
+                // احتمالی سرویس پیامک روی خودِ فرآیند پرداخت اثر
+                // نگذارد.
+                if ($transaction->purchase->user?->mobile) {
+
+                    SendSmsJob::dispatch(
+                        $transaction->purchase->user->mobile,
+                        'خرید شما با موفقیت انجام شد و دسترسی شما فعال گردید. شماره پیگیری: '.$transaction->purchase->invoice_number
+                    );
+                }
 
                 // به همون ترتیب که دسترسی داده می‌شود، سهم معلم(ها)
                 // از این فروش هم محاسبه و ثبت می‌شود.

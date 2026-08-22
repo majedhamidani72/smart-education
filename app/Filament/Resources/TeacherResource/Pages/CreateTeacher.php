@@ -30,6 +30,8 @@ class CreateTeacher extends CreateRecord
 
     protected int $firstCommissionPercentage = 60;
 
+    protected ?string $plainPassword = null;
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // فیلدهای مربوط به «کتاب اول» فقط کمکی‌اند و روی خودِ
@@ -38,6 +40,10 @@ class CreateTeacher extends CreateRecord
         $this->firstBookId = $data['first_book_id'] ?? null;
 
         $this->firstCommissionPercentage = $data['first_commission_percentage'] ?? 60;
+
+        // برای پیامک «رمز اولیه» باید مقدار خامِ رمز (قبل از
+        // هش‌شدن) نگه داشته شود.
+        $this->plainPassword = $data['password'] ?? null;
 
         unset(
             $data['first_app_id'],
@@ -73,6 +79,8 @@ class CreateTeacher extends CreateRecord
             $this->deletedUser->syncRoles(['Teacher']);
 
             $this->assignFirstBookIfProvided($this->deletedUser);
+
+            $this->sendAccountCreatedSms($this->deletedUser);
 
             Notification::make()
                 ->title('معلم حذف‌شده بازیابی شد. برای کتاب‌های بیشتر، وارد صفحه‌ی ویرایش او شو.')
@@ -112,6 +120,8 @@ class CreateTeacher extends CreateRecord
 
             $this->assignFirstBookIfProvided($existingActiveUser);
 
+            $this->sendAccountCreatedSms($existingActiveUser);
+
             Notification::make()
                 ->title('حساب موجود با همین شماره، به معلم تبدیل شد. برای کتاب‌های بیشتر، وارد صفحه‌ی ویرایش او شو.')
                 ->success()
@@ -139,6 +149,25 @@ class CreateTeacher extends CreateRecord
         $this->record->assignRole('Teacher');
 
         $this->assignFirstBookIfProvided($this->record);
+
+        $this->sendAccountCreatedSms($this->record);
+    }
+
+    /**
+     * پیامک ساخت حساب — شامل شماره‌موبایل (که همان نام کاربری
+     * ورودشان است) و رمز اولیه، تا حتی اگر خودشان هنوز پنل را
+     * باز نکرده باشند، بدانند چطور وارد شوند.
+     */
+    protected function sendAccountCreatedSms(User $teacher): void
+    {
+        if (! $teacher->mobile || ! $this->plainPassword) {
+            return;
+        }
+
+        \App\Jobs\SendSmsJob::dispatch(
+            $teacher->mobile,
+            'حساب معلمی شما ساخته شد. برای ورود از شماره موبایل خودتان و رمز عبور "'.$this->plainPassword.'" استفاده کنید.'
+        );
     }
 
     /**

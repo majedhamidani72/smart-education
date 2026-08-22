@@ -16,8 +16,12 @@ class CreateAdmin extends CreateRecord
     // به‌جای رکورد جدید، همان بازیابی می‌شود.
     protected ?User $deletedUser = null;
 
+    protected ?string $plainPassword = null;
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $this->plainPassword = $data['password'] ?? null;
+
         $this->deletedUser = User::withTrashed()
             ->where('mobile', $data['mobile'])
             ->whereNotNull('deleted_at')
@@ -45,6 +49,8 @@ class CreateAdmin extends CreateRecord
             // دیگری داشته باشد.
             $this->deletedUser->syncRoles(['Admin']);
 
+            $this->sendAccountCreatedSms($this->deletedUser);
+
             Notification::make()
                 ->title('ادمین حذف‌شده بازیابی شد.')
                 ->success()
@@ -66,6 +72,20 @@ class CreateAdmin extends CreateRecord
         // نقش «Admin» همیشه به‌صورت خودکار و ثابت اختصاص داده
         // می‌شود؛ در این فرم هیچ انتخاب نقشی از کاربر گرفته نشده.
         $this->record->assignRole('Admin');
+
+        $this->sendAccountCreatedSms($this->record);
+    }
+
+    protected function sendAccountCreatedSms(User $admin): void
+    {
+        if (! $admin->mobile || ! $this->plainPassword) {
+            return;
+        }
+
+        \App\Jobs\SendSmsJob::dispatch(
+            $admin->mobile,
+            'حساب ادمینی شما ساخته شد. برای ورود از شماره موبایل خودتان و رمز عبور "'.$this->plainPassword.'" استفاده کنید.'
+        );
     }
 
     protected function getRedirectUrl(): string

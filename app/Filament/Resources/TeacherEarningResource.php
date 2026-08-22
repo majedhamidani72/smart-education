@@ -293,6 +293,14 @@ class TeacherEarningResource extends Resource
                             'paid_at' => now(),
                         ]);
 
+                        if ($record->teacher?->mobile) {
+
+                            \App\Jobs\SendSmsJob::dispatch(
+                                $record->teacher->mobile,
+                                number_format($record->amount).' تومان از درآمد شما تسویه و واریز شد.'
+                            );
+                        }
+
                         Notification::make()
                             ->title('تسویه با موفقیت ثبت شد.')
                             ->success()
@@ -336,6 +344,14 @@ class TeacherEarningResource extends Resource
                                         'settlement_number' => $data['settlement_number'],
                                         'paid_at' => now(),
                                     ]);
+
+                                    if ($record->teacher?->mobile) {
+
+                                        \App\Jobs\SendSmsJob::dispatch(
+                                            $record->teacher->mobile,
+                                            number_format($record->amount).' تومان از درآمد شما تسویه و واریز شد.'
+                                        );
+                                    }
                                 }
 
                                 Notification::make()
