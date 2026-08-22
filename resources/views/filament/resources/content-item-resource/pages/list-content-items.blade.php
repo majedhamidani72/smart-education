@@ -141,8 +141,25 @@
         </div>
 
         @if ($grouped->isEmpty())
-            <div style="text-align:center;padding:3rem;color:var(--text-muted,#6b7280)">
-                محتوایی در این کتاب یافت نشد.
+
+            @php
+                $typeLabel = match ($selectedContentTypeSlug) {
+                    'teaching' => 'تدریس',
+                    'step_by_step' => 'گام‌به‌گام',
+                    'sample_questions' => 'نمونه سوال',
+                    default => 'محتوا',
+                };
+            @endphp
+
+            <div style="text-align:center;padding:3rem;color:var(--text-muted,#6b7280);display:flex;flex-direction:column;align-items:center;gap:1rem">
+                <div>هنوز هیچ {{ $typeLabel }}ای برای این کتاب ثبت نشده است.</div>
+                <a href="{{ \App\Filament\Resources\ContentItemResource::getUrl('create', [
+                        'book_id' => $selectedBookId,
+                        'content_type_id' => $this->getSelectedContentTypeId(),
+                    ]) }}"
+                   style="background:rgb(20,184,166);color:#fff;font-weight:600;font-size:.85rem;padding:.6rem 1.2rem;border-radius:.7rem;text-decoration:none">
+                    + ایجاد {{ $typeLabel }} برای این کتاب
+                </a>
             </div>
         @else
 
