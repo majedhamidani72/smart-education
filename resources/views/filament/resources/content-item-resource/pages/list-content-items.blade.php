@@ -149,10 +149,17 @@
                     'sample_questions' => 'نمونه سوال',
                     default => 'محتوا',
                 };
+
+                $typeLabelPossessive = match ($selectedContentTypeSlug) {
+                    'teaching' => 'تدریسی',
+                    'step_by_step' => 'گام‌به‌گامی',
+                    'sample_questions' => 'نمونه سوالی',
+                    default => 'محتوایی',
+                };
             @endphp
 
             <div style="text-align:center;padding:3rem;color:var(--text-muted,#6b7280);display:flex;flex-direction:column;align-items:center;gap:1rem">
-                <div>هنوز هیچ {{ $typeLabel }}ای برای این کتاب ثبت نشده است.</div>
+                <div>هنوز هیچ {{ $typeLabelPossessive }} برای این کتاب ثبت نشده است.</div>
                 <a href="{{ \App\Filament\Resources\ContentItemResource::getUrl('create', [
                         'book_id' => $selectedBookId,
                         'content_type_id' => $this->getSelectedContentTypeId(),
