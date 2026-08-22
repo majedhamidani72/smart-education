@@ -204,6 +204,25 @@
                                     </button>
                                 @endif
 
+                                @php
+                                    $typeLabel = match ($selectedContentTypeSlug) {
+                                        'teaching' => 'تدریس',
+                                        'step_by_step' => 'گام‌به‌گام',
+                                        'sample_questions' => 'نمونه سوال',
+                                        default => 'محتوا',
+                                    };
+                                @endphp
+
+                                <a href="{{ \App\Filament\Resources\ContentItemResource::getUrl('create', [
+                                        'book_id' => $selectedBookId,
+                                        'chapter_id' => $subGroup['chapter_id'],
+                                        'section_id' => $subGroup['section_id'],
+                                        'content_type_id' => $this->getSelectedContentTypeId(),
+                                    ]) }}"
+                                   style="background:rgb(20,184,166);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;text-decoration:none;white-space:nowrap">
+                                    ادامه‌ی ایجاد {{ $typeLabel }} برای همین قسمت ←
+                                </a>
+
                             </div>
 
                         </div>

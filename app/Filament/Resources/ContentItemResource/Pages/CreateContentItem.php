@@ -32,6 +32,47 @@ class CreateContentItem extends CreateRecord
         ];
     }
 
+    /**
+     * اگر از دکمه‌ی «ادامه‌ی ایجاد» توی «محتوای آموزشی» به اینجا
+     * آمده باشیم، مسیر آموزشی و نوع محتوا از طریق پارامترهای
+     * آدرس از قبل پر می‌شوند — دیگر لازم نیست دوباره اپ/پایه/
+     * درس/کتاب/فصل/بخش/نوع محتوا را انتخاب کنی.
+     */
+    public function mount(): void
+    {
+        parent::mount();
+
+        $bookId = request()->query('book_id');
+
+        if (! $bookId) {
+            return;
+        }
+
+        $book = \App\Models\Book::with('appGradeSubject')->find($bookId);
+
+        if (! $book) {
+            return;
+        }
+
+        $this->form->fill(array_filter([
+
+            'app_id' => $book->appGradeSubject?->app_id,
+
+            'grade_id' => $book->appGradeSubject?->grade_id,
+
+            'subject_id' => $book->appGradeSubject?->subject_id,
+
+            'book_id' => $book->id,
+
+            'chapter_id' => request()->query('chapter_id'),
+
+            'section_id' => request()->query('section_id'),
+
+            'content_type_id' => request()->query('content_type_id'),
+
+        ], fn($value) => $value !== null));
+    }
+
     // فقط یک دکمه‌ی «ایجاد» باقی می‌ماند (بدون گزینه‌ی «ایجاد و
     // افزودن دیگر») تا همیشه، بدون استثنا، بعد از ثبت محتوا به
     // لیست برگردد.

@@ -235,6 +235,11 @@ class ListContentItems extends ListRecords
         $this->selectedContentTypeSlug = null;
     }
 
+    public function getSelectedContentTypeId(): ?int
+    {
+        return \App\Models\ContentType::where('slug', $this->selectedContentTypeSlug)->value('id');
+    }
+
     /**
      * سطح ۲: محتواهای همان کتاب، به تفکیک دقیق فصل/بخش گروه‌بندی
      * شده.
