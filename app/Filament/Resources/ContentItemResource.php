@@ -830,6 +830,12 @@ class ContentItemResource extends Resource
                         ])
                         ->downloadable()
                         ->openable()
+                        ->required(function (Get $get) {
+
+                            return ContentType::query()
+                                ->whereKey($get('content_type_id'))
+                                ->value('slug') === 'teaching';
+                        })
                         ->visible(function (Get $get) {
 
                             return ContentType::query()

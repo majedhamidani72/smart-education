@@ -395,9 +395,10 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->columnSpanFull(),
 
                 Forms\Components\Textarea::make('recommendation_text')
-                    ->label('پیشنهاد مطالعه در صورت جواب اشتباه (اختیاری)')
+                    ->label('پیشنهاد مطالعه در صورت جواب اشتباه')
                     ->placeholder('مثلاً: صفحه ۴۵ کتاب را دوباره بخوان، یا کلیپ فصل ۳ بخش ۲ را ببین')
                     ->helperText('برخلاف «توضیح پاسخ» بالا، این متن فقط در گزارش پایان آزمون (وقتی دانش‌آموز غلط جواب داده) نمایش داده می‌شود.')
+                    ->required()
                     ->rows(2)
                     ->columnSpanFull(),
 
