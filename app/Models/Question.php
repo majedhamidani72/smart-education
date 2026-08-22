@@ -18,6 +18,12 @@ class Question extends Model
 
         'content_item_id',
 
+        'book_id',
+
+        'chapter_id',
+
+        'section_id',
+
         'question_topic_id',
 
         'created_by',
@@ -74,6 +80,21 @@ class Question extends Model
             ContentItem::class,
             'content_item_id'
         );
+    }
+
+    public function book(): BelongsTo
+    {
+        return $this->belongsTo(Book::class);
+    }
+
+    public function chapter(): BelongsTo
+    {
+        return $this->belongsTo(Chapter::class);
+    }
+
+    public function section(): BelongsTo
+    {
+        return $this->belongsTo(Section::class);
     }
 
 

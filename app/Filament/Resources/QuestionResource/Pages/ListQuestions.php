@@ -15,9 +15,13 @@ use Filament\Resources\Pages\ListRecords;
  *        فصل / کل کتاب — هرکدام با تعداد سوالات همان دسته.
  * سطح ۳: لیست واقعی سوالات همان دسته، به تفکیک فصل/بخش و
  *        قابل‌جمع‌شدن (تا با تعداد زیاد بخش، صفحه شلوغ نشود).
- *        برای ادمین/سوپرادمین، سوالاتِ «پیش‌نویس» (که هنوز معلم
- *        ارسال نکرده) اصلاً دیده نمی‌شود، و هر زیرگروه یک دکمه‌ی
- *        تایید/رد دسته‌جمعی دارد.
+ * --------------------------------------------------------------------
+ * نکته‌ی مهم فنی: همه‌جا مستقیم از book_id/chapter_id/section_id
+ * خودِ سوال استفاده می‌شود (نه از طریق content_item_id) — چون اگر
+ * سوال به تنهایی (بدون این‌که هنوز محتوای دیگری در آن فصل باشد)
+ * ساخته شود، content_item_id همیشه پیدا نمی‌شود و سوال هیچ‌جا
+ * نمایش داده نمی‌شد. این دقیقاً همان کلاس باگی بود که قبلاً برای
+ * content_items با ستون مستقیم chapter_id حل شد.
  */
 class ListQuestions extends ListRecords
 {
@@ -58,10 +62,8 @@ class ListQuestions extends ListRecords
 
     /**
      * کوئری پایه — همان محدودیتِ «معلم فقط سوالات خودش را می‌بیند»
-     * که در Resource تعریف شده. توجه: برخلاف نسخه‌ی قبلی، اینجا
-     * دیگر چیزی مخفی نمی‌شود — سوالات پیش‌نویس همچنان برای ادمین/
-     * سوپرادمین دیده می‌شوند (شفافیت کامل)، فقط دکمه‌های تایید/رد
-     * روی آن‌ها ظاهر نمی‌شوند (چون هنوز ارسال نشده‌اند).
+     * که در Resource تعریف شده. چیزی مخفی نمی‌شود؛ سوالات پیش‌نویس
+     * هم دیده می‌شوند، فقط دکمه‌های تایید/رد رویشان ظاهر نمی‌شود.
      */
     protected function baseQuery()
     {
@@ -69,30 +71,29 @@ class ListQuestions extends ListRecords
     }
 
     /**
-     * سطح ۱: ترکیب‌های یکتای اپلیکیشن/ایجادکننده/پایه/کتاب.
+     * سطح ۱: ترکیب‌های یکتای اپلیکیشن/ایجادکننده/پایه/کتاب —
+     * مستقیم از book_id خودِ سوال (نه از طریق محتوا).
      */
     public function getGroups()
     {
         $questions = $this->baseQuery()
-            ->with(['creator', 'contentItem.chapter.book.appGradeSubject.grade', 'contentItem.chapter.book.appGradeSubject.app'])
+            ->with(['creator', 'book.appGradeSubject.grade', 'book.appGradeSubject.app'])
+            ->whereNotNull('book_id')
             ->get();
 
         return $questions
-            ->filter(fn($q) => $q->contentItem?->chapter?->book)
             ->groupBy(function ($q) {
 
-                $book = $q->contentItem->chapter->book;
-
-                return $book->appGradeSubject?->app_id.'-'
+                return $q->book->appGradeSubject?->app_id.'-'
                     .$q->created_by.'-'
-                    .$book->appGradeSubject?->grade_id.'-'
-                    .$book->id;
+                    .$q->book->appGradeSubject?->grade_id.'-'
+                    .$q->book_id;
             })
             ->map(function ($group) {
 
                 $first = $group->first();
 
-                $book = $first->contentItem->chapter->book;
+                $book = $first->book;
 
                 return [
                     'app_id' => $book->appGradeSubject?->app_id,
@@ -121,28 +122,24 @@ class ListQuestions extends ListRecords
     }
 
     /**
-     * سطح ۲: تعداد سوالات به تفکیک «بخش» (content_item با section)،
-     * «فصل» (content_item مستقیم زیر فصل، بدون بخش)، و «کل کتاب».
-     * نکته‌ی صادقانه: چون سوال فقط به یک content_item وصل می‌شود
-     * (که همیشه به یک فصل مشخص تعلق دارد)، امکان تفکیک واقعی
-     * «سوال برای کل کتاب» با ساختار فعلی دیتابیس وجود ندارد —
-     * این ردیف فعلاً همیشه صفر نمایش داده می‌شود.
+     * سطح ۲: تعداد سوالات به تفکیک «بخش» (section_id ست شده)،
+     * «فصل» (فقط chapter_id، بدون section)، و «کل کتاب» (فقط
+     * book_id، بدون فصل مشخص — حالا که مستقیم روی خودِ سوال قابل
+     * تشخیص است، این حالت هم واقعاً کار می‌کند).
      */
     public function getExamLevelCounts(): array
     {
-        $questions = $this->baseQuery()
+        $base = fn() => $this->baseQuery()
             ->where('created_by', $this->selectedCreatorId)
-            ->whereHas('contentItem.chapter.book', fn($q) => $q->where('id', $this->selectedBookId))
-            ->with('contentItem')
-            ->get();
+            ->where('book_id', $this->selectedBookId);
 
         return [
 
-            'section' => $questions->filter(fn($q) => $q->contentItem?->section_id)->count(),
+            'section' => $base()->whereNotNull('section_id')->count(),
 
-            'chapter' => $questions->filter(fn($q) => $q->contentItem && ! $q->contentItem->section_id)->count(),
+            'chapter' => $base()->whereNull('section_id')->whereNotNull('chapter_id')->count(),
 
-            'book' => 0,
+            'book' => $base()->whereNull('chapter_id')->count(),
 
         ];
     }
@@ -160,15 +157,15 @@ class ListQuestions extends ListRecords
     {
         $query = $this->baseQuery()
             ->where('created_by', $this->selectedCreatorId)
-            ->whereHas('contentItem.chapter.book', fn($q) => $q->where('id', $this->selectedBookId))
-            ->with(['contentItem.section', 'contentItem.chapter']);
+            ->where('book_id', $this->selectedBookId)
+            ->with(['section', 'chapter']);
 
         if ($this->selectedExamLevel === 'section') {
-            $query->whereHas('contentItem', fn($q) => $q->whereNotNull('section_id'));
+            $query->whereNotNull('section_id');
         } elseif ($this->selectedExamLevel === 'chapter') {
-            $query->whereHas('contentItem', fn($q) => $q->whereNull('section_id'));
+            $query->whereNull('section_id')->whereNotNull('chapter_id');
         } else {
-            $query->whereRaw('1 = 0');
+            $query->whereNull('chapter_id');
         }
 
         return $query->orderByDesc('created_at')->get();
@@ -177,23 +174,21 @@ class ListQuestions extends ListRecords
     /**
      * همان لیست سطح ۳، ولی این‌بار به تفکیک فصل/بخش دقیق گروه‌بندی
      * شده — هر زیرگروه دکمه‌ی «ادامه‌ی افزودن سوال» مخصوص به خودش
-     * را دارد (با کتاب+فصل+بخش دقیقاً همان زیرگروه، از قبل پرشده)،
-     * و برای ادمین/سوپرادمین، دکمه‌ی تایید/رد دسته‌جمعی هم دارد.
+     * را دارد، و برای ادمین/سوپرادمین، دکمه‌ی تایید/رد دسته‌جمعی.
      */
     public function getFilteredQuestionsGrouped()
     {
         return $this->getFilteredQuestions()
-            ->groupBy(fn($q) => $q->contentItem->chapter_id.'-'.($q->contentItem->section_id ?? '0'))
+            ->groupBy(fn($q) => ($q->chapter_id ?? '0').'-'.($q->section_id ?? '0'))
             ->map(function ($questions) {
 
                 $first = $questions->first();
 
                 return [
-                    'key' => $first->contentItem->chapter_id.'-'.($first->contentItem->section_id ?? '0'),
-                    'chapter_id' => $first->contentItem->chapter_id,
-                    'chapter_title' => $first->contentItem->chapter?->title,
-                    'section_id' => $first->contentItem->section_id,
-                    'section_title' => $first->contentItem->section?->title,
+                    'chapter_id' => $first->chapter_id,
+                    'chapter_title' => $first->chapter?->title,
+                    'section_id' => $first->section_id,
+                    'section_title' => $first->section?->title,
                     'questions' => $questions,
                     'pending_count' => $questions->where('status', 'pending')->count(),
                 ];
@@ -203,10 +198,9 @@ class ListQuestions extends ListRecords
 
     /**
      * تایید یا رد دسته‌جمعی همه‌ی سوالات «در انتظار بررسی» یک
-     * زیرگروه (فصل/بخش) — فقط ادمین/سوپرادمین. سوالات پیش‌نویس یا
-     * قبلاً بررسی‌شده دست‌نخورده می‌مانند.
+     * زیرگروه (فصل/بخش) — فقط ادمین/سوپرادمین.
      */
-    public function bulkReviewGroup(int $chapterId, ?int $sectionId, string $decision): void
+    public function bulkReviewGroup(?int $chapterId, ?int $sectionId, string $decision): void
     {
         if (! $this->isReviewer()) {
             return;
@@ -214,14 +208,15 @@ class ListQuestions extends ListRecords
 
         $query = Question::where('created_by', $this->selectedCreatorId)
             ->where('status', 'pending')
-            ->whereHas('contentItem', function ($q) use ($chapterId, $sectionId) {
+            ->where('book_id', $this->selectedBookId);
 
-                $q->where('chapter_id', $chapterId);
+        $chapterId
+            ? $query->where('chapter_id', $chapterId)
+            : $query->whereNull('chapter_id');
 
-                $sectionId
-                    ? $q->where('section_id', $sectionId)
-                    : $q->whereNull('section_id');
-            });
+        $sectionId
+            ? $query->where('section_id', $sectionId)
+            : $query->whereNull('section_id');
 
         $count = $query->count();
 

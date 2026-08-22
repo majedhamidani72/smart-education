@@ -145,8 +145,10 @@
                             <div style="font-weight:700;font-size:.9rem;color:{{ $chapterColors['accent'] }}">
                                 @if ($subGroup['section_title'])
                                     فصل: {{ $subGroup['chapter_title'] }} — بخش: {{ $subGroup['section_title'] }}
-                                @else
+                                @elseif ($subGroup['chapter_title'])
                                     فصل: {{ $subGroup['chapter_title'] }}
+                                @else
+                                    کل کتاب (بدون فصل مشخص)
                                 @endif
                                 <span style="font-weight:400;color:var(--text-muted,#6b7280);font-size:.8rem">({{ $subGroup['questions']->count() }} سوال)</span>
 
@@ -161,13 +163,13 @@
 
                                 @if ($isReviewer && $subGroup['pending_count'] > 0)
                                     <button
-                                        wire:click="bulkReviewGroup({{ $subGroup['chapter_id'] }}, {{ $subGroup['section_id'] ?? 'null' }}, 'approve')"
+                                        wire:click="bulkReviewGroup({{ $subGroup['chapter_id'] ?? 'null' }}, {{ $subGroup['section_id'] ?? 'null' }}, 'approve')"
                                         wire:confirm="همه‌ی {{ $subGroup['pending_count'] }} سوال در انتظار این قسمت تأیید شوند؟"
                                         style="background:rgb(22,163,74);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;border:none;cursor:pointer">
                                         ✅ تأیید همه
                                     </button>
                                     <button
-                                        wire:click="bulkReviewGroup({{ $subGroup['chapter_id'] }}, {{ $subGroup['section_id'] ?? 'null' }}, 'reject')"
+                                        wire:click="bulkReviewGroup({{ $subGroup['chapter_id'] ?? 'null' }}, {{ $subGroup['section_id'] ?? 'null' }}, 'reject')"
                                         wire:confirm="همه‌ی {{ $subGroup['pending_count'] }} سوال در انتظار این قسمت رد شوند؟"
                                         style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;border:none;cursor:pointer">
                                         ❌ رد همه

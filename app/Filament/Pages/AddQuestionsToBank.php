@@ -463,6 +463,12 @@ class AddQuestionsToBank extends Page implements HasForms
 
                 'content_item_id' => $context['content_item_id'] ?? null,
 
+                'book_id' => $context['book_id'] ?? null,
+
+                'chapter_id' => $context['chapter_id'] ?? null,
+
+                'section_id' => $context['section_id'] ?? null,
+
                 'question_topic_id' => $context['question_topic_id'] ?? null,
 
                 'question_text' => $questionData['question_text'] ?? null,
