@@ -16,7 +16,7 @@ class BookResource extends JsonResource
 
             'id' => $this->id,
 
-            'grade_subject_id' => $this->grade_subject_id,
+            'app_grade_subject_id' => $this->app_grade_subject_id,
 
             'title' => $this->title,
 
