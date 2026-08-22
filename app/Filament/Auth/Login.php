@@ -67,9 +67,19 @@ class Login extends BaseLogin
         |--------------------------------------------------------------------------
         | تصمیم برای اجبار تغییر رمز عبور داخل Middleware
         | CheckPasswordChange گرفته می‌شود.
+        |
+        | نکته: به‌جای اجازه‌دادن به رفتار پیش‌فرض LoginResponse
+        | (که ممکن است کاربر را به همان صفحه‌ای که قبل از خروج/
+        | انقضای نشست در آن بوده برگرداند)، همیشه و برای هر سه
+        | نقش (سوپرادمین، ادمین، معلم) صریحاً به داشبورد هدایت
+        | می‌شود.
         */
 
-        return app(LoginResponse::class);
+        $this->redirect(
+            \Filament\Facades\Filament::getUrl()
+        );
+
+        return null;
     }
 
     protected function getPasswordResetUrl(): ?string
