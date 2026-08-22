@@ -2,6 +2,19 @@
 
     <div style="display:flex;flex-direction:column;gap:1.5rem">
 
+        {{-- دکمه‌ی بازگشت — هماهنگ با جای همین دکمه در «ایجاد
+             محتوای آموزشی» --}}
+        <div>
+            <a href="{{ \App\Filament\Resources\QuestionResource::getUrl('index', array_filter([
+                    'book_id' => request()->query('book_id'),
+                    'chapter_id' => request()->query('chapter_id'),
+                    'section_id' => request()->query('section_id'),
+                ])) }}"
+               style="display:inline-flex;align-items:center;gap:.4rem;background:var(--surface-2,#f1f5f9);color:var(--text-secondary,#4b5563);font-weight:600;font-size:.85rem;padding:.5rem 1rem;border-radius:.6rem;text-decoration:none">
+                ← بازگشت
+            </a>
+        </div>
+
         {{-- سربرگ رنگی --}}
         <div style="border-radius:1.25rem;padding:1.75rem;background:linear-gradient(135deg,#4f46e5,#7c3aed 55%,#ec4899);box-shadow:0 10px 30px -10px rgba(124,58,237,0.45)">
             <div style="display:flex;align-items:center;gap:1rem">

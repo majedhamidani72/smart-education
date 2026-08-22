@@ -89,8 +89,8 @@
 
         @php $counts = $this->getExamLevelCounts(); @endphp
 
-        <button wire:click="backToGroups" style="margin-bottom:1.25rem;font-size:.85rem;color:var(--text-muted,#6b7280);background:none;border:none;cursor:pointer">
-            → بازگشت به لیست کتاب‌ها
+        <button wire:click="backToGroups" style="margin-bottom:1.25rem;display:inline-flex;align-items:center;gap:.4rem;background:var(--surface-2,#f1f5f9);color:var(--text-secondary,#4b5563);font-weight:600;font-size:.85rem;padding:.5rem 1rem;border-radius:.6rem;border:none;cursor:pointer">
+            ← بازگشت به لیست کتاب‌ها
         </button>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem">
@@ -140,8 +140,8 @@
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
 
-            <button wire:click="backToExamLevels" style="font-size:.85rem;color:var(--text-muted,#6b7280);background:none;border:none;cursor:pointer">
-                → بازگشت
+            <button wire:click="backToExamLevels" style="display:inline-flex;align-items:center;gap:.4rem;background:var(--surface-2,#f1f5f9);color:var(--text-secondary,#4b5563);font-weight:600;font-size:.85rem;padding:.5rem 1rem;border-radius:.6rem;border:none;cursor:pointer">
+                ← بازگشت
             </button>
 
             <a href="{{ \App\Filament\Pages\AddQuestionsToBank::getUrl(['book_id' => $selectedBookId]) }}"
@@ -152,8 +152,24 @@
         </div>
 
         @if ($grouped->isEmpty())
-            <div style="text-align:center;padding:3rem;color:var(--text-muted,#6b7280)">
-                سوالی در این دسته یافت نشد.
+
+            @php
+                $examLevelLabel = match ($selectedExamLevel) {
+                    'section' => 'بخش/درس',
+                    'chapter' => 'فصل',
+                    'book' => 'کل کتاب',
+                    default => 'این دسته',
+                };
+            @endphp
+
+            <div style="text-align:center;padding:3rem;color:var(--text-muted,#6b7280);display:flex;flex-direction:column;align-items:center;gap:1rem">
+                <div>هنوز هیچ سوالی برای {{ $examLevelLabel }} این کتاب ثبت نشده است.</div>
+                <a href="{{ \App\Filament\Pages\AddQuestionsToBank::getUrl(array_filter([
+                        'book_id' => $selectedBookId,
+                    ])) }}"
+                   style="background:rgb(20,184,166);color:#fff;font-weight:600;font-size:.85rem;padding:.6rem 1.2rem;border-radius:.7rem;text-decoration:none">
+                    + ایجاد سوال برای این کتاب
+                </a>
             </div>
         @else
 

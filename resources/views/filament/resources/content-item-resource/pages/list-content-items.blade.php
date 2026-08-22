@@ -80,8 +80,8 @@
 
         @php $typeCounts = $this->getContentTypeCounts(); @endphp
 
-        <button wire:click="backToGroups" style="margin-bottom:1.25rem;font-size:.85rem;color:var(--text-muted,#6b7280);background:none;border:none;cursor:pointer">
-            → بازگشت به لیست کتاب‌ها
+        <button wire:click="backToGroups" style="margin-bottom:1.25rem;display:inline-flex;align-items:center;gap:.4rem;background:var(--surface-2,#f1f5f9);color:var(--text-secondary,#4b5563);font-weight:600;font-size:.85rem;padding:.5rem 1rem;border-radius:.6rem;border:none;cursor:pointer">
+            ← بازگشت به لیست کتاب‌ها
         </button>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem">
@@ -134,8 +134,8 @@
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
 
-            <button wire:click="backToContentTypes" style="font-size:.85rem;color:var(--text-muted,#6b7280);background:none;border:none;cursor:pointer">
-                → بازگشت به نوع محتوا
+            <button wire:click="backToContentTypes" style="display:inline-flex;align-items:center;gap:.4rem;background:var(--surface-2,#f1f5f9);color:var(--text-secondary,#4b5563);font-weight:600;font-size:.85rem;padding:.5rem 1rem;border-radius:.6rem;border:none;cursor:pointer">
+                ← بازگشت به نوع محتوا
             </button>
 
         </div>
