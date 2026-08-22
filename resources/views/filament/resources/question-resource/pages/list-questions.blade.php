@@ -31,8 +31,17 @@
                         onmouseout="this.style.transform='translateY(0)'">
 
                         @if ($isReviewer && $group['pending_count'] > 0)
-                            <span style="position:absolute;top:-.5rem;left:-.5rem;background:rgb(220,38,38);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:.15rem .5rem">
+                            <span style="position:absolute;top:-.6rem;left:-.6rem;background:rgb(220,38,38);color:#fff;font-size:.68rem;font-weight:700;border-radius:.7rem;padding:.3rem .55rem;text-align:right;line-height:1.6;box-shadow:0 2px 6px rgba(0,0,0,.15)">
                                 {{ $group['pending_count'] }} در انتظار
+                                @if ($group['pending_section'] > 0)
+                                    <br>بخش/درس: {{ $group['pending_section'] }}
+                                @endif
+                                @if ($group['pending_chapter'] > 0)
+                                    <br>فصل: {{ $group['pending_chapter'] }}
+                                @endif
+                                @if ($group['pending_book'] > 0)
+                                    <br>کل کتاب: {{ $group['pending_book'] }}
+                                @endif
                             </span>
                         @endif
 

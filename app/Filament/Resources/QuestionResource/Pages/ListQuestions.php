@@ -164,6 +164,13 @@ class ListQuestions extends ListRecords
                     'count' => $group->count(),
                     'pending_count' => $group->where('status', 'pending')->count(),
                     'draft_count' => $group->where('status', 'draft')->count(),
+                    // تفکیک «در انتظار بررسی» به تفکیک بخش/درس، فصل،
+                    // و کل کتاب — تا همین‌جا (سطح ۱) هم مشخص باشد
+                    // کدام دسته نیاز به بررسی دارد، بدون نیاز به
+                    // وارد شدن به سطح بعدی.
+                    'pending_section' => $group->where('status', 'pending')->whereNotNull('section_id')->count(),
+                    'pending_chapter' => $group->where('status', 'pending')->filter(fn($q) => ! $q->section_id && $q->chapter_id)->count(),
+                    'pending_book' => $group->where('status', 'pending')->whereNull('chapter_id')->count(),
                 ];
             })
             ->sortBy(fn($g) => $g['grade_id'])
