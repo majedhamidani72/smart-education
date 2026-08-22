@@ -46,7 +46,7 @@ return Application::configure(
         */
 
         $exceptions->render(function (ValidationException $e,$request) {
-            if (! $request->expectsJson()) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
             return ApiResponse::validation($e->errors());
@@ -59,7 +59,7 @@ return Application::configure(
         */
 
         $exceptions->render(function (AuthenticationException $e,$request) {
-            if (! $request->expectsJson()) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
             return ApiResponse::unauthorized();
@@ -72,7 +72,7 @@ return Application::configure(
         */
 
         $exceptions->render(function (AccessDeniedHttpException $e,$request) {
-            if (! $request->expectsJson()) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
             return ApiResponse::forbidden();
@@ -85,7 +85,7 @@ return Application::configure(
         */
 
         $exceptions->render(function (ModelNotFoundException $e,$request) {
-            if (! $request->expectsJson()) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
             return ApiResponse::notFound('Resource not found.');
@@ -98,35 +98,35 @@ return Application::configure(
         */
 
         $exceptions->render(function (InvalidLoginTokenException $e,$request) {
-            if (! $request->expectsJson()) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
             return ApiResponse::error($e->getMessage(),null,404);
         });
 
         $exceptions->render(function (InvalidOtpException $e,$request) {
-            if (! $request->expectsJson()) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
             return ApiResponse::error($e->getMessage(),null,422);
         });
 
         $exceptions->render(function (ExpiredOtpException $e,$request) {
-            if (! $request->expectsJson()) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
             return ApiResponse::error($e->getMessage(),null,410);
         });
 
         $exceptions->render(function (OtpAlreadyUsedException $e,$request) {
-            if (! $request->expectsJson()) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
             return ApiResponse::error($e->getMessage(),null,409);
         });
 
         $exceptions->render(function (OtpAttemptsExceededException $e,$request) {
-            if (! $request->expectsJson()) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
             return ApiResponse::error($e->getMessage(),null,429);
@@ -139,7 +139,7 @@ return Application::configure(
         */
 
         $exceptions->render(function (\Throwable $e,$request) {
-            if (! $request->expectsJson()) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
             return ApiResponse::error(
