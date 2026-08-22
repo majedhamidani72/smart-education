@@ -191,7 +191,13 @@ class EditQuestion extends EditRecord
 
     protected function getRedirectUrl(): string
     {
-        return static::getResource()::getUrl('index');
+        // بعد از ذخیره، دقیقاً به همان فصل/بخشی برمی‌گردد که سوال
+        // در آن بود — نه صفحه‌ی اول بانک سوالات.
+        return static::getResource()::getUrl('index', array_filter([
+            'book_id' => request()->query('book_id', $this->record->book_id),
+            'chapter_id' => request()->query('chapter_id', $this->record->chapter_id),
+            'section_id' => request()->query('section_id', $this->record->section_id),
+        ]));
     }
 
     protected function getSavedNotificationTitle(): ?string

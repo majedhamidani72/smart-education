@@ -524,7 +524,16 @@ class EditContentItem extends EditRecord
 
     protected function getRedirectUrl(): string
     {
-        return static::getResource()::getUrl('index');
+        // بعد از ذخیره، دقیقاً به همان فصل/بخش/نوع محتوایی برمی‌گردد
+        // که محتوا در آن بود — نه صفحه‌ی اول محتوای آموزشی.
+        $chapter = $this->record->chapter;
+
+        return static::getResource()::getUrl('index', array_filter([
+            'book_id' => request()->query('book_id', $chapter?->book_id),
+            'chapter_id' => request()->query('chapter_id', $this->record->chapter_id),
+            'section_id' => request()->query('section_id', $this->record->section_id),
+            'content_type_id' => request()->query('content_type_id', $this->record->content_type_id),
+        ]));
     }
 
     protected function getSavedNotificationTitle(): ?string
