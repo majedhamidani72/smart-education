@@ -181,29 +181,13 @@ class EditQuestion extends EditRecord
     }
 
     /**
-     * بدون حداقل یک گزینه‌ی «پاسخ صحیح»، سوال اصلاً ذخیره نمی‌شود.
-     * چون گزینه‌ها یک Repeater رابطه‌ای هستند، داخل $data خودِ
-     * mutateFormDataBeforeSave نیستند — باید مستقیم از وضعیت کامل
-     * فرم خوانده شوند.
+     * اعتبارسنجی «حداقل یک گزینه‌ی صحیح» الان مستقیم روی خودِ
+     * Repeater (توی QuestionResource::form) تعریف شده — چون آن
+     * روش، دقیقاً روی همان داده‌ی واقعی‌ای که Filament موقع
+     * اعتبارسنجی/ذخیره استفاده می‌کند کار می‌کند، نه یک کپی جدا
+     * از وضعیت فرم که ممکن بود گاهی هماهنگ نباشد (همان چیزی که
+     * قبلاً باعث خطای الکی می‌شد).
      */
-    protected function beforeSave(): void
-    {
-        $options = $this->form->getState()['options'] ?? [];
-
-        $hasCorrect = collect($options)->contains(
-            fn($option) => ! empty($option['is_correct'])
-        );
-
-        if (! $hasCorrect) {
-
-            \Filament\Notifications\Notification::make()
-                ->title('حداقل یکی از گزینه‌ها باید «پاسخ صحیح» باشد.')
-                ->danger()
-                ->send();
-
-            $this->halt();
-        }
-    }
 
     protected function getRedirectUrl(): string
     {

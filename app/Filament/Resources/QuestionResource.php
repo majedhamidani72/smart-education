@@ -347,7 +347,20 @@ class QuestionResource extends Resource
                         ->minItems(2)
                         ->maxItems(6)
                         ->reorderable(false)
-                        ->addActionLabel('افزودن گزینه'),
+                        ->addActionLabel('افزودن گزینه')
+                        ->live()
+                        ->rule(function () {
+                            return function (string $attribute, $value, \Closure $fail) {
+
+                                $hasCorrect = collect($value)->contains(
+                                    fn($option) => ! empty($option['is_correct'])
+                                );
+
+                                if (! $hasCorrect) {
+                                    $fail('حداقل یکی از گزینه‌ها باید «پاسخ صحیح» باشد.');
+                                }
+                            };
+                        }),
 
                 ]),
 
