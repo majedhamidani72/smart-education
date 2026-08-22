@@ -3,116 +3,368 @@
 namespace App\Filament\Resources\ContentItemResource\Pages;
 
 use App\Filament\Resources\ContentItemResource;
-use Filament\Actions;
+use App\Models\ContentItem;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
-use Filament\Resources\Components\Tab;
-use Illuminate\Database\Eloquent\Builder;
 
+/**
+ * لیست محتوای آموزشی — به‌صورت دوسطحی (نه یک لیست تخت)
+ * --------------------------------------------------------------------
+ * سطح ۱: هر کارت یک ترکیب «اپلیکیشن + ایجادکننده + پایه + کتاب»ست.
+ * سطح ۲: بعد از انتخاب یک کارت، محتواها به تفکیک دقیق فصل/بخش
+ *        گروه‌بندی و قابل‌جمع‌شدن نمایش داده می‌شوند — همراه با
+ *        تایید/رد تکی یا دسته‌جمعی (ادمین/سوپرادمین) و ارسال
+ *        برای بررسی تکی یا دسته‌جمعی (معلم).
+ * --------------------------------------------------------------------
+ * همان معماری «بانک سوالات» است، فقط بدون سطح میانیِ «بخش/فصل/کل
+ * کتاب» — چون محتوا (برخلاف سوال) از اول مستقیم به یک فصل/بخش
+ * مشخص وصل است، نیازی به آن سطح میانی نیست.
+ */
 class ListContentItems extends ListRecords
 {
     protected static string $resource = ContentItemResource::class;
+
+    protected static string $view = 'filament.resources.content-item-resource.pages.list-content-items';
+
+    public string $viewLevel = 'groups';
+
+    public ?int $selectedAppId = null;
+
+    public ?int $selectedCreatorId = null;
+
+    public ?int $selectedGradeId = null;
+
+    public ?int $selectedBookId = null;
+
+    public array $expandedGroups = [];
+
+    // برای فرم کوچیکِ «دلیل رد» که هنگام زدن دکمه‌ی «رد» (تکی یا
+    // گروهی) به‌صورت اینلاین باز می‌شود.
+    public ?int $rejectingItemId = null;
+
+    public ?string $rejectingGroupKey = null;
+
+    public string $rejectionReasonInput = '';
 
     protected function getHeaderActions(): array
     {
         return [
 
-            Actions\CreateAction::make()
-
+            \Filament\Actions\CreateAction::make()
                 ->label('ایجاد محتوای آموزشی'),
 
         ];
     }
 
-    public function getTabs(): array
+    public function toggleGroup(string $key): void
     {
-        return [
+        if (in_array($key, $this->expandedGroups)) {
 
-            'all' => Tab::make('همه')
+            $this->expandedGroups = array_values(array_diff($this->expandedGroups, [$key]));
 
-                ->badge(
-                    static::getResource()::getModel()::count()
-                ),
+        } else {
 
-            'pending' => Tab::make('در انتظار بررسی')
+            $this->expandedGroups[] = $key;
+        }
+    }
 
-                ->badge(
-                    static::getResource()::getModel()::where(
-                        'status',
-                        'pending'
-                    )->count()
-                )
+    protected function isReviewer(): bool
+    {
+        $user = auth()->user();
 
-                ->modifyQueryUsing(
+        return $user?->hasRole('SuperAdmin') || $user?->hasRole('Admin');
+    }
 
-                    fn (Builder $query) =>
+    /**
+     * کوئری پایه — همان محدودیت «معلم فقط محتوای کتاب‌های خودش را
+     * می‌بیند» که در Resource تعریف شده. ادمین/سوپرادمین هیچ‌وقت
+     * محتوای «پیش‌نویس» (هنوز ارسال‌نشده) را نمی‌بینند.
+     */
+    protected function baseQuery()
+    {
+        $query = ContentItemResource::getEloquentQuery();
 
-                    $query->where(
-                        'status',
-                        'pending'
-                    )
+        if ($this->isReviewer()) {
+            $query->where('status', '!=', 'draft');
+        }
 
-                ),
+        return $query;
+    }
 
-            'approved' => Tab::make('تأیید شده')
+    /**
+     * سطح ۱: ترکیب‌های یکتای اپلیکیشن/ایجادکننده/پایه/کتاب.
+     */
+    public function getGroups()
+    {
+        $items = $this->baseQuery()
+            ->whereHas('chapter.book')
+            ->get();
 
-                ->badge(
-                    static::getResource()::getModel()::where(
-                        'status',
-                        'approved'
-                    )->count()
-                )
+        return $items
+            ->filter(fn($i) => $i->chapter?->book !== null)
+            ->groupBy(function ($i) {
 
-                ->modifyQueryUsing(
+                $book = $i->chapter->book;
 
-                    fn (Builder $query) =>
+                return $book->appGradeSubject?->app_id.'-'
+                    .$i->created_by.'-'
+                    .$book->appGradeSubject?->grade_id.'-'
+                    .$book->id;
+            })
+            ->map(function ($group) {
 
-                    $query->where(
-                        'status',
-                        'approved'
-                    )
+                $first = $group->first();
 
-                ),
+                $book = $first->chapter->book;
 
-            'rejected' => Tab::make('رد شده')
+                return [
+                    'app_id' => $book->appGradeSubject?->app_id,
+                    'app_title' => $book->appGradeSubject?->app?->title ?? '—',
+                    'creator_id' => $first->created_by,
+                    'creator_title' => $first->creator?->name ?? '—',
+                    'grade_id' => $book->appGradeSubject?->grade_id,
+                    'grade_title' => $book->appGradeSubject?->grade?->title ?? '—',
+                    'book_id' => $book->id,
+                    'book_title' => $book->title,
+                    'count' => $group->count(),
+                    'pending_count' => $group->where('status', 'pending')->count(),
+                    'draft_count' => $group->where('status', 'draft')->count(),
+                ];
+            })
+            ->sortBy(fn($g) => $g['grade_id'])
+            ->values();
+    }
 
-                ->badge(
-                    static::getResource()::getModel()::where(
-                        'status',
-                        'rejected'
-                    )->count()
-                )
+    public function selectGroup($appId, $creatorId, $gradeId, $bookId): void
+    {
+        $this->selectedAppId = $appId;
+        $this->selectedCreatorId = $creatorId;
+        $this->selectedGradeId = $gradeId;
+        $this->selectedBookId = $bookId;
+        $this->viewLevel = 'list';
+    }
 
-                ->modifyQueryUsing(
+    public function backToGroups(): void
+    {
+        $this->viewLevel = 'groups';
 
-                    fn (Builder $query) =>
+        $this->selectedAppId = null;
+        $this->selectedCreatorId = null;
+        $this->selectedGradeId = null;
+        $this->selectedBookId = null;
+    }
 
-                    $query->where(
-                        'status',
-                        'rejected'
-                    )
+    /**
+     * سطح ۲: محتواهای همان کتاب، به تفکیک دقیق فصل/بخش گروه‌بندی
+     * شده.
+     */
+    public function getGroupedItems()
+    {
+        return $this->baseQuery()
+            ->where('created_by', $this->selectedCreatorId)
+            ->whereHas('chapter.book', fn($q) => $q->where('id', $this->selectedBookId))
+            ->with(['section', 'chapter'])
+            ->orderByDesc('created_at')
+            ->get()
+            ->groupBy(fn($i) => $i->chapter_id.'-'.($i->section_id ?? '0'))
+            ->map(function ($items) {
 
-                ),
+                $first = $items->first();
 
-            'published' => Tab::make('منتشر شده')
+                return [
+                    'key' => $first->chapter_id.'-'.($first->section_id ?? '0'),
+                    'chapter_id' => $first->chapter_id,
+                    'chapter_title' => $first->chapter?->title,
+                    'section_id' => $first->section_id,
+                    'section_title' => $first->section?->title,
+                    'items' => $items,
+                    'pending_count' => $items->where('status', 'pending')->count(),
+                    'draft_count' => $items->where('status', 'draft')->count(),
+                ];
+            })
+            ->values();
+    }
 
-                ->badge(
-                    static::getResource()::getModel()::where(
-                        'status',
-                        'published'
-                    )->count()
-                )
+    public function startRejectItem(int $itemId): void
+    {
+        $this->rejectingItemId = $itemId;
+        $this->rejectingGroupKey = null;
+        $this->rejectionReasonInput = '';
+    }
 
-                ->modifyQueryUsing(
+    public function startRejectGroup(string $groupKey): void
+    {
+        $this->rejectingGroupKey = $groupKey;
+        $this->rejectingItemId = null;
+        $this->rejectionReasonInput = '';
+    }
 
-                    fn (Builder $query) =>
+    public function cancelReject(): void
+    {
+        $this->rejectingItemId = null;
+        $this->rejectingGroupKey = null;
+        $this->rejectionReasonInput = '';
+    }
 
-                    $query->where(
-                        'status',
-                        'published'
-                    )
+    public function confirmRejectItem(): void
+    {
+        if (! $this->rejectingItemId || blank($this->rejectionReasonInput)) {
+            return;
+        }
 
-                ),
+        $this->reviewSingleItem($this->rejectingItemId, 'reject', $this->rejectionReasonInput);
 
-        ];
+        $this->cancelReject();
+    }
+
+    public function confirmRejectGroup(int $chapterId, ?int $sectionId): void
+    {
+        if (blank($this->rejectionReasonInput)) {
+            return;
+        }
+
+        $this->rejectGroup($chapterId, $sectionId, $this->rejectionReasonInput);
+
+        $this->cancelReject();
+    }
+
+    /**
+     * معلم، یک محتوای «پیش‌نویس» خودش را برای بررسی ارسال می‌کند.
+     */
+    public function submitSingleForReview(int $itemId): void
+    {
+        $item = ContentItem::where('id', $itemId)
+            ->where('status', 'draft')
+            ->where('created_by', auth()->id())
+            ->first();
+
+        if (! $item) {
+            return;
+        }
+
+        $item->update(['status' => 'pending']);
+
+        Notification::make()
+            ->title('محتوا برای بررسی ارسال شد.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * ارسال دسته‌جمعی همه‌ی محتوای «پیش‌نویس» یک زیرگروه (فصل/بخش).
+     */
+    public function submitGroupForReview(int $chapterId, ?int $sectionId): void
+    {
+        $query = ContentItem::where('created_by', auth()->id())
+            ->where('status', 'draft')
+            ->where('chapter_id', $chapterId);
+
+        $sectionId
+            ? $query->where('section_id', $sectionId)
+            : $query->whereNull('section_id');
+
+        $count = $query->count();
+
+        $query->update(['status' => 'pending']);
+
+        Notification::make()
+            ->title($count.' محتوا برای بررسی ارسال شد.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * تایید یا رد یک محتوای مشخص — فقط ادمین/سوپرادمین.
+     */
+    public function reviewSingleItem(int $itemId, string $decision, ?string $reason = null): void
+    {
+        if (! $this->isReviewer()) {
+            return;
+        }
+
+        $item = ContentItem::where('id', $itemId)
+            ->where('status', 'pending')
+            ->first();
+
+        if (! $item) {
+            return;
+        }
+
+        $item->update([
+
+            'status' => $decision === 'approve' ? 'approved' : 'rejected',
+
+            'rejection_reason' => $decision === 'reject' ? $reason : null,
+
+            'reviewed_by' => auth()->id(),
+
+            'reviewed_at' => now(),
+
+        ]);
+
+        Notification::make()
+            ->title($decision === 'approve' ? 'محتوا تأیید شد.' : 'محتوا رد شد.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * تایید دسته‌جمعی — فقط ادمین/سوپرادمین. رد دسته‌جمعی چون
+     * نیاز به یک دلیل واحد دارد، از طریق مودال جدا (rejectGroup)
+     * انجام می‌شود.
+     */
+    public function approveGroup(int $chapterId, ?int $sectionId): void
+    {
+        if (! $this->isReviewer()) {
+            return;
+        }
+
+        $query = ContentItem::where('status', 'pending')
+            ->where('chapter_id', $chapterId);
+
+        $sectionId
+            ? $query->where('section_id', $sectionId)
+            : $query->whereNull('section_id');
+
+        $count = $query->count();
+
+        $query->update([
+            'status' => 'approved',
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+        ]);
+
+        Notification::make()
+            ->title($count.' محتوا تأیید شد.')
+            ->success()
+            ->send();
+    }
+
+    public function rejectGroup(int $chapterId, ?int $sectionId, string $reason): void
+    {
+        if (! $this->isReviewer()) {
+            return;
+        }
+
+        $query = ContentItem::where('status', 'pending')
+            ->where('chapter_id', $chapterId);
+
+        $sectionId
+            ? $query->where('section_id', $sectionId)
+            : $query->whereNull('section_id');
+
+        $count = $query->count();
+
+        $query->update([
+            'status' => 'rejected',
+            'rejection_reason' => $reason,
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+        ]);
+
+        Notification::make()
+            ->title($count.' محتوا رد شد.')
+            ->success()
+            ->send();
     }
 }

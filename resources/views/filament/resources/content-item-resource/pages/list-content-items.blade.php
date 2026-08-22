@@ -1,0 +1,250 @@
+<x-filament-panels::page>
+
+    @php
+        $palette = [
+            ['bg' => 'rgba(99,102,241,0.06)', 'accent' => 'rgb(99,102,241)'],
+            ['bg' => 'rgba(20,184,166,0.06)', 'accent' => 'rgb(20,184,166)'],
+            ['bg' => 'rgba(234,179,8,0.06)', 'accent' => 'rgb(202,138,4)'],
+            ['bg' => 'rgba(217,70,239,0.06)', 'accent' => 'rgb(217,70,239)'],
+            ['bg' => 'rgba(239,68,68,0.06)', 'accent' => 'rgb(220,38,38)'],
+        ];
+        $isReviewer = $this->isReviewer();
+    @endphp
+
+    {{-- سطح ۱: اپلیکیشن / ایجادکننده / پایه / کتاب --}}
+    @if ($viewLevel === 'groups')
+
+        @php $groups = $this->getGroups(); @endphp
+
+        @if ($groups->isEmpty())
+            <div style="text-align:center;padding:3rem;color:var(--text-muted,#6b7280)">
+                هنوز هیچ محتوایی ثبت نشده است. برای شروع، دکمه‌ی «ایجاد محتوای آموزشی» بالا سمت راست را بزن.
+            </div>
+        @else
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem">
+                @foreach ($groups as $i => $group)
+                    @php $colors = $palette[$i % count($palette)]; @endphp
+                    <button
+                        wire:click="selectGroup({{ $group['app_id'] }}, {{ $group['creator_id'] }}, {{ $group['grade_id'] }}, {{ $group['book_id'] }})"
+                        style="position:relative;text-align:right;cursor:pointer;background:{{ $colors['bg'] }};border:1px solid {{ $colors['accent'] }}33;border-right:4px solid {{ $colors['accent'] }};border-radius:1rem;padding:1.1rem 1.3rem;transition:transform .15s"
+                        onmouseover="this.style.transform='translateY(-2px)'"
+                        onmouseout="this.style.transform='translateY(0)'">
+
+                        @if ($isReviewer && $group['pending_count'] > 0)
+                            <span style="position:absolute;top:-.5rem;left:-.5rem;background:rgb(220,38,38);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:.15rem .5rem">
+                                {{ $group['pending_count'] }} در انتظار
+                            </span>
+                        @endif
+
+                        @if (! $isReviewer && $group['draft_count'] > 0)
+                            <span style="position:absolute;top:-.5rem;left:-.5rem;background:rgb(100,116,139);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:.15rem .5rem">
+                                {{ $group['draft_count'] }} پیش‌نویس
+                            </span>
+                        @endif
+
+                        <div style="font-weight:700;font-size:1rem;margin-bottom:.5rem;color:{{ $colors['accent'] }}">
+                            📱 اپلیکیشن: {{ $group['app_title'] }}
+                        </div>
+                        <div style="font-size:.85rem;color:var(--text-secondary,#4b5563);line-height:1.9">
+                            👤 ایجادکننده: {{ $group['creator_title'] }}<br>
+                            🎓 پایه: {{ $group['grade_title'] }}<br>
+                            📗 کتاب: {{ $group['book_title'] }}
+                        </div>
+                        <div style="margin-top:.6rem;font-size:.75rem;font-weight:600;color:{{ $colors['accent'] }}">
+                            {{ $group['count'] }} محتوا ←
+                        </div>
+                    </button>
+                @endforeach
+            </div>
+        @endif
+
+    {{-- سطح ۲: محتواها به تفکیک فصل/بخش، قابل‌جمع‌شدن --}}
+    @else
+
+        @php
+            $grouped = $this->getGroupedItems();
+            $chapterPalette = [
+                ['bg' => 'rgba(99,102,241,0.07)', 'accent' => 'rgb(99,102,241)'],
+                ['bg' => 'rgba(20,184,166,0.07)', 'accent' => 'rgb(13,148,136)'],
+                ['bg' => 'rgba(234,179,8,0.07)', 'accent' => 'rgb(202,138,4)'],
+                ['bg' => 'rgba(217,70,239,0.07)', 'accent' => 'rgb(192,38,211)'],
+                ['bg' => 'rgba(239,68,68,0.07)', 'accent' => 'rgb(220,38,38)'],
+                ['bg' => 'rgba(34,197,94,0.07)', 'accent' => 'rgb(21,128,61)'],
+                ['bg' => 'rgba(59,130,246,0.07)', 'accent' => 'rgb(37,99,235)'],
+                ['bg' => 'rgba(249,115,22,0.07)', 'accent' => 'rgb(194,65,12)'],
+            ];
+        @endphp
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
+
+            <button wire:click="backToGroups" style="font-size:.85rem;color:var(--text-muted,#6b7280);background:none;border:none;cursor:pointer">
+                → بازگشت به لیست کتاب‌ها
+            </button>
+
+        </div>
+
+        @if ($grouped->isEmpty())
+            <div style="text-align:center;padding:3rem;color:var(--text-muted,#6b7280)">
+                محتوایی در این کتاب یافت نشد.
+            </div>
+        @else
+
+            <div style="display:flex;flex-direction:column;gap:.85rem">
+                @foreach ($grouped as $subGroup)
+
+                    @php
+                        $chapterColors = $chapterPalette[crc32((string) $subGroup['chapter_id']) % count($chapterPalette)];
+                    @endphp
+
+                    <div style="border:1px solid {{ $chapterColors['accent'] }}33;border-right:4px solid {{ $chapterColors['accent'] }};border-radius:1rem;overflow:hidden">
+
+                        <div wire:click="toggleGroup('{{ $subGroup['key'] }}')" style="cursor:pointer;background:{{ $chapterColors['bg'] }};padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+
+                            <div style="font-weight:700;font-size:.9rem;color:{{ $chapterColors['accent'] }}">
+                                <span style="display:inline-block;transition:transform .15s;transform:rotate({{ in_array($subGroup['key'], $expandedGroups) ? '90deg' : '0deg' }})">◀</span>
+                                @if ($subGroup['section_title'])
+                                    فصل: {{ $subGroup['chapter_title'] }} — بخش/درس: {{ $subGroup['section_title'] }}
+                                @else
+                                    فصل: {{ $subGroup['chapter_title'] }}
+                                @endif
+                                <span style="font-weight:400;color:var(--text-muted,#6b7280);font-size:.8rem">({{ $subGroup['items']->count() }} محتوا)</span>
+
+                                @if ($isReviewer && $subGroup['pending_count'] > 0)
+                                    <span style="background:rgb(202,138,4);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:.15rem .55rem;margin-right:.4rem">
+                                        {{ $subGroup['pending_count'] }} در انتظار بررسی
+                                    </span>
+                                @endif
+
+                                @if (! $isReviewer && $subGroup['draft_count'] > 0)
+                                    <span style="background:rgb(100,116,139);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:.15rem .55rem;margin-right:.4rem">
+                                        {{ $subGroup['draft_count'] }} پیش‌نویس (ارسال‌نشده)
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div style="display:flex;gap:.5rem;flex-wrap:wrap" onclick="event.stopPropagation()">
+
+                                @if ($isReviewer && $subGroup['pending_count'] > 0)
+                                    <button
+                                        wire:click="approveGroup({{ $subGroup['chapter_id'] }}, {{ $subGroup['section_id'] ?? 'null' }})"
+                                        wire:confirm="همه‌ی {{ $subGroup['pending_count'] }} محتوای در انتظار این قسمت تأیید شوند؟"
+                                        style="background:rgb(22,163,74);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;border:none;cursor:pointer">
+                                        ✅ تأیید همه
+                                    </button>
+                                    <button
+                                        wire:click="startRejectGroup('{{ $subGroup['key'] }}')"
+                                        style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;border:none;cursor:pointer">
+                                        ❌ رد همه
+                                    </button>
+                                @endif
+
+                                @if (! $isReviewer && $subGroup['draft_count'] > 0)
+                                    <button
+                                        wire:click="submitGroupForReview({{ $subGroup['chapter_id'] }}, {{ $subGroup['section_id'] ?? 'null' }})"
+                                        wire:confirm="همه‌ی {{ $subGroup['draft_count'] }} محتوای پیش‌نویس این قسمت برای بررسی ارسال شوند؟"
+                                        style="background:rgb(79,70,229);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;border:none;cursor:pointer">
+                                        📤 ارسال همه برای بررسی
+                                    </button>
+                                @endif
+
+                            </div>
+
+                        </div>
+
+                        {{-- فرم اینلاین دلیل رد گروهی --}}
+                        @if ($rejectingGroupKey === $subGroup['key'])
+                            <div style="padding:.85rem 1.1rem;background:rgba(220,38,38,0.05);border-top:1px solid rgba(220,38,38,0.2);display:flex;gap:.6rem;align-items:flex-start;flex-wrap:wrap">
+                                <input type="text" wire:model="rejectionReasonInput" placeholder="دلیل رد را بنویس..." style="flex:1;min-width:200px;padding:.5rem .75rem;border-radius:.5rem;border:1px solid rgba(220,38,38,0.3);font-size:.85rem">
+                                <button wire:click="confirmRejectGroup({{ $subGroup['chapter_id'] }}, {{ $subGroup['section_id'] ?? 'null' }})" style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.8rem;padding:.5rem .9rem;border-radius:.5rem;border:none;cursor:pointer">ثبت رد</button>
+                                <button wire:click="cancelReject" style="background:var(--surface-2,#f1f5f9);font-weight:600;font-size:.8rem;padding:.5rem .9rem;border-radius:.5rem;border:none;cursor:pointer">انصراف</button>
+                            </div>
+                        @endif
+
+                        @if (in_array($subGroup['key'], $expandedGroups))
+                        <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+                            <thead>
+                                <tr style="background:var(--surface-2,#f9fafb);border-top:1px solid var(--border,#e5e7eb)">
+                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">عنوان</th>
+                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">نوع محتوا</th>
+                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">رایگان</th>
+                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">وضعیت</th>
+                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($subGroup['items'] as $item)
+                                    <tr style="border-top:1px solid var(--border,#e5e7eb)">
+                                        <td style="padding:.75rem 1.1rem">{{ \Illuminate\Support\Str::limit($item->title, 50) }}</td>
+                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">{{ $item->contentType?->title ?? '—' }}</td>
+                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">{{ $item->is_free ? '✅' : '—' }}</td>
+                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">
+                                            @php
+                                                $statusLabel = match($item->status) {
+                                                    'draft' => 'پیش‌نویس',
+                                                    'pending' => 'در انتظار بررسی',
+                                                    'approved' => 'تأیید شده',
+                                                    'rejected' => 'رد شده',
+                                                    'published' => 'منتشر شده',
+                                                    default => $item->status,
+                                                };
+                                            @endphp
+                                            {{ $statusLabel }}
+                                            @if ($item->status === 'rejected' && $item->rejection_reason)
+                                                <div style="font-size:.72rem;color:rgb(220,38,38);margin-top:.2rem">{{ $item->rejection_reason }}</div>
+                                            @endif
+                                        </td>
+                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">
+                                            <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+
+                                                <a href="{{ \App\Filament\Resources\ContentItemResource::getUrl('edit', ['record' => $item]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
+                                                    ویرایش
+                                                </a>
+
+                                                @if ($isReviewer && $item->status === 'pending')
+                                                    <button
+                                                        wire:click="reviewSingleItem({{ $item->id }}, 'approve')"
+                                                        style="background:rgb(22,163,74);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
+                                                        تأیید
+                                                    </button>
+                                                    <button
+                                                        wire:click="startRejectItem({{ $item->id }})"
+                                                        style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
+                                                        رد
+                                                    </button>
+                                                @endif
+
+                                                @if (! $isReviewer && $item->status === 'draft')
+                                                    <button
+                                                        wire:click="submitSingleForReview({{ $item->id }})"
+                                                        style="background:rgb(79,70,229);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
+                                                        📤 ارسال برای بررسی
+                                                    </button>
+                                                @endif
+
+                                            </div>
+
+                                            {{-- فرم اینلاین دلیل رد تکی --}}
+                                            @if ($rejectingItemId === $item->id)
+                                                <div style="margin-top:.5rem;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">
+                                                    <input type="text" wire:model="rejectionReasonInput" placeholder="دلیل رد..." style="flex:1;min-width:150px;padding:.35rem .6rem;border-radius:.4rem;border:1px solid rgba(220,38,38,0.3);font-size:.78rem">
+                                                    <button wire:click="confirmRejectItem" style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.72rem;padding:.35rem .7rem;border-radius:.4rem;border:none;cursor:pointer">ثبت</button>
+                                                    <button wire:click="cancelReject" style="background:var(--surface-2,#f1f5f9);font-weight:600;font-size:.72rem;padding:.35rem .7rem;border-radius:.4rem;border:none;cursor:pointer">لغو</button>
+                                                </div>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        @endif
+
+                    </div>
+
+                @endforeach
+            </div>
+
+        @endif
+
+    @endif
+
+</x-filament-panels::page>
