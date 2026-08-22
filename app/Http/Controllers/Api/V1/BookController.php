@@ -141,11 +141,11 @@ class BookController extends Controller
         Book $book
     )
     {
-        $this->authorize(
-            'view',
-            $book
-        );
-
+        // برخلاف متدهای مدیریتی (index/show/store/...)، این مسیر
+        // مخصوص خودِ دانش‌آموز است — او باید بتواند قبل از هرگونه
+        // خرید، آزادانه معلم‌های یک کتاب را مرور کند. اینجا از
+        // مجوز مدیریتی books.view استفاده نمی‌شود (که مخصوص پنل
+        // ادمین/معلم است، نه کاربر عادی برنامه).
         $teacherIds = \App\Models\TeacherAssignment::query()
             ->where('book_id', $book->id)
             ->where('is_active', true)
