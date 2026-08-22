@@ -78,10 +78,11 @@ class ListQuestions extends ListRecords
     {
         $questions = $this->baseQuery()
             ->with(['creator', 'book.appGradeSubject.grade', 'book.appGradeSubject.app'])
-            ->whereNotNull('book_id')
+            ->whereHas('book')
             ->get();
 
         return $questions
+            ->filter(fn($q) => $q->book !== null)
             ->groupBy(function ($q) {
 
                 return $q->book->appGradeSubject?->app_id.'-'
