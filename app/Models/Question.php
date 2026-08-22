@@ -165,44 +165,13 @@ class Question extends Model
 
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Helpers
-    |--------------------------------------------------------------------------
-    */
+    // نکته: قبلاً اینجا یک متد getBookAttribute() بود که کتاب را
+    // از مسیر content_item→section→chapter→book محاسبه می‌کرد —
+    // این متد، رابطه‌ی واقعی book() (که مستقیم روی ستون book_id
+    // کار می‌کند) را بی‌صدا override می‌کرد و همیشه null برمی‌
+    // گرداند برای سوالاتی که content_item نداشتند، حتی وقتی
+    // book_id واقعی‌شان پر بود. حذف شد چون دیگر لازم نیست — رابطه‌ی
+    // book() در بالای همین فایل مستقیم کار می‌کند.
 
-
-
-    /**
-     * دریافت کتاب مربوط به سوال
-     *
-     * Question
-     *  |
-     * ContentItem
-     *  |
-     * Section
-     *  |
-     * Chapter
-     *  |
-     * Book
-     */
-    public function getBookAttribute(): ?Book
-    {
-
-        return $this->contentItem
-            ?->section
-            ?->chapter
-            ?->book;
-
-    }
-
-
-    /**
-     * دریافت شناسه کتاب
-     */
-    public function getBookIdAttribute(): ?int
-    {
-        return $this->book?->id;
-    }
 
 }
