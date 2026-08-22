@@ -304,7 +304,13 @@
                                                     <td style="padding:.75rem 1.1rem;white-space:nowrap">
                                                         <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
 
-                                                            <a href="{{ \App\Filament\Resources\ContentItemResource::getUrl('edit', ['record' => $item]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
+                                                            <a href="{{ \App\Filament\Resources\ContentItemResource::getUrl('edit', [
+                                                                    'record' => $item,
+                                                                    'book_id' => $selectedBookId,
+                                                                    'chapter_id' => $subGroup['chapter_id'],
+                                                                    'section_id' => $subGroup['section_id'],
+                                                                    'content_type_id' => $this->getSelectedContentTypeId(),
+                                                                ]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
                                                                 {{ (! $isReviewer && $item->status === 'pending') ? 'نمایش' : 'ویرایش' }}
                                                             </a>
 

@@ -11,9 +11,48 @@ class EditQuestion extends EditRecord
 {
     protected static string $resource = QuestionResource::class;
 
+    /**
+     * نوار مسیر بالای صفحه — از روی مسیر واقعی خودِ سوال (نه
+     * پارامترهای آدرس) محاسبه می‌شود تا حتی اگر مستقیم وارد این
+     * صفحه شده باشی، درست باشد.
+     */
+    public function getSubheading(): ?string
+    {
+        $book = \App\Models\Book::with('appGradeSubject.grade', 'appGradeSubject.app')
+            ->find($this->record->book_id);
+
+        if (! $book) {
+            return null;
+        }
+
+        $chapter = $this->record->chapter?->title;
+
+        $section = $this->record->section?->title;
+
+        $path = collect([
+            $book->appGradeSubject?->app?->title,
+            'پایه '.$book->appGradeSubject?->grade?->title,
+            $book->title,
+            $chapter,
+            $section,
+        ])->filter()->implode(' ← ');
+
+        return '📍 مسیر: '.$path;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
+
+            Actions\Action::make('back')
+                ->label('بازگشت')
+                ->icon('heroicon-o-arrow-right')
+                ->color('gray')
+                ->url(static::getResource()::getUrl('index', array_filter([
+                    'book_id' => request()->query('book_id', $this->record->book_id),
+                    'chapter_id' => request()->query('chapter_id', $this->record->chapter_id),
+                    'section_id' => request()->query('section_id', $this->record->section_id),
+                ]))),
 
             Actions\DeleteAction::make(),
 

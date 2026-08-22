@@ -466,9 +466,52 @@ class EditContentItem extends EditRecord
         ];
     }
 
+    /**
+     * نوار مسیر بالای صفحه — از روی مسیر واقعی خودِ محتوا محاسبه
+     * می‌شود تا حتی اگر مستقیم وارد این صفحه شده باشی، درست باشد.
+     */
+    public function getSubheading(): ?string
+    {
+        $chapter = $this->record->chapter()
+            ->with('book.appGradeSubject.grade', 'book.appGradeSubject.app')
+            ->first();
+
+        $book = $chapter?->book;
+
+        if (! $book) {
+            return null;
+        }
+
+        $section = $this->record->section?->title;
+
+        $path = collect([
+            $book->appGradeSubject?->app?->title,
+            'پایه '.$book->appGradeSubject?->grade?->title,
+            $book->title,
+            $chapter->title,
+            $section,
+            $this->record->contentType?->title,
+        ])->filter()->implode(' ← ');
+
+        return '📍 مسیر: '.$path;
+    }
+
     protected function getHeaderActions(): array
     {
+        $chapter = $this->record->chapter;
+
         return [
+
+            Actions\Action::make('back')
+                ->label('بازگشت')
+                ->icon('heroicon-o-arrow-right')
+                ->color('gray')
+                ->url(static::getResource()::getUrl('index', array_filter([
+                    'book_id' => request()->query('book_id', $chapter?->book_id),
+                    'chapter_id' => request()->query('chapter_id', $this->record->chapter_id),
+                    'section_id' => request()->query('section_id', $this->record->section_id),
+                    'content_type_id' => request()->query('content_type_id', $this->record->content_type_id),
+                ]))),
 
             Actions\DeleteAction::make(),
 

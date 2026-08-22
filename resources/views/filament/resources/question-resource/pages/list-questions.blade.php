@@ -308,7 +308,12 @@
                                         <td style="padding:.75rem 1.1rem;white-space:nowrap">
                                             <div style="display:flex;gap:.6rem;align-items:center;justify-content:flex-start">
 
-                                                <a href="{{ \App\Filament\Resources\QuestionResource::getUrl('edit', ['record' => $q]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
+                                                <a href="{{ \App\Filament\Resources\QuestionResource::getUrl('edit', [
+                                                        'record' => $q,
+                                                        'book_id' => $selectedBookId,
+                                                        'chapter_id' => $subGroup['chapter_id'],
+                                                        'section_id' => $subGroup['section_id'],
+                                                    ]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
                                                     {{ (! $isReviewer && $q->status === 'pending') ? 'نمایش' : 'ویرایش' }}
                                                 </a>
 
