@@ -31,6 +31,25 @@ class ListQuestions extends ListRecords
 
     public string $viewLevel = 'groups';
 
+    /**
+     * کدام زیرگروه‌های سطح ۳ الان باز هستند — چون <details> معمولی
+     * بعد از هر wire:click (مثلاً تایید/رد یک سوال) خودش را می‌بندد،
+     * این وضعیت را صریح خودمان نگه می‌داریم تا باز بماند.
+     */
+    public array $expandedGroups = [];
+
+    public function toggleGroup(string $key): void
+    {
+        if (in_array($key, $this->expandedGroups)) {
+
+            $this->expandedGroups = array_values(array_diff($this->expandedGroups, [$key]));
+
+        } else {
+
+            $this->expandedGroups[] = $key;
+        }
+    }
+
     public ?int $selectedAppId = null;
 
     public ?int $selectedCreatorId = null;
@@ -259,6 +278,7 @@ class ListQuestions extends ListRecords
                 $first = $questions->first();
 
                 return [
+                    'key' => ($first->chapter_id ?? '0').'-'.($first->section_id ?? '0'),
                     'chapter_id' => $first->chapter_id,
                     'chapter_title' => $first->chapter?->title,
                     'section_id' => $first->section_id,

@@ -168,11 +168,12 @@
                         $chapterColors = $chapterPalette[crc32((string) $subGroup['chapter_id']) % count($chapterPalette)];
                     @endphp
 
-                    <details style="border:1px solid {{ $chapterColors['accent'] }}33;border-right:4px solid {{ $chapterColors['accent'] }};border-radius:1rem;overflow:hidden">
+                    <div style="border:1px solid {{ $chapterColors['accent'] }}33;border-right:4px solid {{ $chapterColors['accent'] }};border-radius:1rem;overflow:hidden">
 
-                        <summary style="cursor:pointer;list-style:none;background:{{ $chapterColors['bg'] }};padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+                        <div wire:click="toggleGroup('{{ $subGroup['key'] }}')" style="cursor:pointer;background:{{ $chapterColors['bg'] }};padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
 
                             <div style="font-weight:700;font-size:.9rem;color:{{ $chapterColors['accent'] }}">
+                                <span style="display:inline-block;transition:transform .15s;transform:rotate({{ in_array($subGroup['key'], $expandedGroups) ? '90deg' : '0deg' }})">◀</span>
                                 @if ($subGroup['section_title'])
                                     فصل: {{ $subGroup['chapter_title'] }} — بخش/درس: {{ $subGroup['section_title'] }}
                                 @elseif ($subGroup['chapter_title'])
@@ -232,8 +233,9 @@
 
                             </div>
 
-                        </summary>
+                        </div>
 
+                        @if (in_array($subGroup['key'], $expandedGroups))
                         <table style="width:100%;border-collapse:collapse;font-size:.9rem">
                             <thead>
                                 <tr style="background:var(--surface-2,#f9fafb);border-top:1px solid var(--border,#e5e7eb)">
@@ -304,8 +306,9 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        @endif
 
-                    </details>
+                    </div>
 
                 @endforeach
             </div>
