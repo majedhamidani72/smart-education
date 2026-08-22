@@ -297,7 +297,9 @@ class TeacherEarningResource extends Resource
 
                             \App\Jobs\SendSmsJob::dispatch(
                                 $record->teacher->mobile,
-                                number_format($record->amount).' تومان از درآمد شما تسویه و واریز شد.'
+                                app(\App\Services\SettingService::class)->smsText('sms_teacher_payout', [
+                                    'amount' => number_format($record->amount),
+                                ])
                             );
                         }
 
@@ -349,7 +351,9 @@ class TeacherEarningResource extends Resource
 
                                         \App\Jobs\SendSmsJob::dispatch(
                                             $record->teacher->mobile,
-                                            number_format($record->amount).' تومان از درآمد شما تسویه و واریز شد.'
+                                            app(\App\Services\SettingService::class)->smsText('sms_teacher_payout', [
+                                                'amount' => number_format($record->amount),
+                                            ])
                                         );
                                     }
                                 }

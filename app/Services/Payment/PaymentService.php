@@ -173,7 +173,9 @@ class PaymentService
 
                     SendSmsJob::dispatch(
                         $transaction->purchase->user->mobile,
-                        'خرید شما با موفقیت انجام شد و دسترسی شما فعال گردید. شماره پیگیری: '.$transaction->purchase->invoice_number
+                        app(\App\Services\SettingService::class)->smsText('sms_purchase_confirmation', [
+                            'invoice_number' => $transaction->purchase->invoice_number,
+                        ])
                     );
                 }
 
@@ -439,5 +441,20 @@ class PaymentService
             'status' => 'pending',
 
         ]);
+
+        // اطلاع به معلم که یک دانش‌آموز جدید از کتاب/پایه‌ی او
+        // خرید کرده — با مبلغِ واقعیِ سهم خودش (نه قیمت کامل).
+        $teacher = $assignment->teacher;
+
+        if ($teacher?->mobile) {
+
+            SendSmsJob::dispatch(
+                $teacher->mobile,
+                app(SettingService::class)->smsText('sms_teacher_new_sale', [
+                    'amount' => number_format($amount),
+                    'book_title' => $assignment->book?->title,
+                ])
+            );
+        }
     }
 }

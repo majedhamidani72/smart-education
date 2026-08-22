@@ -166,7 +166,9 @@ class CreateTeacher extends CreateRecord
 
         \App\Jobs\SendSmsJob::dispatch(
             $teacher->mobile,
-            'حساب معلمی شما ساخته شد. برای ورود از شماره موبایل خودتان و رمز عبور "'.$this->plainPassword.'" استفاده کنید.'
+            app(\App\Services\SettingService::class)->smsText('sms_account_created_teacher', [
+                'password' => $this->plainPassword,
+            ])
         );
     }
 

@@ -84,7 +84,9 @@ class CreateAdmin extends CreateRecord
 
         \App\Jobs\SendSmsJob::dispatch(
             $admin->mobile,
-            'حساب ادمینی شما ساخته شد. برای ورود از شماره موبایل خودتان و رمز عبور "'.$this->plainPassword.'" استفاده کنید.'
+            app(\App\Services\SettingService::class)->smsText('sms_account_created_admin', [
+                'password' => $this->plainPassword,
+            ])
         );
     }
 
