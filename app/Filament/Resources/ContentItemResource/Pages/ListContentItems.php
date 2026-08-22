@@ -58,6 +58,44 @@ class ListContentItems extends ListRecords
         ];
     }
 
+    /**
+     * اگر از دکمه‌ی «بازگشت» توی صفحه‌ی «ایجاد محتوای آموزشی» به
+     * اینجا برگشته باشیم، به‌جای اولین صفحه (لیست کتاب‌ها)، مستقیم
+     * به همان فصل/بخش و نوع محتوایی که رویش کار می‌کردیم می‌رویم.
+     */
+    public function mount(): void
+    {
+        $bookId = request()->query('book_id');
+
+        if (! $bookId) {
+            return;
+        }
+
+        $book = \App\Models\Book::with('appGradeSubject')->find($bookId);
+
+        if (! $book) {
+            return;
+        }
+
+        $this->selectedAppId = $book->appGradeSubject?->app_id;
+        $this->selectedGradeId = $book->appGradeSubject?->grade_id;
+        $this->selectedCreatorId = auth()->id();
+        $this->selectedBookId = $book->id;
+
+        $contentTypeId = request()->query('content_type_id');
+
+        if ($contentTypeId) {
+
+            $this->selectedContentTypeSlug = \App\Models\ContentType::whereKey($contentTypeId)->value('slug');
+
+            $this->viewLevel = 'list';
+
+        } else {
+
+            $this->viewLevel = 'contentTypes';
+        }
+    }
+
     public function toggleGroup(string $key): void
     {
         if (in_array($key, $this->expandedGroups)) {

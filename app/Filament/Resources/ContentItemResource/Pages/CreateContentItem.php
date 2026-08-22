@@ -27,7 +27,12 @@ class CreateContentItem extends CreateRecord
                 ->label('بازگشت')
                 ->icon('heroicon-o-arrow-right')
                 ->color('gray')
-                ->url(static::getResource()::getUrl('index')),
+                ->url(static::getResource()::getUrl('index', array_filter([
+                    'book_id' => request()->query('book_id'),
+                    'chapter_id' => request()->query('chapter_id'),
+                    'section_id' => request()->query('section_id'),
+                    'content_type_id' => request()->query('content_type_id'),
+                ]))),
 
         ];
     }
