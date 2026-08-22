@@ -163,13 +163,39 @@ class ListContentItems extends ListRecords
         return $this->baseQuery()
             ->where('created_by', $this->selectedCreatorId)
             ->whereHas('chapter.book', fn($q) => $q->where('id', $this->selectedBookId))
-            ->with(['section', 'chapter'])
+            ->with(['section', 'chapter', 'contentType'])
             ->orderByDesc('created_at')
             ->get()
             ->groupBy(fn($i) => $i->chapter_id.'-'.($i->section_id ?? '0'))
             ->map(function ($items) {
 
                 $first = $items->first();
+
+                // ترتیب نمایش ثابت: تدریس، گام‌به‌گام، نمونه سوالات،
+                // و در آخر هرچیز دیگری — تا معلم/ادمین همیشه بداند
+                // کجا دنبال چه نوع محتوایی بگردد.
+                $typeOrder = ['teaching' => 1, 'step_by_step' => 2, 'sample_questions' => 3];
+
+                $typeMeta = [
+                    'teaching' => ['label' => 'تدریس', 'icon' => '🎥', 'accent' => 'rgb(37,99,235)'],
+                    'step_by_step' => ['label' => 'گام به گام', 'icon' => '📝', 'accent' => 'rgb(21,128,61)'],
+                    'sample_questions' => ['label' => 'نمونه سوالات', 'icon' => '📄', 'accent' => 'rgb(194,65,12)'],
+                ];
+
+                $byType = $items
+                    ->groupBy(fn($i) => $i->contentType?->slug ?? 'other')
+                    ->sortBy(fn($group, $slug) => $typeOrder[$slug] ?? 99)
+                    ->map(function ($typeItems, $slug) use ($typeMeta) {
+
+                        return [
+                            'slug' => $slug,
+                            'label' => $typeMeta[$slug]['label'] ?? ($typeItems->first()->contentType?->title ?? 'سایر'),
+                            'icon' => $typeMeta[$slug]['icon'] ?? '📦',
+                            'accent' => $typeMeta[$slug]['accent'] ?? 'rgb(100,116,139)',
+                            'items' => $typeItems,
+                        ];
+                    })
+                    ->values();
 
                 return [
                     'key' => $first->chapter_id.'-'.($first->section_id ?? '0'),
@@ -178,6 +204,7 @@ class ListContentItems extends ListRecords
                     'section_id' => $first->section_id,
                     'section_title' => $first->section?->title,
                     'items' => $items,
+                    'by_type' => $byType,
                     'pending_count' => $items->where('status', 'pending')->count(),
                     'draft_count' => $items->where('status', 'draft')->count(),
                 ];

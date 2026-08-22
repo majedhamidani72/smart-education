@@ -161,81 +161,94 @@
                         @endif
 
                         @if (in_array($subGroup['key'], $expandedGroups))
-                        <table style="width:100%;border-collapse:collapse;font-size:.9rem">
-                            <thead>
-                                <tr style="background:var(--surface-2,#f9fafb);border-top:1px solid var(--border,#e5e7eb)">
-                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">عنوان</th>
-                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">نوع محتوا</th>
-                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">رایگان</th>
-                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">وضعیت</th>
-                                    <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($subGroup['items'] as $item)
-                                    <tr style="border-top:1px solid var(--border,#e5e7eb)">
-                                        <td style="padding:.75rem 1.1rem">{{ \Illuminate\Support\Str::limit($item->title, 50) }}</td>
-                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">{{ $item->contentType?->title ?? '—' }}</td>
-                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">{{ $item->is_free ? '✅' : '—' }}</td>
-                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">
-                                            @php
-                                                $statusLabel = match($item->status) {
-                                                    'draft' => 'پیش‌نویس',
-                                                    'pending' => 'در انتظار بررسی',
-                                                    'approved' => 'تأیید شده',
-                                                    'rejected' => 'رد شده',
-                                                    'published' => 'منتشر شده',
-                                                    default => $item->status,
-                                                };
-                                            @endphp
-                                            {{ $statusLabel }}
-                                            @if ($item->status === 'rejected' && $item->rejection_reason)
-                                                <div style="font-size:.72rem;color:rgb(220,38,38);margin-top:.2rem">{{ $item->rejection_reason }}</div>
-                                            @endif
-                                        </td>
-                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">
-                                            <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
 
-                                                <a href="{{ \App\Filament\Resources\ContentItemResource::getUrl('edit', ['record' => $item]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
-                                                    ویرایش
-                                                </a>
+                            @foreach ($subGroup['by_type'] as $typeGroup)
 
-                                                @if ($isReviewer && $item->status === 'pending')
-                                                    <button
-                                                        wire:click="reviewSingleItem({{ $item->id }}, 'approve')"
-                                                        style="background:rgb(22,163,74);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
-                                                        تأیید
-                                                    </button>
-                                                    <button
-                                                        wire:click="startRejectItem({{ $item->id }})"
-                                                        style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
-                                                        رد
-                                                    </button>
-                                                @endif
+                                <div style="border-top:1px solid var(--border,#e5e7eb)">
 
-                                                @if (! $isReviewer && $item->status === 'draft')
-                                                    <button
-                                                        wire:click="submitSingleForReview({{ $item->id }})"
-                                                        style="background:rgb(79,70,229);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
-                                                        📤 ارسال برای بررسی
-                                                    </button>
-                                                @endif
+                                    <div style="padding:.55rem 1.1rem;background:{{ $typeGroup['accent'] }}0d;font-weight:700;font-size:.82rem;color:{{ $typeGroup['accent'] }}">
+                                        {{ $typeGroup['icon'] }} {{ $typeGroup['label'] }}
+                                        <span style="font-weight:400;color:var(--text-muted,#6b7280);font-size:.75rem">({{ $typeGroup['items']->count() }})</span>
+                                    </div>
 
-                                            </div>
+                                    <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+                                        <thead>
+                                            <tr style="background:var(--surface-2,#f9fafb)">
+                                                <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">عنوان</th>
+                                                <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">رایگان</th>
+                                                <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)">وضعیت</th>
+                                                <th style="padding:.6rem 1.1rem;text-align:right;font-weight:600;font-size:.8rem;color:var(--text-muted,#6b7280)"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($typeGroup['items'] as $item)
+                                                <tr style="border-top:1px solid var(--border,#e5e7eb)">
+                                                    <td style="padding:.75rem 1.1rem">{{ \Illuminate\Support\Str::limit($item->title, 50) }}</td>
+                                                    <td style="padding:.75rem 1.1rem;white-space:nowrap">{{ $item->is_free ? '✅' : '—' }}</td>
+                                                    <td style="padding:.75rem 1.1rem;white-space:nowrap">
+                                                        @php
+                                                            $statusLabel = match($item->status) {
+                                                                'draft' => 'پیش‌نویس',
+                                                                'pending' => 'در انتظار بررسی',
+                                                                'approved' => 'تأیید شده',
+                                                                'rejected' => 'رد شده',
+                                                                'published' => 'منتشر شده',
+                                                                default => $item->status,
+                                                            };
+                                                        @endphp
+                                                        {{ $statusLabel }}
+                                                        @if ($item->status === 'rejected' && $item->rejection_reason)
+                                                            <div style="font-size:.72rem;color:rgb(220,38,38);margin-top:.2rem">{{ $item->rejection_reason }}</div>
+                                                        @endif
+                                                    </td>
+                                                    <td style="padding:.75rem 1.1rem;white-space:nowrap">
+                                                        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
 
-                                            {{-- فرم اینلاین دلیل رد تکی --}}
-                                            @if ($rejectingItemId === $item->id)
-                                                <div style="margin-top:.5rem;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">
-                                                    <input type="text" wire:model="rejectionReasonInput" placeholder="دلیل رد..." style="flex:1;min-width:150px;padding:.35rem .6rem;border-radius:.4rem;border:1px solid rgba(220,38,38,0.3);font-size:.78rem">
-                                                    <button wire:click="confirmRejectItem" style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.72rem;padding:.35rem .7rem;border-radius:.4rem;border:none;cursor:pointer">ثبت</button>
-                                                    <button wire:click="cancelReject" style="background:var(--surface-2,#f1f5f9);font-weight:600;font-size:.72rem;padding:.35rem .7rem;border-radius:.4rem;border:none;cursor:pointer">لغو</button>
-                                                </div>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                                            <a href="{{ \App\Filament\Resources\ContentItemResource::getUrl('edit', ['record' => $item]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
+                                                                ویرایش
+                                                            </a>
+
+                                                            @if ($isReviewer && $item->status === 'pending')
+                                                                <button
+                                                                    wire:click="reviewSingleItem({{ $item->id }}, 'approve')"
+                                                                    style="background:rgb(22,163,74);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
+                                                                    تأیید
+                                                                </button>
+                                                                <button
+                                                                    wire:click="startRejectItem({{ $item->id }})"
+                                                                    style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
+                                                                    رد
+                                                                </button>
+                                                            @endif
+
+                                                            @if (! $isReviewer && $item->status === 'draft')
+                                                                <button
+                                                                    wire:click="submitSingleForReview({{ $item->id }})"
+                                                                    style="background:rgb(79,70,229);color:#fff;font-weight:600;font-size:.75rem;padding:.3rem .7rem;border-radius:.5rem;border:none;cursor:pointer">
+                                                                    📤 ارسال برای بررسی
+                                                                </button>
+                                                            @endif
+
+                                                        </div>
+
+                                                        {{-- فرم اینلاین دلیل رد تکی --}}
+                                                        @if ($rejectingItemId === $item->id)
+                                                            <div style="margin-top:.5rem;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">
+                                                                <input type="text" wire:model="rejectionReasonInput" placeholder="دلیل رد..." style="flex:1;min-width:150px;padding:.35rem .6rem;border-radius:.4rem;border:1px solid rgba(220,38,38,0.3);font-size:.78rem">
+                                                                <button wire:click="confirmRejectItem" style="background:rgb(220,38,38);color:#fff;font-weight:600;font-size:.72rem;padding:.35rem .7rem;border-radius:.4rem;border:none;cursor:pointer">ثبت</button>
+                                                                <button wire:click="cancelReject" style="background:var(--surface-2,#f1f5f9);font-weight:600;font-size:.72rem;padding:.35rem .7rem;border-radius:.4rem;border:none;cursor:pointer">لغو</button>
+                                                            </div>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+
+                                </div>
+
+                            @endforeach
+
                         @endif
 
                     </div>
