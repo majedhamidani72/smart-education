@@ -158,6 +158,45 @@ class ListContentItems extends ListRecords
     }
 
     /**
+     * مسیر فعلی برای نوار breadcrumb بالای صفحه — تا کاربر همیشه
+     * دقیق بداند کجای اپلیکیشن/پایه/کتاب/نوع محتوا/فصل قرار دارد.
+     */
+    public function getBreadcrumbPath(): array
+    {
+        $path = [];
+
+        if (! $this->selectedBookId) {
+            return $path;
+        }
+
+        $book = \App\Models\Book::with('appGradeSubject.grade', 'appGradeSubject.app')->find($this->selectedBookId);
+
+        if (! $book) {
+            return $path;
+        }
+
+        $path[] = ['label' => $book->appGradeSubject?->app?->title, 'action' => null];
+
+        $path[] = ['label' => 'پایه '.$book->appGradeSubject?->grade?->title, 'action' => null];
+
+        $path[] = ['label' => $book->title, 'action' => 'backToContentTypes'];
+
+        if ($this->selectedContentTypeSlug) {
+
+            $typeLabel = match ($this->selectedContentTypeSlug) {
+                'teaching' => '🎥 تدریس',
+                'step_by_step' => '📝 گام به گام',
+                'sample_questions' => '📄 نمونه سوالات',
+                default => $this->selectedContentTypeSlug,
+            };
+
+            $path[] = ['label' => $typeLabel, 'action' => 'backToContentTypes'];
+        }
+
+        return $path;
+    }
+
+    /**
      * سطح ۲: تعداد محتوا به تفکیک نوع (تدریس/گام‌به‌گام/نمونه
      * سوالات) — چون هر کتاب معمولاً هر سه نوع را دارد و قاطی‌کردن
      * آن‌ها با هم، پیدا کردن هرکدام را سخت می‌کند.

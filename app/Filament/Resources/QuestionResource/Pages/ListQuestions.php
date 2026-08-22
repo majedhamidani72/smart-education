@@ -429,4 +429,42 @@ class ListQuestions extends ListRecords
 
         $this->selectedExamLevel = null;
     }
+
+    /**
+     * مسیر فعلی برای نوار breadcrumb بالای صفحه.
+     */
+    public function getBreadcrumbPath(): array
+    {
+        $path = [];
+
+        if (! $this->selectedBookId) {
+            return $path;
+        }
+
+        $book = \App\Models\Book::with('appGradeSubject.grade', 'appGradeSubject.app')->find($this->selectedBookId);
+
+        if (! $book) {
+            return $path;
+        }
+
+        $path[] = ['label' => $book->appGradeSubject?->app?->title, 'action' => null];
+
+        $path[] = ['label' => 'پایه '.$book->appGradeSubject?->grade?->title, 'action' => null];
+
+        $path[] = ['label' => $book->title, 'action' => 'backToExamLevels'];
+
+        if ($this->selectedExamLevel) {
+
+            $levelLabel = match ($this->selectedExamLevel) {
+                'section' => 'آزمون‌های بخش/درس',
+                'chapter' => 'آزمون‌های فصل',
+                'book' => 'آزمون‌های کل کتاب',
+                default => $this->selectedExamLevel,
+            };
+
+            $path[] = ['label' => $levelLabel, 'action' => 'backToExamLevels'];
+        }
+
+        return $path;
+    }
 }

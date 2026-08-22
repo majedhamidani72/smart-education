@@ -9,7 +9,24 @@
             ['bg' => 'rgba(239,68,68,0.06)', 'accent' => 'rgb(220,38,38)'],
         ];
         $isReviewer = $this->isReviewer();
+        $breadcrumb = $this->getBreadcrumbPath();
     @endphp
+
+    @if (! empty($breadcrumb))
+        <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-bottom:1.25rem;font-size:.85rem;color:var(--text-muted,#6b7280);background:var(--surface-2,#f9fafb);border:1px solid var(--border,#e5e7eb);border-radius:.75rem;padding:.6rem 1rem">
+            <span style="font-weight:600;color:var(--text-secondary,#4b5563)">📍 مسیر:</span>
+            @foreach ($breadcrumb as $index => $crumb)
+                @if ($crumb['action'])
+                    <button wire:click="{{ $crumb['action'] }}" style="background:none;border:none;color:rgb(99,102,241);font-weight:600;cursor:pointer;padding:0;font-size:.85rem">{{ $crumb['label'] }}</button>
+                @else
+                    <span style="font-weight:600">{{ $crumb['label'] }}</span>
+                @endif
+                @if (! $loop->last)
+                    <span style="color:var(--text-muted,#9ca3af)">←</span>
+                @endif
+            @endforeach
+        </div>
+    @endif
 
     {{-- سطح ۱: اپلیکیشن / ایجادکننده / پایه / کتاب --}}
     @if ($viewLevel === 'groups')
