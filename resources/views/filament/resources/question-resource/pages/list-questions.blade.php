@@ -223,7 +223,17 @@
                                 @foreach ($subGroup['questions'] as $q)
                                     <tr style="border-top:1px solid var(--border,#e5e7eb)">
                                         <td style="padding:.75rem 1.1rem">{{ \Illuminate\Support\Str::limit($q->question_text ?? '(تصویر)', 60) }}</td>
-                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">{{ $q->difficulty }}</td>
+                                        <td style="padding:.75rem 1.1rem;white-space:nowrap">
+                                            @php
+                                                $difficultyLabel = match($q->difficulty) {
+                                                    'easy' => 'آسان',
+                                                    'medium' => 'متوسط',
+                                                    'hard' => 'سخت',
+                                                    default => $q->difficulty,
+                                                };
+                                            @endphp
+                                            {{ $difficultyLabel }}
+                                        </td>
                                         <td style="padding:.75rem 1.1rem;white-space:nowrap">
                                             @php
                                                 $statusLabel = match($q->status) {
