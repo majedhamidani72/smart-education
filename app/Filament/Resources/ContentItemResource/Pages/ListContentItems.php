@@ -36,6 +36,8 @@ class ListContentItems extends ListRecords
 
     public ?int $selectedBookId = null;
 
+    public ?string $selectedContentTypeSlug = null;
+
     public array $expandedGroups = [];
 
     // برای فرم کوچیکِ «دلیل رد» که هنگام زدن دکمه‌ی «رد» (تکی یا
@@ -141,7 +143,7 @@ class ListContentItems extends ListRecords
         $this->selectedCreatorId = $creatorId;
         $this->selectedGradeId = $gradeId;
         $this->selectedBookId = $bookId;
-        $this->viewLevel = 'list';
+        $this->viewLevel = 'contentTypes';
     }
 
     public function backToGroups(): void
@@ -152,6 +154,46 @@ class ListContentItems extends ListRecords
         $this->selectedCreatorId = null;
         $this->selectedGradeId = null;
         $this->selectedBookId = null;
+        $this->selectedContentTypeSlug = null;
+    }
+
+    /**
+     * سطح ۲: تعداد محتوا به تفکیک نوع (تدریس/گام‌به‌گام/نمونه
+     * سوالات) — چون هر کتاب معمولاً هر سه نوع را دارد و قاطی‌کردن
+     * آن‌ها با هم، پیدا کردن هرکدام را سخت می‌کند.
+     */
+    public function getContentTypeCounts()
+    {
+        $base = fn() => $this->baseQuery()
+            ->where('created_by', $this->selectedCreatorId)
+            ->whereHas('chapter.book', fn($q) => $q->where('id', $this->selectedBookId));
+
+        return \App\Models\ContentType::where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(function ($type) use ($base) {
+
+                return [
+                    'slug' => $type->slug,
+                    'title' => $type->title,
+                    'icon' => $type->icon,
+                    'count' => (clone $base())->where('content_type_id', $type->id)->count(),
+                    'pending_count' => (clone $base())->where('content_type_id', $type->id)->where('status', 'pending')->count(),
+                    'draft_count' => (clone $base())->where('content_type_id', $type->id)->where('status', 'draft')->count(),
+                ];
+            });
+    }
+
+    public function selectContentType(string $slug): void
+    {
+        $this->selectedContentTypeSlug = $slug;
+        $this->viewLevel = 'list';
+    }
+
+    public function backToContentTypes(): void
+    {
+        $this->viewLevel = 'contentTypes';
+        $this->selectedContentTypeSlug = null;
     }
 
     /**
@@ -160,9 +202,12 @@ class ListContentItems extends ListRecords
      */
     public function getGroupedItems()
     {
+        $contentType = \App\Models\ContentType::where('slug', $this->selectedContentTypeSlug)->first();
+
         return $this->baseQuery()
             ->where('created_by', $this->selectedCreatorId)
             ->whereHas('chapter.book', fn($q) => $q->where('id', $this->selectedBookId))
+            ->when($contentType, fn($q) => $q->where('content_type_id', $contentType->id))
             ->with(['section', 'chapter', 'contentType'])
             ->orderByDesc('created_at')
             ->get()

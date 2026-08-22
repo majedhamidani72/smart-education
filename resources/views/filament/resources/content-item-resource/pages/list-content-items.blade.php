@@ -58,7 +58,47 @@
             </div>
         @endif
 
-    {{-- سطح ۲: محتواها به تفکیک فصل/بخش، قابل‌جمع‌شدن --}}
+    {{-- سطح ۲: نوع محتوا (تدریس / گام‌به‌گام / نمونه سوالات) --}}
+    @elseif ($viewLevel === 'contentTypes')
+
+        @php $typeCounts = $this->getContentTypeCounts(); @endphp
+
+        <button wire:click="backToGroups" style="margin-bottom:1.25rem;font-size:.85rem;color:var(--text-muted,#6b7280);background:none;border:none;cursor:pointer">
+            → بازگشت به لیست کتاب‌ها
+        </button>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem">
+            @foreach ($typeCounts as $i => $type)
+                @php $colors = $palette[$i % count($palette)]; @endphp
+                <button wire:click="selectContentType('{{ $type['slug'] }}')"
+                    style="position:relative;text-align:right;cursor:pointer;background:{{ $colors['bg'] }};border:1px solid {{ $colors['accent'] }}33;border-right:4px solid {{ $colors['accent'] }};border-radius:1rem;padding:1.25rem">
+
+                    @if ($isReviewer && $type['pending_count'] > 0)
+                        <span style="position:absolute;top:-.5rem;left:-.5rem;background:rgb(220,38,38);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:.15rem .5rem">
+                            {{ $type['pending_count'] }} در انتظار
+                        </span>
+                    @endif
+
+                    @if (! $isReviewer && $type['draft_count'] > 0)
+                        <span style="position:absolute;top:-.5rem;left:-.5rem;background:rgb(100,116,139);color:#fff;font-size:.7rem;font-weight:700;border-radius:999px;padding:.15rem .5rem">
+                            {{ $type['draft_count'] }} پیش‌نویس
+                        </span>
+                    @endif
+
+                    <div style="font-weight:700;color:{{ $colors['accent'] }}">
+                        @if ($type['slug'] === 'teaching') 🎥
+                        @elseif ($type['slug'] === 'step_by_step') 📝
+                        @else 📄
+                        @endif
+                        {{ $type['title'] }}
+                    </div>
+                    <div style="font-size:1.5rem;font-weight:800;margin-top:.5rem">{{ $type['count'] }}</div>
+                    <div style="font-size:.75rem;color:var(--text-muted,#6b7280)">محتوا</div>
+                </button>
+            @endforeach
+        </div>
+
+    {{-- سطح ۳: محتواها به تفکیک فصل/بخش، قابل‌جمع‌شدن --}}
     @else
 
         @php
@@ -77,8 +117,8 @@
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
 
-            <button wire:click="backToGroups" style="font-size:.85rem;color:var(--text-muted,#6b7280);background:none;border:none;cursor:pointer">
-                → بازگشت به لیست کتاب‌ها
+            <button wire:click="backToContentTypes" style="font-size:.85rem;color:var(--text-muted,#6b7280);background:none;border:none;cursor:pointer">
+                → بازگشت به نوع محتوا
             </button>
 
         </div>
