@@ -17,6 +17,21 @@ class CreateContentItem extends CreateRecord
 {
     protected static string $resource = ContentItemResource::class;
 
+    // یک دکمه‌ی «بازگشت» بالای صفحه (کنار عنوان) — چون فرم طولانی
+    // است و دکمه‌ی «لغو» ته فرم، بدون اسکرول کامل به چشم نمی‌آید.
+    protected function getHeaderActions(): array
+    {
+        return [
+
+            \Filament\Actions\Action::make('back')
+                ->label('بازگشت')
+                ->icon('heroicon-o-arrow-right')
+                ->color('gray')
+                ->url(static::getResource()::getUrl('index')),
+
+        ];
+    }
+
     // فقط یک دکمه‌ی «ایجاد» باقی می‌ماند (بدون گزینه‌ی «ایجاد و
     // افزودن دیگر») تا همیشه، بدون استثنا، بعد از ثبت محتوا به
     // لیست برگردد.
