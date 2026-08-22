@@ -445,7 +445,7 @@ class AddQuestionsToBank extends Page implements HasForms
         // بدون حداقل یک گزینه‌ی «پاسخ صحیح»، سوال اصلاً ذخیره
         // نمی‌شود.
         $hasCorrect = collect($questionData['options'] ?? [])->contains(
-            fn($option) => ($option['is_correct'] ?? false) === true
+            fn($option) => ! empty($option['is_correct'])
         );
 
         if (! $hasCorrect) {

@@ -191,7 +191,7 @@ class EditQuestion extends EditRecord
         $options = $this->form->getState()['options'] ?? [];
 
         $hasCorrect = collect($options)->contains(
-            fn($option) => ($option['is_correct'] ?? false) === true
+            fn($option) => ! empty($option['is_correct'])
         );
 
         if (! $hasCorrect) {
