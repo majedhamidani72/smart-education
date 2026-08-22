@@ -18,7 +18,7 @@
 
         @if ($groups->isEmpty())
             <div style="text-align:center;padding:3rem;color:var(--text-muted,#6b7280)">
-                هنوز هیچ سوالی با محتوای مشخص ثبت نشده است.
+                هنوز هیچ سوالی ثبت نشده است. برای شروع، دکمه‌ی «ایجاد سوال» بالا سمت راست را بزن.
             </div>
         @else
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem">
