@@ -208,7 +208,7 @@ class QuestionResource extends Resource
                         }),
 
                     Forms\Components\Select::make('section_id')
-                        ->label('بخش')
+                        ->label('بخش/درس')
                         ->options(function (Get $get) {
 
                             if (! $get('chapter_id')) {

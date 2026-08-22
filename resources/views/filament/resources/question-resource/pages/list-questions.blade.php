@@ -65,7 +65,7 @@
 
             <button wire:click="selectExamLevel('section')"
                 style="text-align:right;cursor:pointer;background:rgba(20,184,166,0.06);border:1px solid rgba(20,184,166,0.3);border-right:4px solid rgb(20,184,166);border-radius:1rem;padding:1.25rem">
-                <div style="font-weight:700;color:rgb(13,148,136)">📘 آزمون‌های بخش</div>
+                <div style="font-weight:700;color:rgb(13,148,136)">📘 آزمون‌های بخش/درس</div>
                 <div style="font-size:1.5rem;font-weight:800;margin-top:.5rem">{{ $counts['section'] }}</div>
                 <div style="font-size:.75rem;color:var(--text-muted,#6b7280)">سوال</div>
             </button>
@@ -144,7 +144,7 @@
 
                             <div style="font-weight:700;font-size:.9rem;color:{{ $chapterColors['accent'] }}">
                                 @if ($subGroup['section_title'])
-                                    فصل: {{ $subGroup['chapter_title'] }} — بخش: {{ $subGroup['section_title'] }}
+                                    فصل: {{ $subGroup['chapter_title'] }} — بخش/درس: {{ $subGroup['section_title'] }}
                                 @elseif ($subGroup['chapter_title'])
                                     فصل: {{ $subGroup['chapter_title'] }}
                                 @else

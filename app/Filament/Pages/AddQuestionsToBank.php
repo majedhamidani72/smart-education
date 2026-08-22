@@ -318,7 +318,7 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->afterStateUpdated(fn(Set $set) => $set('section_id', null) ?: $set('content_item_id', null)),
 
                 Forms\Components\Select::make('section_id')
-                    ->label('بخش (اختیاری)')
+                    ->label('بخش/درس (اختیاری)')
                     ->options(function (Get $get) {
                         if (! $get('chapter_id')) return [];
                         return Section::where('chapter_id', $get('chapter_id'))->where('is_active', true)

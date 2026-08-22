@@ -884,7 +884,7 @@ class QuizResource extends Resource
                             : 'فصل';
 
                         $target = match ($record->quizable_type) {
-                            Section::class => 'بخش: '.($record->quizable?->title ?? '—'),
+                            Section::class => 'بخش/درس: '.($record->quizable?->title ?? '—'),
                             Chapter::class => $chapterLabel.': '.($record->quizable?->title ?? '—'),
                             Book::class => 'کل کتاب: '.($record->quizable?->title ?? '—'),
                             default => null,
