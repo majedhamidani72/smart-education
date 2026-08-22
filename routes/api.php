@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\PurchaseController;
 use App\Http\Controllers\Api\V1\PurchaseItemController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\PaymentTransactionController;
+use App\Http\Controllers\Api\V1\TeacherController;
 
 
 Route::prefix('v1')->group(function () {
@@ -73,6 +74,14 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('books', BookController::class)
             ->only(['index', 'show']);
+
+        // مسیر انتخاب دانش‌آموز: پایه→معلم (ابتدایی) و کتاب→معلم
+        // (متوسطه، وقتی یک کتاب چند معلم داشته باشد).
+        Route::get('/grades/{grade}/teachers', [TeacherController::class, 'forGrade']);
+
+        Route::get('/teachers/{teacher}/books', [TeacherController::class, 'books']);
+
+        Route::get('/books/{book}/teachers', [BookController::class, 'teachers']);
 
         Route::apiResource('chapters', ChapterController::class)
             ->only(['index', 'show']);

@@ -130,4 +130,35 @@ class BookController extends Controller
             'Book deleted successfully.'
         );
     }
+
+    /**
+     * معلم‌هایی که این کتاب مشخص را تدریس می‌کنند — برای پایه‌های
+     * ۷ تا ۱۲: اگر فقط یک معلم برگردد، اپلیکیشن مستقیم وارد
+     * محتوای او می‌شود؛ اگر چند معلم بود، دانش‌آموز از این لیست
+     * یکی را انتخاب می‌کند.
+     */
+    public function teachers(
+        Book $book
+    )
+    {
+        $this->authorize(
+            'view',
+            $book
+        );
+
+        $teacherIds = \App\Models\TeacherAssignment::query()
+            ->where('book_id', $book->id)
+            ->where('is_active', true)
+            ->pluck('teacher_id');
+
+        $teachers = \App\Models\User::query()
+            ->whereIn('id', $teacherIds)
+            ->orderBy('name')
+            ->get();
+
+        return ApiResponse::success(
+            \App\Http\Resources\TeacherResource::collection($teachers),
+            'Teachers retrieved successfully.'
+        );
+    }
 }
