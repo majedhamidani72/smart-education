@@ -28,10 +28,7 @@ class SectionController extends Controller
      */
     public function index()
     {
-        $this->authorize(
-            'viewAny',
-            Section::class
-        );
+        // مرور بخش‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         $sections = $this->sectionService->paginate();
 
@@ -55,10 +52,7 @@ class SectionController extends Controller
         Section $section
     )
     {
-        $this->authorize(
-            'view',
-            $section
-        );
+        // مرور بخش‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         return ApiResponse::success(
 

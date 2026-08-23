@@ -64,38 +64,53 @@ Route::prefix('v1')->group(function () {
     | درنمی‌آمد.
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | مرور ساختار آموزشی — بدون نیاز به ورود
+    |--------------------------------------------------------------------------
+    | طبق طراحی اولیه‌ی پروژه، کاربر تا قبل از خرید نیازی به ورود
+    | ندارد و باید بتواند آزادانه پایه‌ها، دروس، کتاب‌ها، فصل‌ها،
+    | بخش‌ها، و معلم‌ها را مرور کند — فقط وقتی به محتوای پولی یا
+    | خرید می‌رسد، به OTP نیاز پیدا می‌کند. برای همین این گروه،
+    | برخلاف قبل، دیگر پشت auth:sanctum نیست.
+    */
+
+    Route::apiResource('grades', GradeController::class)
+        ->only(['index', 'show']);
+
+    Route::apiResource('subjects', SubjectController::class)
+        ->only(['index', 'show']);
+
+    Route::apiResource('books', BookController::class)
+        ->only(['index', 'show']);
+
+    // مسیر انتخاب دانش‌آموز: پایه→معلم (ابتدایی) و کتاب→معلم
+    // (متوسطه، وقتی یک کتاب چند معلم داشته باشد).
+    Route::get('/grades/{grade}/teachers', [TeacherController::class, 'forGrade']);
+
+    Route::get('/teachers/{teacher}/books', [TeacherController::class, 'books']);
+
+    Route::get('/books/{book}/teachers', [BookController::class, 'teachers']);
+
+    Route::apiResource('chapters', ChapterController::class)
+        ->only(['index', 'show']);
+
+    Route::apiResource('sections', SectionController::class)
+        ->only(['index', 'show']);
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Content Items
+    |--------------------------------------------------------------------------
+    | خودِ محتوا (لیست ویدئوها/گام‌به‌گام‌ها/نمونه‌سوال‌های هر
+    | بخش) همچنان پشت ورود می‌ماند — چون تشخیص رایگان/پولی‌بودن و
+    | نمایش/عدم‌نمایش لینک واقعی فایل، داخل خودِ این کنترلر انجام
+    | می‌شود.
+    */
+
     Route::middleware('auth:sanctum')->group(function () {
-
-        Route::apiResource('grades', GradeController::class)
-            ->only(['index', 'show']);
-
-        Route::apiResource('subjects', SubjectController::class)
-            ->only(['index', 'show']);
-
-        Route::apiResource('books', BookController::class)
-            ->only(['index', 'show']);
-
-        // مسیر انتخاب دانش‌آموز: پایه→معلم (ابتدایی) و کتاب→معلم
-        // (متوسطه، وقتی یک کتاب چند معلم داشته باشد).
-        Route::get('/grades/{grade}/teachers', [TeacherController::class, 'forGrade']);
-
-        Route::get('/teachers/{teacher}/books', [TeacherController::class, 'books']);
-
-        Route::get('/books/{book}/teachers', [BookController::class, 'teachers']);
-
-        Route::apiResource('chapters', ChapterController::class)
-            ->only(['index', 'show']);
-
-        Route::apiResource('sections', SectionController::class)
-            ->only(['index', 'show']);
-
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Content Items
-        |--------------------------------------------------------------------------
-        */
 
         Route::prefix('content-items')->controller(ContentItemController::class)->group(function () {
 

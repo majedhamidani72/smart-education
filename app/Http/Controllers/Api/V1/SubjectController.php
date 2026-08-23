@@ -31,10 +31,7 @@ class SubjectController extends Controller
      */
     public function index()
     {
-        $this->authorize(
-            'viewAny',
-            Subject::class
-        );
+        // مرور درس‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         $subjects = $this->subjectService->paginate();
 
@@ -91,10 +88,7 @@ class SubjectController extends Controller
         Subject $subject
     )
     {
-        $this->authorize(
-            'view',
-            $subject
-        );
+        // مرور درس‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         return ApiResponse::success(
 

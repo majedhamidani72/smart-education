@@ -31,10 +31,7 @@ class ChapterController extends Controller
      */
     public function index()
     {
-        $this->authorize(
-            'viewAny',
-            Chapter::class
-        );
+        // مرور فصل‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         $chapters = $this->chapterService->paginate();
 
@@ -53,10 +50,7 @@ class ChapterController extends Controller
         Chapter $chapter
     )
     {
-        $this->authorize(
-            'view',
-            $chapter
-        );
+        // مرور فصل‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         return ApiResponse::success(
             new ChapterResource(

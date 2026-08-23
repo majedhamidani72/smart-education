@@ -31,10 +31,7 @@ class BookController extends Controller
      */
     public function index()
     {
-        $this->authorize(
-            'viewAny',
-            Book::class
-        );
+        // مرور کتاب‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         $books = $this->bookService->paginate();
 
@@ -51,10 +48,7 @@ class BookController extends Controller
         Book $book
     )
     {
-        $this->authorize(
-            'view',
-            $book
-        );
+        // مرور کتاب‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         return ApiResponse::success(
             new BookResource($book),

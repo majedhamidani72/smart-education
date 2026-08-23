@@ -31,10 +31,7 @@ class GradeController extends Controller
      */
     public function index()
     {
-        $this->authorize(
-            'viewAny',
-            Grade::class
-        );
+        // مرور پایه‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         $grades = $this->gradeService->paginate();
 
@@ -53,10 +50,7 @@ class GradeController extends Controller
         Grade $grade
     )
     {
-        $this->authorize(
-            'view',
-            $grade
-        );
+        // مرور پایه‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         return ApiResponse::success(
             new GradeResource(
