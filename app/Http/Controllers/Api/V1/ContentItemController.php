@@ -25,11 +25,36 @@ class ContentItemController extends Controller
     /**
      * لیست محتواها
      */
-    public function index()
+    public function index(
+        \Illuminate\Http\Request $request
+    )
     {
         // مرور محتوا (حتی رایگان‌ها بدون ورود) آزاد است — منطق
         // دسترسی به فایل واقعی داخل خودِ ContentItemResource انجام
         // می‌شود.
+
+        // فیلتر اختیاری بر اساس کتاب — برای صفحه‌ی محتوای یک کتاب
+        // در وب‌سایت/اپ (نمایش تدریس/گام‌به‌گام/نمونه‌سوال آن).
+        if ($request->filled('book_id')) {
+
+            $query = \App\Models\ContentItem::query()
+                ->where('status', 'approved')
+                ->whereHas('chapter', fn($q) => $q->where('book_id', $request->query('book_id')))
+                ->with(['section', 'contentType', 'video', 'pdfFile', 'stepByStep.pages', 'sampleQuestions'])
+                ->orderBy('sort_order');
+
+            if ($request->filled('content_type_id')) {
+
+                $query->where('content_type_id', $request->query('content_type_id'));
+            }
+
+            $contentItems = $query->get();
+
+            return ApiResponse::success(
+                ContentItemResource::collection($contentItems),
+                'Content items retrieved successfully.'
+            );
+        }
 
         $contentItems = $this->contentItemService->paginate();
 
