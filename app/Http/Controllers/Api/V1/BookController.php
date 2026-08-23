@@ -29,11 +29,27 @@ class BookController extends Controller
     /**
      * لیست کتاب‌ها
      */
-    public function index()
+    public function index(
+        \Illuminate\Http\Request $request
+    )
     {
         // مرور کتاب‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
-        $books = $this->bookService->paginate();
+        // فیلتر اختیاری بر اساس پایه — برای مسیر «پایه → کتاب»ی
+        // که در وب‌سایت/اپ برای پایه‌های هفتم تا دوازدهم استفاده
+        // می‌شود.
+        if ($request->filled('grade_id')) {
+
+            $books = Book::query()
+                ->where('is_active', true)
+                ->whereHas('appGradeSubject', fn($q) => $q->where('grade_id', $request->query('grade_id')))
+                ->orderBy('sort_order')
+                ->paginate();
+
+        } else {
+
+            $books = $this->bookService->paginate();
+        }
 
         return ApiResponse::success(
             BookResource::collection($books),
