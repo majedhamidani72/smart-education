@@ -7,13 +7,25 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * خروجی محتوای آموزشی برای دانش‌آموز
+ * --------------------------------------------------------------------
+ * منطق دسترسی: اگر محتوا رایگان است (is_free)، همه می‌بینند —
+ * حتی بدون ورود. اگر رایگان نیست، فقط کاربری که وارد شده و
+ * دسترسی خریداری‌شده دارد (User::hasAccessToContentItem)، فایل
+ * واقعی را می‌بیند؛ در غیر این صورت فقط عنوان/توضیحات برمی‌گردد
+ * و has_access=false است — تا کلاینت بداند باید پیشنهاد خرید
+ * نشان دهد، نه این‌که خطا بگیرد.
+ */
 class ContentItemResource extends JsonResource
 {
-    /**
-     * تبدیل مدل به خروجی API
-     */
     public function toArray(Request $request): array
     {
+        $user = $request->user('sanctum');
+
+        $hasAccess = (bool) $this->is_free
+            || ($user && $user->hasAccessToContentItem($this->resource));
+
         return [
 
             'id' => $this->id,
@@ -21,10 +33,6 @@ class ContentItemResource extends JsonResource
             'section_id' => $this->section_id,
 
             'content_type_id' => $this->content_type_id,
-
-            'created_by' => $this->created_by,
-
-            'reviewed_by' => $this->reviewed_by,
 
             'title' => $this->title,
 
@@ -38,41 +46,40 @@ class ContentItemResource extends JsonResource
 
             'is_free' => $this->is_free,
 
-            'status' => $this->status,
-
-            'rejection_reason' => $this->rejection_reason,
+            'has_access' => $hasAccess,
 
             'sort_order' => $this->sort_order,
 
             'published_at' => $this->published_at,
 
-            'reviewed_at' => $this->reviewed_at,
+            'section' => $this->whenLoaded('section'),
 
-            'created_at' => $this->created_at,
-
-            'updated_at' => $this->updated_at,
+            'content_type' => $this->whenLoaded('contentType'),
 
             /*
             |--------------------------------------------------------------------------
-            | اطلاعات کمکی
+            | فایل واقعی — فقط وقتی دسترسی واقعاً وجود دارد
             |--------------------------------------------------------------------------
             */
 
-            'section' => $this->whenLoaded(
-                'section'
-            ),
+            'video' => $hasAccess
+                ? $this->whenLoaded('video', fn () => new VideoResource($this->video))
+                : null,
 
-            'content_type' => $this->whenLoaded(
-                'contentType'
-            ),
+            'pdf_file' => $hasAccess
+                ? $this->whenLoaded('pdfFile', fn () => new PdfFileResource($this->pdfFile))
+                : null,
 
-            'creator' => $this->whenLoaded(
-                'creator'
-            ),
+            'step_by_step' => $hasAccess
+                ? $this->whenLoaded('stepByStep', fn () => $this->stepByStep ? [
+                    'id' => $this->stepByStep->id,
+                    'pages' => StepByStepPageResource::collection($this->stepByStep->pages ?? collect()),
+                ] : null)
+                : null,
 
-            'reviewer' => $this->whenLoaded(
-                'reviewer'
-            ),
+            'sample_questions' => $hasAccess
+                ? $this->whenLoaded('sampleQuestions')
+                : null,
 
         ];
     }

@@ -27,11 +27,9 @@ class ContentItemController extends Controller
      */
     public function index()
     {
-        $this->authorize(
-            'viewAny',
-            ContentItem::class
-        );
-
+        // مرور محتوا (حتی رایگان‌ها بدون ورود) آزاد است — منطق
+        // دسترسی به فایل واقعی داخل خودِ ContentItemResource انجام
+        // می‌شود.
 
         $contentItems = $this->contentItemService->paginate();
 
@@ -50,10 +48,9 @@ class ContentItemController extends Controller
         ContentItem $contentItem
     )
     {
-        $this->authorize(
-            'view',
-            $contentItem
-        );
+        // مرور محتوا (حتی رایگان‌ها بدون ورود) آزاد است — منطق
+        // دسترسی به فایل واقعی داخل خودِ ContentItemResource انجام
+        // می‌شود.
 
 
         $contentItem->load([
