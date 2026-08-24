@@ -31,10 +31,7 @@ class PlanController extends Controller
      */
     public function index()
     {
-        $this->authorize(
-            'viewAny',
-            Plan::class
-        );
+        // مرور پلن‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         $plans = $this->service->paginate();
 
@@ -56,10 +53,7 @@ class PlanController extends Controller
      */
     public function active()
     {
-        $this->authorize(
-            'viewAny',
-            Plan::class
-        );
+        // مرور پلن‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         return ApiResponse::success(
 
@@ -81,10 +75,7 @@ class PlanController extends Controller
         Plan $plan
     )
     {
-        $this->authorize(
-            'view',
-            $plan
-        );
+        // مرور پلن‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         return ApiResponse::success(
 
