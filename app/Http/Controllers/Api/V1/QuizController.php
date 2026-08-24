@@ -46,6 +46,17 @@ class QuizController extends Controller
         Quiz $quiz
     )
     {
+        // بدون این چک، حتی صورت سوالات آزمون‌های پولی هم بدون
+        // خرید قابل مشاهده بود.
+        if (! $quiz->is_free && ! auth('sanctum')->user()?->hasAccessToQuiz($quiz)) {
+
+            return ApiResponse::error(
+                'برای مشاهده‌ی این آزمون، ابتدا باید آن را خریداری کنید.',
+                null,
+                403
+            );
+        }
+
         $quiz = $this->quizService->loadRelations($quiz);
 
 
