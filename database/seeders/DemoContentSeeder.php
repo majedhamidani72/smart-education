@@ -94,7 +94,8 @@ class DemoContentSeeder extends Seeder
 
             $this->command->info("پایه {$data['title']}...");
 
-            $grade = Grade::firstOrCreate(
+            $grade = $this->firstOrCreateEvenTrashed(
+                Grade::class,
                 ['grade_number' => $gradeNumber],
                 ['title' => $data['title']]
             );
@@ -157,9 +158,34 @@ class DemoContentSeeder extends Seeder
         return $user;
     }
 
+    /**
+     * نسخه‌ی عمومی همان الگو — برای مدل‌هایی که SoftDeletes دارند
+     * (App، Subject، Book، Chapter، Section). چون تلاش‌های ناقص
+     * قبلی ممکن است رکوردهایی با همین شرط جست‌وجو ساخته و بعداً
+     * حذف‌نرم کرده باشند، اول با withTrashed جست‌وجو می‌کنیم و
+     * در صورت پیدا شدن، بازیابی‌اش می‌کنیم — نه این‌که کورکورانه
+     * دوباره بسازیم و به خطای «مقدار تکراری» بخوریم.
+     */
+    protected function firstOrCreateEvenTrashed(string $modelClass, array $search, array $extra = [])
+    {
+        $record = $modelClass::withTrashed()->where($search)->first();
+
+        if ($record) {
+
+            if (method_exists($record, 'trashed') && $record->trashed()) {
+                $record->restore();
+            }
+
+            return $record;
+        }
+
+        return $modelClass::create(array_merge($search, $extra));
+    }
+
     protected function setupApp(): void
     {
-        $this->app = App::firstOrCreate(
+        $this->app = $this->firstOrCreateEvenTrashed(
+            App::class,
             ['slug' => 'demo-full'],
             [
                 'title' => 'اسمارت اجوکیشن — نسخه‌ی نمایشی',
@@ -175,7 +201,8 @@ class DemoContentSeeder extends Seeder
 
     protected function buildBook(Grade $grade, string $bookTitle, User $teacher, int $sortOrder): void
     {
-        $subject = Subject::firstOrCreate(
+        $subject = $this->firstOrCreateEvenTrashed(
+            Subject::class,
             ['slug' => Str::slug($bookTitle.'-'.$grade->grade_number, '-')],
             ['title' => $bookTitle]
         );
@@ -189,62 +216,80 @@ class DemoContentSeeder extends Seeder
             'sort_order' => $sortOrder,
         ]);
 
-        $book = Book::firstOrCreate([
-            'app_grade_subject_id' => $appGradeSubject->id,
-        ], [
-            'title' => $bookTitle,
-            'slug' => Str::slug($bookTitle.'-'.$grade->grade_number.'-'.Str::random(4), '-'),
-            'is_active' => true,
-            'sort_order' => $sortOrder,
-        ]);
+        $book = $this->firstOrCreateEvenTrashed(
+            Book::class,
+            ['app_grade_subject_id' => $appGradeSubject->id],
+            [
+                'title' => $bookTitle,
+                'slug' => Str::slug($bookTitle.'-'.$grade->grade_number.'-'.Str::random(4), '-'),
+                'is_active' => true,
+                'sort_order' => $sortOrder,
+            ]
+        );
 
         // اختصاص معلم — برای دو کتاب اول هر پایه‌ی متوسطه، هر دو
         // معلم را اختصاص می‌دهیم تا سناریوی «چند معلم برای یک
         // کتاب» هم روی سایت قابل تست باشد.
-        TeacherAssignment::firstOrCreate([
-            'teacher_id' => $teacher->id,
-            'book_id' => $book->id,
-        ], [
-            'commission_percentage' => 60,
-            'is_active' => true,
-        ]);
+        $this->firstOrCreateEvenTrashed(
+            TeacherAssignment::class,
+            [
+                'teacher_id' => $teacher->id,
+                'book_id' => $book->id,
+            ],
+            [
+                'commission_percentage' => 60,
+                'is_active' => true,
+            ]
+        );
 
         if ($grade->grade_number > 6 && $sortOrder < 2) {
 
-            TeacherAssignment::firstOrCreate([
-                'teacher_id' => $this->teacherElementary->id,
-                'book_id' => $book->id,
-            ], [
-                'commission_percentage' => 60,
-                'is_active' => true,
-            ]);
+            $this->firstOrCreateEvenTrashed(
+                TeacherAssignment::class,
+                [
+                    'teacher_id' => $this->teacherElementary->id,
+                    'book_id' => $book->id,
+                ],
+                [
+                    'commission_percentage' => 60,
+                    'is_active' => true,
+                ]
+            );
         }
 
         // ۳ فصل، هرکدام با ۲ بخش — کافی برای نمایش کامل سلسله‌مراتب
         // بدون این‌که داده بیش‌ازحد حجیم شود.
         for ($chapterNum = 1; $chapterNum <= 3; $chapterNum++) {
 
-            $chapter = Chapter::firstOrCreate([
-                'book_id' => $book->id,
-                'sort_order' => $chapterNum,
-            ], [
-                'title' => 'فصل '.$chapterNum,
-                'slug' => Str::slug($book->slug.'-chapter-'.$chapterNum, '-'),
-                'is_active' => true,
-            ]);
+            $chapter = $this->firstOrCreateEvenTrashed(
+                Chapter::class,
+                [
+                    'book_id' => $book->id,
+                    'sort_order' => $chapterNum,
+                ],
+                [
+                    'title' => 'فصل '.$chapterNum,
+                    'slug' => Str::slug($book->slug.'-chapter-'.$chapterNum, '-'),
+                    'is_active' => true,
+                ]
+            );
 
             $sectionIds = [];
 
             for ($sectionNum = 1; $sectionNum <= 2; $sectionNum++) {
 
-                $section = Section::firstOrCreate([
-                    'chapter_id' => $chapter->id,
-                    'sort_order' => $sectionNum,
-                ], [
-                    'title' => 'بخش '.$sectionNum,
-                    'slug' => Str::slug($chapter->slug.'-section-'.$sectionNum, '-'),
-                    'is_active' => true,
-                ]);
+                $section = $this->firstOrCreateEvenTrashed(
+                    Section::class,
+                    [
+                        'chapter_id' => $chapter->id,
+                        'sort_order' => $sectionNum,
+                    ],
+                    [
+                        'title' => 'بخش '.$sectionNum,
+                        'slug' => Str::slug($chapter->slug.'-section-'.$sectionNum, '-'),
+                        'is_active' => true,
+                    ]
+                );
 
                 $sectionIds[] = $section->id;
 
