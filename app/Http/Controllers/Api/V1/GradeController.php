@@ -32,8 +32,13 @@ class GradeController extends Controller
     public function index()
     {
         // مرور پایه‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
-
-        $grades = $this->gradeService->paginate();
+        //
+        // نکته‌ی مهم: برخلاف کتاب/محتوا (که واقعاً می‌تواند زیاد
+        // باشد)، تعداد پایه‌ها همیشه محدود و کوچک است (حداکثر ۱۲
+        // تا) — صفحه‌بندی‌کردنش باعث می‌شد با هر داده‌ی آزمایشی
+        // اضافه، بعضی پایه‌ها (مثلاً هشتم به بعد) از صفحه‌ی اول
+        // بیرون بیفتند و اصلاً روی سایت دیده نشوند.
+        $grades = \App\Models\Grade::orderBy('grade_number')->get();
 
         return ApiResponse::success(
             GradeResource::collection(
