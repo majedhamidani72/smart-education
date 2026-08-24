@@ -23,7 +23,11 @@ class DemoContentCleanerSeeder extends Seeder
 {
     public function run(): void
     {
-        $teacherIds = User::whereIn('mobile', ['09110000000', '09120000000'])->pluck('id');
+        // withTrashed چون معلم‌های آزمایشی ممکن است در تلاش‌های
+        // ناقص قبلی حذف‌نرم شده باشند — بدون این، پیداشان نمی‌کرد.
+        $teacherIds = User::withTrashed()
+            ->whereIn('mobile', ['09110000000', '09120000000'])
+            ->pluck('id');
 
         if ($teacherIds->isEmpty()) {
             $this->command->info('داده‌ی نمایشی‌ای پیدا نشد — چیزی برای پاک‌کردن نیست.');
@@ -94,7 +98,11 @@ class DemoContentCleanerSeeder extends Seeder
 
         $this->command->info('در حال حذف دو معلم نمایشی...');
 
-        User::whereIn('id', $teacherIds)->delete();
+        // forceDelete تا واقعاً کامل پاک شود، نه فقط حذف نرم —
+        // وگرنه دفعه‌ی بعد دوباره همین مشکل «شماره تکراری» پیش می‌آید.
+        User::withTrashed()
+            ->whereIn('id', $teacherIds)
+            ->forceDelete();
 
         $this->command->info('تمام داده‌ی نمایشی پاک شد ✅');
     }

@@ -113,31 +113,48 @@ class DemoContentSeeder extends Seeder
 
     protected function setupTeachers(): void
     {
-        $this->teacherElementary = User::firstOrCreate(
-            ['mobile' => '09110000000'],
-            [
-                'name' => 'خالد قاضی',
-                'password' => bcrypt(Str::random(16)),
-                'is_active' => true,
-            ]
+        $this->teacherElementary = $this->findOrCreateTeacher(
+            '09110000000',
+            'خالد قاضی'
         );
 
-        if (! $this->teacherElementary->hasRole('Teacher')) {
-            $this->teacherElementary->assignRole('Teacher');
-        }
+        $this->teacherSecondary = $this->findOrCreateTeacher(
+            '09120000000',
+            'محمد محمدی'
+        );
+    }
 
-        $this->teacherSecondary = User::firstOrCreate(
-            ['mobile' => '09120000000'],
-            [
-                'name' => 'محمد محمدی',
+    /**
+     * جست‌وجوی کاربر حتی اگر قبلاً حذف نرم شده باشد (withTrashed) —
+     * چون firstOrCreate عادی رکوردهای حذف‌شده را نمی‌بیند و باعث
+     * خطای «شماره تکراری» می‌شود. اگر پیدا شد ولی حذف‌شده بود،
+     * بازیابی می‌شود؛ اگر اصلاً پیدا نشد، تازه ساخته می‌شود.
+     */
+    protected function findOrCreateTeacher(string $mobile, string $name): User
+    {
+        $user = User::withTrashed()->where('mobile', $mobile)->first();
+
+        if ($user) {
+
+            if ($user->trashed()) {
+                $user->restore();
+            }
+
+        } else {
+
+            $user = User::create([
+                'mobile' => $mobile,
+                'name' => $name,
                 'password' => bcrypt(Str::random(16)),
                 'is_active' => true,
-            ]
-        );
-
-        if (! $this->teacherSecondary->hasRole('Teacher')) {
-            $this->teacherSecondary->assignRole('Teacher');
+            ]);
         }
+
+        if (! $user->hasRole('Teacher')) {
+            $user->assignRole('Teacher');
+        }
+
+        return $user;
     }
 
     protected function setupApp(): void
