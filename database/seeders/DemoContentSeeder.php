@@ -97,7 +97,11 @@ class DemoContentSeeder extends Seeder
             $grade = $this->firstOrCreateEvenTrashed(
                 Grade::class,
                 ['grade_number' => $gradeNumber],
-                ['title' => $data['title']]
+                [
+                    'title' => $data['title'],
+                    'slug' => 'grade-'.$gradeNumber,
+                    'is_active' => true,
+                ]
             );
 
             $teacher = $gradeNumber <= 6 ? $this->teacherElementary : $this->teacherSecondary;
