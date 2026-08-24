@@ -180,9 +180,20 @@ class BookController extends Controller
      * چون فقط سازماندهی/تعداد نشان داده می‌شود، نه خودِ سوالات.
      */
     public function quizSummary(
-        Book $book
+        Book $book,
+        \Illuminate\Http\Request $request
     )
     {
+        // چون این مسیر بدون ورود هم قابل مرور است، اگر کاربر
+        // وارد شده باشد (توکن معتبر فرستاده)، اینجا تشخیص داده
+        // می‌شود — تا has_access دقیق برای همان کاربر محاسبه شود.
+        // چون این مسیر پشت auth:sanctum نیست، $request->user()
+        // همیشه خالی است؛ باید مستقیم از گارد sanctum خوانده شود.
+        $user = auth('sanctum')->user();
+
+        $hasAccess = fn($quiz) => $quiz->is_free
+            || ($user && $user->hasAccessToQuiz($quiz));
+
         $chapterIds = $book->chapters()->pluck('id');
 
         $sectionIds = \App\Models\Section::whereIn('chapter_id', $chapterIds)->pluck('id');
@@ -219,6 +230,7 @@ class BookController extends Controller
                 'chapter_title' => $q->quizable?->chapter?->title,
                 'question_count' => $q->questions_count,
                 'is_free' => $q->is_free,
+                'has_access' => $hasAccess($q),
             ]),
 
             'chapter' => $chapterQuizzes->map(fn($q) => [
@@ -227,6 +239,7 @@ class BookController extends Controller
                 'chapter_title' => $q->quizable?->title,
                 'question_count' => $q->questions_count,
                 'is_free' => $q->is_free,
+                'has_access' => $hasAccess($q),
             ]),
 
             'book' => $bookQuizzes->map(fn($q) => [
@@ -234,6 +247,7 @@ class BookController extends Controller
                 'title' => $q->title,
                 'question_count' => $q->questions_count,
                 'is_free' => $q->is_free,
+                'has_access' => $hasAccess($q),
             ]),
 
         ], 'Quiz summary retrieved successfully.');

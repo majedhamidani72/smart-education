@@ -64,6 +64,19 @@ class QuizController extends Controller
         Quiz $quiz
     )
     {
+        // بدون این چک، حتی آزمون‌های پولی هم بدون خرید قابل شروع
+        // بودند — یک شکاف واقعی که همینجا بسته می‌شود. توجه: این
+        // با QuizPolicy::view() فرق دارد — آن یکی چک مالکیت معلم
+        // (برای پنل ادمین) است، نه چک خریدِ دانش‌آموز.
+        if (! $quiz->is_free && ! $request->user()->hasAccessToQuiz($quiz)) {
+
+            return ApiResponse::error(
+                'برای شروع این آزمون، ابتدا باید آن را خریداری کنید.',
+                null,
+                403
+            );
+        }
+
         $attempt = $this->quizService->start(
             $quiz,
             $request->user()

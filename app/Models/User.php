@@ -189,6 +189,66 @@ class User extends Authenticatable implements FilamentUser, \Filament\Models\Con
     }
 
     /**
+     * آیا این کاربر (دانش‌آموز) به یک آزمون مشخص دسترسی دارد؟
+     * همان منطق hasAccessToContentItem، فقط چون آزمون می‌تواند
+     * مستقیم به کتاب، فصل، یا بخش وصل باشد (رابطه‌ی چندریختی
+     * quizable)، اول باید کتابِ اصلی از هرکدام پیدا شود.
+     */
+    public function hasAccessToQuiz(
+        \App\Models\Quiz $quiz
+    ): bool {
+
+        $book = match ($quiz->quizable_type) {
+
+            \App\Models\Book::class => $quiz->quizable,
+
+            \App\Models\Chapter::class => $quiz->quizable?->book,
+
+            \App\Models\Section::class => $quiz->quizable?->chapter?->book,
+
+            default => null,
+        };
+
+        if (! $book) {
+            return false;
+        }
+
+        $gradeId = $book->appGradeSubject?->grade_id;
+
+        $activeSubscriptions = $this->subscriptions()
+            ->where('status', 'active')
+            ->where('expires_at', '>=', now())
+            ->with('plan')
+            ->get();
+
+        foreach ($activeSubscriptions as $subscription) {
+
+            $plan = $subscription->plan;
+
+            if (! $plan) {
+                continue;
+            }
+
+            if (
+                $plan->planable_type === \App\Models\Book::class
+                && (int) $plan->planable_id === (int) $book->id
+            ) {
+                return true;
+            }
+
+            if (
+                $plan->planable_type === \App\Models\Grade::class
+                && $gradeId
+                && (int) $plan->planable_id === (int) $gradeId
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * پروفایل معلم — فقط برای کاربرهایی معنا دارد که نقش معلم
      * دارند، ولی رابطه برای همه‌ی کاربرها تعریف شده (اگر رکوردی
      * نباشد، فقط null برمی‌گردد).
