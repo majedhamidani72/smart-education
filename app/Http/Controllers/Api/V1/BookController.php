@@ -171,4 +171,71 @@ class BookController extends Controller
             'Teachers retrieved successfully.'
         );
     }
+
+    /**
+     * سازماندهی آزمون‌های یک کتاب — به تفکیک بخش/فصل/کل کتاب.
+     * این دقیقاً همان برگ برنده‌ای است که پروژه نسبت به سایت‌های
+     * مشابه دارد: نمایش شفاف اینکه هر آزمون دقیقاً برای کدام سطح
+     * (بخش خاص، فصل، یا کل کتاب) طراحی شده — بدون نیاز به ورود،
+     * چون فقط سازماندهی/تعداد نشان داده می‌شود، نه خودِ سوالات.
+     */
+    public function quizSummary(
+        Book $book
+    )
+    {
+        $chapterIds = $book->chapters()->pluck('id');
+
+        $sectionIds = \App\Models\Section::whereIn('chapter_id', $chapterIds)->pluck('id');
+
+        $baseQuery = fn() => \App\Models\Quiz::query()
+            ->where('status', 'active');
+
+        $sectionQuizzes = $baseQuery()
+            ->where('quizable_type', \App\Models\Section::class)
+            ->whereIn('quizable_id', $sectionIds)
+            ->withCount('questions')
+            ->with('quizable.chapter')
+            ->get();
+
+        $chapterQuizzes = $baseQuery()
+            ->where('quizable_type', \App\Models\Chapter::class)
+            ->whereIn('quizable_id', $chapterIds)
+            ->withCount('questions')
+            ->with('quizable')
+            ->get();
+
+        $bookQuizzes = $baseQuery()
+            ->where('quizable_type', Book::class)
+            ->where('quizable_id', $book->id)
+            ->withCount('questions')
+            ->get();
+
+        return ApiResponse::success([
+
+            'section' => $sectionQuizzes->map(fn($q) => [
+                'id' => $q->id,
+                'title' => $q->title,
+                'section_title' => $q->quizable?->title,
+                'chapter_title' => $q->quizable?->chapter?->title,
+                'question_count' => $q->questions_count,
+                'is_free' => $q->is_free,
+            ]),
+
+            'chapter' => $chapterQuizzes->map(fn($q) => [
+                'id' => $q->id,
+                'title' => $q->title,
+                'chapter_title' => $q->quizable?->title,
+                'question_count' => $q->questions_count,
+                'is_free' => $q->is_free,
+            ]),
+
+            'book' => $bookQuizzes->map(fn($q) => [
+                'id' => $q->id,
+                'title' => $q->title,
+                'question_count' => $q->questions_count,
+                'is_free' => $q->is_free,
+            ]),
+
+        ], 'Quiz summary retrieved successfully.');
+    }
 }

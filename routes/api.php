@@ -92,6 +92,8 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/books/{book}/teachers', [BookController::class, 'teachers']);
 
+    Route::get('/books/{book}/quiz-summary', [BookController::class, 'quizSummary']);
+
     Route::apiResource('chapters', ChapterController::class)
         ->only(['index', 'show']);
 
