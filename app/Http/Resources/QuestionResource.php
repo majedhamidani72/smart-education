@@ -17,13 +17,13 @@ class QuestionResource extends JsonResource
             'question_text' => $this->question_text,
 
             'image_path' => $this->image_path
-                ? Storage::url($this->image_path)
+                ? Storage::disk('public')->url($this->image_path)
                 : null,
 
             'explanation' => $this->explanation,
 
             'explanation_image_path' => $this->explanation_image_path
-                ? Storage::url($this->explanation_image_path)
+                ? Storage::disk('public')->url($this->explanation_image_path)
                 : null,
 
             'recommendation_text' => $this->recommendation_text,

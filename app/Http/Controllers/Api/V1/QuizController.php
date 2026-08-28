@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Models\Quiz;
 use App\Helpers\ApiResponse;
 use App\Services\QuizService;
+use App\Services\QuizAttemptService;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\QuizResource;
 use App\Http\Resources\QuizAttemptResource;
@@ -16,11 +17,15 @@ class QuizController extends Controller
 {
     protected QuizService $quizService;
 
+    protected QuizAttemptService $quizAttemptService;
+
 
     public function __construct(
-        QuizService $quizService
+        QuizService $quizService,
+        QuizAttemptService $quizAttemptService
     ) {
         $this->quizService = $quizService;
+        $this->quizAttemptService = $quizAttemptService;
     }
 
 
@@ -88,7 +93,7 @@ class QuizController extends Controller
             );
         }
 
-        $attempt = $this->quizService->start(
+        $attempt = $this->quizAttemptService->start(
             $quiz,
             $request->user()
         );

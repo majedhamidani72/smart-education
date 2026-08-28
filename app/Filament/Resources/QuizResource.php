@@ -2,31 +2,29 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\QuizResource\Pages;
-use App\Filament\Resources\QuizResource\RelationManagers\QuestionsRelationManager;
 use App\Filament\Forms\Components\JalaliDateTimePicker;
-
+use App\Filament\Resources\QuizResource\Pages;
 use App\Models\App;
 use App\Models\AppGradeSubject;
 use App\Models\Book;
 use App\Models\Chapter;
 use App\Models\Grade;
 use App\Models\Quiz;
+use App\Models\Question;
 use App\Models\Section;
 use App\Models\Subject;
-
+use App\Models\TeacherAssignment;
+use App\Support\Jalali;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
-
 use Filament\Resources\Resource;
-
 use Filament\Tables;
 use Filament\Tables\Table;
-
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
 
 class QuizResource extends Resource
 {
@@ -111,9 +109,9 @@ class QuizResource extends Resource
      * حتی اگر معلم به چند پایه یا چند کتاب مختلف دسترسی داشته
      * باشد.
      */
-    protected static function teacherAssignedBooks(): \Illuminate\Support\Collection
+    protected static function teacherAssignedBooks(): Collection
     {
-        $bookIds = \App\Models\TeacherAssignment::query()
+        $bookIds = TeacherAssignment::query()
             ->where('teacher_id', auth()->id())
             ->where('is_active', true)
             ->pluck('book_id');
@@ -132,16 +130,22 @@ class QuizResource extends Resource
         $teacherBooks = $isTeacher
             ? static::teacherAssignedBooks()
             : collect();
+
         return $form->schema([
 
             Forms\Components\TextInput::make('title')
                 ->label('عنوان آزمون')
-                ->required()
+                ->hidden()
                 ->maxLength(255),
 
             Forms\Components\Textarea::make('description')
-                ->label('توضیحات آزمون')
+                ->label('راهنمای مشترک آزمون‌ها (اختیاری)')
                 ->rows(4)
+                ->columnSpanFull(),
+
+            Forms\Components\Placeholder::make('template_help')
+                ->label('روش کار')
+                ->content('این تنظیم فقط یک‌بار ساخته می‌شود. سامانه برای همه درس‌ها، بخش‌ها یا فصل‌های این کتاب که سؤال تأییدشده دارند، آزمون را خودکار می‌سازد و تغییرات بعدی را نیز روی همه آن‌ها اعمال می‌کند.')
                 ->columnSpanFull(),
 
             /*
@@ -168,7 +172,7 @@ class QuizResource extends Resource
                                 return $teacherBooks
                                     ->pluck('appGradeSubject.app_id')
                                     ->unique()
-                                    ->mapWithKeys(fn($appId) => [
+                                    ->mapWithKeys(fn ($appId) => [
                                         $appId => App::find($appId)?->title,
                                     ]);
                             }
@@ -180,7 +184,7 @@ class QuizResource extends Resource
                         })
                         ->searchable()
                         ->preload()
-                        ->getOptionLabelUsing(fn($value) => App::find($value)?->title)
+                        ->getOptionLabelUsing(fn ($value) => App::find($value)?->title)
                         ->live()
                         ->required()
                         ->dehydrated(false)
@@ -211,14 +215,13 @@ class QuizResource extends Resource
                                 return $teacherBooks
                                     ->when(
                                         $get('app_id'),
-                                        fn($collection) => $collection->filter(
-                                            fn($book) =>
-                                            $book->appGradeSubject?->app_id == $get('app_id')
+                                        fn ($collection) => $collection->filter(
+                                            fn ($book) => $book->appGradeSubject?->app_id == $get('app_id')
                                         )
                                     )
                                     ->pluck('appGradeSubject.grade_id')
                                     ->unique()
-                                    ->mapWithKeys(fn($gradeId) => [
+                                    ->mapWithKeys(fn ($gradeId) => [
                                         $gradeId => Grade::find($gradeId)?->title,
                                     ]);
                             }
@@ -230,14 +233,14 @@ class QuizResource extends Resource
                             return Grade::query()
                                 ->whereHas(
                                     'appGradeSubjects',
-                                    fn($query) => $query->where('app_id', $get('app_id'))
+                                    fn ($query) => $query->where('app_id', $get('app_id'))
                                 )
                                 ->orderBy('grade_number')
                                 ->pluck('title', 'id');
                         })
                         ->searchable()
                         ->preload()
-                        ->getOptionLabelUsing(fn($value) => Grade::find($value)?->title)
+                        ->getOptionLabelUsing(fn ($value) => Grade::find($value)?->title)
                         ->live()
                         ->required()
                         ->dehydrated(false)
@@ -267,15 +270,14 @@ class QuizResource extends Resource
                                 return $teacherBooks
                                     ->when(
                                         $get('grade_id'),
-                                        fn($collection) => $collection->filter(
-                                            fn($book) =>
-                                            $book->appGradeSubject?->app_id == $get('app_id')
+                                        fn ($collection) => $collection->filter(
+                                            fn ($book) => $book->appGradeSubject?->app_id == $get('app_id')
                                             && $book->appGradeSubject?->grade_id == $get('grade_id')
                                         )
                                     )
                                     ->pluck('appGradeSubject.subject_id')
                                     ->unique()
-                                    ->mapWithKeys(fn($subjectId) => [
+                                    ->mapWithKeys(fn ($subjectId) => [
                                         $subjectId => Subject::find($subjectId)?->title,
                                     ]);
                             }
@@ -287,7 +289,7 @@ class QuizResource extends Resource
                             return Subject::query()
                                 ->whereHas(
                                     'appGradeSubjects',
-                                    fn($query) => $query
+                                    fn ($query) => $query
                                         ->where('app_id', $get('app_id'))
                                         ->where('grade_id', $get('grade_id'))
                                 )
@@ -296,7 +298,7 @@ class QuizResource extends Resource
                         })
                         ->searchable()
                         ->preload()
-                        ->getOptionLabelUsing(fn($value) => Subject::find($value)?->title)
+                        ->getOptionLabelUsing(fn ($value) => Subject::find($value)?->title)
                         ->live()
                         ->required()
                         ->dehydrated(false)
@@ -327,9 +329,8 @@ class QuizResource extends Resource
                                 return $teacherBooks
                                     ->when(
                                         $get('subject_id'),
-                                        fn($collection) => $collection->filter(
-                                            fn($book) =>
-                                            $book->appGradeSubject?->app_id == $get('app_id')
+                                        fn ($collection) => $collection->filter(
+                                            fn ($book) => $book->appGradeSubject?->app_id == $get('app_id')
                                             && $book->appGradeSubject?->grade_id == $get('grade_id')
                                             && $book->appGradeSubject?->subject_id == $get('subject_id')
                                         )
@@ -359,10 +360,10 @@ class QuizResource extends Resource
                         })
                         ->searchable()
                         ->preload()
-                        ->getOptionLabelUsing(fn($value) => Book::find($value)?->title)
+                        ->getOptionLabelUsing(fn ($value) => Book::find($value)?->title)
                         ->live()
                         ->required()
-                        ->dehydrated(false)
+                        ->dehydrated()
                         ->default(function () use ($isTeacher, $teacherBooks) {
 
                             return $isTeacher && $teacherBooks->count() === 1
@@ -400,15 +401,16 @@ class QuizResource extends Resource
                     if ($examStructure === 'lesson_term') {
 
                         return [
-                            Chapter::class => 'آزمون بعد از هر درس',
-                            Book::class => 'آزمون نوبت (اول یا دوم)',
+                            Section::class => 'تنظیم مشترک همه آزمون‌های درس',
+                            Chapter::class => 'تنظیم مشترک همه آزمون‌های فصل / نوبت',
+                            Book::class => 'آزمون جامع کتاب',
                         ];
                     }
 
                     return [
-                        Book::class => 'آزمون جامع کتاب',
-                        Chapter::class => 'آزمون فصل',
-                        Section::class => 'آزمون بخش',
+                        Book::class => 'تنظیم آزمون جامع کتاب',
+                        Chapter::class => 'تنظیم مشترک همه آزمون‌های فصل',
+                        Section::class => 'تنظیم مشترک همه آزمون‌های بخش',
                     ];
                 })
 
@@ -416,7 +418,7 @@ class QuizResource extends Resource
 
                 ->required()
 
-                ->disabled(fn(Get $get) => ! $get('book_id'))
+                ->disabled(fn (Get $get) => ! $get('book_id'))
 
                 ->afterStateUpdated(
 
@@ -449,17 +451,9 @@ class QuizResource extends Resource
 
                 ->live()
 
-                ->required(
-                    fn(Get $get) =>
-                    $get('quizable_type') === Book::class
-                    && Subject::find($get('subject_id'))?->exam_structure === 'lesson_term'
-                )
+                ->required(false)
 
-                ->visible(
-                    fn(Get $get) =>
-                    $get('quizable_type') === Book::class
-                    && Subject::find($get('subject_id'))?->exam_structure === 'lesson_term'
-                ),
+                ->hidden(),
 
             /*
             |--------------------------------------------------------------------------
@@ -470,7 +464,9 @@ class QuizResource extends Resource
 
             Forms\Components\Select::make('section_chapter_filter')
 
-                ->label('فصل')
+                ->label(fn (Get $get) => Subject::find($get('subject_id'))?->exam_structure === 'lesson_term'
+                    ? 'فصل / نوبت درس'
+                    : 'فصل')
 
                 ->options(function (Get $get) {
 
@@ -489,11 +485,11 @@ class QuizResource extends Resource
 
                 ->dehydrated(false)
 
-                ->visible(fn(Get $get) => $get('quizable_type') === Section::class)
+                ->hidden()
 
-                ->required(fn(Get $get) => $get('quizable_type') === Section::class)
+                ->required(false)
 
-                ->afterStateUpdated(fn(Set $set) => $set('quizable_id', null)),
+                ->afterStateUpdated(fn (Set $set) => $set('quizable_id', null)),
 
             /*
             |--------------------------------------------------------------------------
@@ -513,10 +509,12 @@ class QuizResource extends Resource
                     return match ($get('quizable_type')) {
 
                         Chapter::class => $examStructure === 'lesson_term'
-                            ? 'درس'
+                            ? 'فصل / نوبت'
                             : 'فصل',
 
-                        Section::class => 'بخش',
+                        Section::class => $examStructure === 'lesson_term'
+                            ? 'درس'
+                            : 'بخش',
 
                         default => 'انتخاب مورد آزمون',
                     };
@@ -548,15 +546,9 @@ class QuizResource extends Resource
 
                 ->live()
 
-                ->visible(
-                    fn(Get $get) =>
-                    in_array($get('quizable_type'), [Chapter::class, Section::class], true)
-                )
+                ->hidden()
 
-                ->required(
-                    fn(Get $get) =>
-                    in_array($get('quizable_type'), [Chapter::class, Section::class], true)
-                ),
+                ->required(false),
 
             /*
             |--------------------------------------------------------------------------
@@ -565,9 +557,10 @@ class QuizResource extends Resource
             */
 
             Forms\Components\TextInput::make('questions_count')
-                ->label('تعداد سوال')
+                ->label('حداکثر تعداد سؤال در هر آزمون')
                 ->numeric()
                 ->minValue(1)
+                ->helperText('برای هر درس، بخش یا فصل، سؤال‌ها به‌صورت تصادفی از همان محدوده انتخاب می‌شوند؛ اگر بانک سؤال یک مورد کمتر باشد، همه سؤال‌های موجود همان مورد استفاده می‌شود.')
                 ->default(10)
                 ->required(),
 
@@ -622,15 +615,14 @@ class QuizResource extends Resource
                 ->default('draft')
                 ->required()
                 ->live()
-                ->visible(fn() => auth()->user()?->hasRole('SuperAdmin') || auth()->user()?->hasRole('Admin')),
+                ->visible(fn () => auth()->user()?->hasRole('SuperAdmin') || auth()->user()?->hasRole('Admin')),
 
             Forms\Components\Textarea::make('rejection_reason')
                 ->label('دلیل رد')
                 ->rows(2)
-                ->visible(fn(Forms\Get $get) =>
-                    (auth()->user()?->hasRole('SuperAdmin') || auth()->user()?->hasRole('Admin'))
+                ->visible(fn (Get $get) => (auth()->user()?->hasRole('SuperAdmin') || auth()->user()?->hasRole('Admin'))
                     && $get('status') === 'rejected')
-                ->required(fn(Forms\Get $get) => $get('status') === 'rejected'),
+                ->required(fn (Get $get) => $get('status') === 'rejected'),
 
             JalaliDateTimePicker::make('published_at')
                 ->label('زمان انتشار')
@@ -662,21 +654,21 @@ class QuizResource extends Resource
                 // می‌کند — قبلاً فقط برای نوع «کتاب» درست کار می‌کرد.
                 Tables\Columns\TextColumn::make('grade')
                     ->label('پایه')
-                    ->getStateUsing(fn($record) => static::resolveGradeTitle($record))
+                    ->getStateUsing(fn ($record) => static::resolveGradeTitle($record))
                     ->badge()
-                    ->color(fn($state) => static::colorForLabel($state)),
+                    ->color(fn ($state) => static::colorForLabel($state)),
 
                 Tables\Columns\TextColumn::make('subject')
                     ->label('درس')
-                    ->getStateUsing(fn($record) => static::resolveSubjectTitle($record))
+                    ->getStateUsing(fn ($record) => static::resolveSubjectTitle($record))
                     ->badge()
-                    ->color(fn($state) => static::colorForLabel($state)),
+                    ->color(fn ($state) => static::colorForLabel($state)),
 
                 // سطح آزمون (بخش/فصل/کتاب یا بعد از هر درس/نوبت) —
                 // رنگش بر اساس نوعِ quizable_type ثابت است، نه
                 // هش‌شده، تا مثلاً همیشه «بخش» یک رنگ خاص و «فصل»
                 // رنگ دیگری داشته باشد.
-                Tables\Columns\BadgeColumn::make('quizable_type')
+                Tables\Columns\BadgeColumn::make('template_scope')
                     ->label('سطح آزمون')
                     ->colors([
                         'info' => Section::class,
@@ -685,29 +677,27 @@ class QuizResource extends Resource
                     ])
                     ->formatStateUsing(function ($state, $record) {
 
-                        $examStructure = $record->quizable
-                            ? static::resolveExamStructure($record)
-                            : 'chapter_section';
+                        $examStructure = static::resolveExamStructure($record);
 
                         if ($state === Section::class) {
-                            return 'بخش';
+                            return $examStructure === 'lesson_term'
+                                ? 'همه آزمون‌های درس'
+                                : 'همه آزمون‌های بخش';
                         }
 
                         if ($state === Chapter::class) {
                             return $examStructure === 'lesson_term'
-                                ? 'بعد از هر درس'
-                                : 'فصل';
+                                ? 'همه آزمون‌های فصل / نوبت'
+                                : 'همه آزمون‌های فصل';
                         }
 
                         if ($state === Book::class) {
 
                             if ($examStructure === 'lesson_term') {
-                                return $record->term_scope == 1
-                                    ? 'نوبت اول'
-                                    : 'نوبت دوم';
+                                return 'آزمون جامع کتاب';
                             }
 
-                            return 'آزمون جامع';
+                            return 'آزمون جامع کتاب';
                         }
 
                         return $state;
@@ -739,7 +729,7 @@ class QuizResource extends Resource
                         'success' => 'active',
                         'danger' => ['inactive', 'rejected'],
                     ])
-                    ->formatStateUsing(fn($state) => match ($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'draft' => 'پیش نویس',
                         'pending' => 'در انتظار بررسی',
                         'active' => 'فعال',
@@ -754,7 +744,7 @@ class QuizResource extends Resource
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('ایجاد')
-                    ->formatStateUsing(fn($state) => \App\Support\Jalali::format($state)),
+                    ->formatStateUsing(fn ($state) => Jalali::format($state)),
 
             ])
 
@@ -780,17 +770,17 @@ class QuizResource extends Resource
 
                                     Book::class => $q->whereHas(
                                         'appGradeSubject',
-                                        fn($qq) => $qq->where('grade_id', $gradeId)
+                                        fn ($qq) => $qq->where('grade_id', $gradeId)
                                     ),
 
                                     Chapter::class => $q->whereHas(
                                         'book.appGradeSubject',
-                                        fn($qq) => $qq->where('grade_id', $gradeId)
+                                        fn ($qq) => $qq->where('grade_id', $gradeId)
                                     ),
 
                                     Section::class => $q->whereHas(
                                         'chapter.book.appGradeSubject',
-                                        fn($qq) => $qq->where('grade_id', $gradeId)
+                                        fn ($qq) => $qq->where('grade_id', $gradeId)
                                     ),
 
                                 };
@@ -818,17 +808,17 @@ class QuizResource extends Resource
 
                                     Book::class => $q->whereHas(
                                         'appGradeSubject',
-                                        fn($qq) => $qq->where('subject_id', $subjectId)
+                                        fn ($qq) => $qq->where('subject_id', $subjectId)
                                     ),
 
                                     Chapter::class => $q->whereHas(
                                         'book.appGradeSubject',
-                                        fn($qq) => $qq->where('subject_id', $subjectId)
+                                        fn ($qq) => $qq->where('subject_id', $subjectId)
                                     ),
 
                                     Section::class => $q->whereHas(
                                         'chapter.book.appGradeSubject',
-                                        fn($qq) => $qq->where('subject_id', $subjectId)
+                                        fn ($qq) => $qq->where('subject_id', $subjectId)
                                     ),
 
                                 };
@@ -836,12 +826,12 @@ class QuizResource extends Resource
                         );
                     }),
 
-                Tables\Filters\SelectFilter::make('quizable_type')
+                Tables\Filters\SelectFilter::make('template_scope')
                     ->label('سطح آزمون')
                     ->options([
-                        Section::class => 'بخش',
-                        Chapter::class => 'فصل / بعد از هر درس',
-                        Book::class => 'کتاب / جامع / نوبت',
+                        Section::class => 'همه آزمون‌های درس / بخش',
+                        Chapter::class => 'همه آزمون‌های فصل',
+                        Book::class => 'آزمون جامع کتاب',
                     ]),
 
                 Tables\Filters\SelectFilter::make('status')
@@ -864,11 +854,15 @@ class QuizResource extends Resource
 
                 Tables\Actions\EditAction::make(),
 
-                Tables\Actions\DeleteAction::make(),
-
-                Tables\Actions\RestoreAction::make(),
-
-                Tables\Actions\ForceDeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->label('حذف')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('حذف آزمون آنلاین')
+                    ->modalDescription('آیا مطمئن هستید؟ این آزمون پس از تأیید حذف می‌شود.')
+                    ->modalSubmitActionLabel('بله، حذف شود')
+                    ->visible(fn ($record) => ! $record->trashed()),
 
             ])
 
@@ -877,10 +871,6 @@ class QuizResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
 
                     Tables\Actions\DeleteBulkAction::make(),
-
-                    Tables\Actions\RestoreBulkAction::make(),
-
-                    Tables\Actions\ForceDeleteBulkAction::make(),
 
                 ]),
 
@@ -893,11 +883,29 @@ class QuizResource extends Resource
     |--------------------------------------------------------------------------
     */
 
+    protected static function availableQuestionCount(?string $type, mixed $id): int
+    {
+        if (! $type || ! $id || ! in_array($type, [Book::class, Chapter::class, Section::class], true)) {
+            return 0;
+        }
+
+        $column = match ($type) {
+            Book::class => 'book_id',
+            Chapter::class => 'chapter_id',
+            Section::class => 'section_id',
+        };
+
+        return Question::query()
+            ->where($column, $id)
+            ->where('status', 'approved')
+            ->where('is_active', true)
+            ->whereHas('options')
+            ->count();
+    }
+
     public static function getRelations(): array
     {
-        return [
-            QuestionsRelationManager::class,
-        ];
+        return [];
     }
 
     /*
@@ -932,12 +940,14 @@ class QuizResource extends Resource
                 // باشد)؛ برای بارگذاری درست هرکدام باید زنجیره‌ی
                 // رابطه‌ی مخصوص همان نوع را جدا مشخص کنیم، وگرنه
                 // Eloquent نمی‌داند برای هر نوع کدام رابطه معتبر است.
-                'quizable' => fn($morphTo) => $morphTo->morphWith([
+                'quizable' => fn ($morphTo) => $morphTo->morphWith([
                     Book::class => ['appGradeSubject.grade', 'appGradeSubject.subject'],
                     Chapter::class => ['book.appGradeSubject.grade', 'book.appGradeSubject.subject'],
                     Section::class => ['chapter.book.appGradeSubject.grade', 'chapter.book.appGradeSubject.subject'],
                 ]),
             ]);
+
+        $query->where('is_template', true);
 
         $user = auth()->user();
 

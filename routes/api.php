@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GradeController;
@@ -13,6 +14,10 @@ use App\Http\Controllers\Api\V1\VideoController;
 use App\Http\Controllers\Api\V1\QuizController;
 use App\Http\Controllers\Api\V1\QuizAttemptController;
 use App\Http\Controllers\Api\V1\QuestionAttemptController;
+use App\Http\Controllers\Api\V1\StudentDashboardController;
+use App\Http\Controllers\Api\V1\ContentSearchController;
+use App\Http\Controllers\Api\V1\PowerpointStoreController;
+use App\Http\Controllers\Api\V1\AdvertisementController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\PlanController;
 use App\Http\Controllers\Api\V1\PaymentController;
@@ -22,9 +27,22 @@ use App\Http\Controllers\Api\V1\PurchaseItemController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\PaymentTransactionController;
 use App\Http\Controllers\Api\V1\TeacherController;
+use App\Http\Controllers\Api\V1\PdfFileController;
 
 
 Route::prefix('v1')->group(function () {
+    Route::get('/health', function () {
+        DB::select('select 1');
+        return \App\Helpers\ApiResponse::success([
+            'status' => 'healthy',
+            'time' => now()->toIso8601String(),
+            'environment' => app()->environment(),
+        ], 'سامانه در دسترس است.');
+    });
+
+    Route::middleware('signed')->prefix('pdf-files')->controller(PdfFileController::class)->group(function () {
+        Route::get('/{pdfFile}/view', 'viewFile')->name('pdf-files.view');
+    });
 
 
     /*
@@ -169,6 +187,25 @@ Route::prefix('v1')->group(function () {
         Route::get('/{attempt}/result', 'result');
     });
 
+    Route::middleware('auth:sanctum')->prefix('student')->controller(StudentDashboardController::class)->group(function () {
+        Route::get('/dashboard', 'show');
+        Route::get('/progress/content/{contentItem}', 'contentProgress');
+        Route::post('/progress/content/{contentItem}', 'saveProgress');
+    });
+
+    Route::get('/search/content', ContentSearchController::class);
+
+    Route::get('/powerpoints', [PowerpointStoreController::class, 'index']);
+    Route::get('/advertisements', [AdvertisementController::class, 'index']);
+    Route::post('/advertisements/{advertisement}/view', [AdvertisementController::class, 'view']);
+    Route::post('/advertisements/{advertisement}/click', [AdvertisementController::class, 'click']);
+    Route::middleware('auth:sanctum')->prefix('powerpoints')->controller(PowerpointStoreController::class)->group(function () {
+        Route::get('/orders', 'orders');
+        Route::post('/{powerpoint}/purchase', 'purchase');
+        Route::get('/{powerpoint}/download', 'download');
+        Route::delete('/purchases/{purchase}/cancel', 'cancel');
+    });
+
 
 
     /*
@@ -221,9 +258,15 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     */
 
+    Route::get('/payment/mode', [PaymentController::class, 'mode']);
+
     Route::middleware('auth:sanctum')->prefix('payments')->controller(PaymentController::class)->group(function () {
 
         Route::post('/request/{purchase}', 'requestPayment');
+
+        Route::post('/test-complete/{purchase}', 'completeTest');
+
+        Route::post('/test-fail/{purchase}', 'failTest');
 
         Route::post('/verify/{transaction}', 'verifyPayment');
 

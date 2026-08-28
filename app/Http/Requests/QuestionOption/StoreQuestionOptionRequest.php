@@ -21,11 +21,13 @@ class StoreQuestionOptionRequest extends FormRequest
             ],
 
             'option_text' => [
+                'required_without:image_path',
                 'nullable',
                 'string',
             ],
 
             'image_path' => [
+                'required_without:option_text',
                 'nullable',
                 'image',
                 'max:5120',

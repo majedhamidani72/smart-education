@@ -33,14 +33,9 @@ class ChapterResource extends Resource
 
     protected static ?string $navigationLabel = 'فصل‌ها';
 
-    /**
-     * این Resource دیگر در منوی بیرونی نمایش داده نمی‌شود.
-     * ایجاد/ویرایش فصل از داخل فرم «ایجاد محتوای آموزشی»
-     * (ContentItemResource) انجام می‌گیرد.
-     */
     public static function shouldRegisterNavigation(): bool
     {
-        return false;
+        return auth()->user()?->hasAnyRole(['SuperAdmin', 'Admin']) ?? false;
     }
 
     protected static ?string $modelLabel = 'فصل';
@@ -206,7 +201,8 @@ class ChapterResource extends Resource
 
         ]);
     }
-        public static function table(Table $table): Table
+
+    public static function table(Table $table): Table
     {
         return $table
 
@@ -244,6 +240,22 @@ class ChapterResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('book.appGradeSubject.app.title')
+                    ->label('اپلیکیشن')
+                    ->badge()
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('book.appGradeSubject.grade.title')
+                    ->label('پایه')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('book.appGradeSubject.subject.title')
+                    ->label('درس')
+                    ->searchable()
+                    ->sortable(),
+
                 Tables\Columns\ImageColumn::make('thumbnail')
                     ->label('تصویر فصل')
                     ->square(),
@@ -269,6 +281,30 @@ class ChapterResource extends Resource
             ])
 
             ->filters([
+
+                Tables\Filters\SelectFilter::make('app_id')
+                    ->label('اپلیکیشن')
+                    ->options(App::query()->orderBy('title')->pluck('title', 'id'))
+                    ->query(fn (Builder $query, array $data): Builder => $query
+                        ->when(
+                            $data['value'] ?? null,
+                            fn (Builder $query, $appId): Builder => $query->whereHas(
+                                'book.appGradeSubject',
+                                fn (Builder $query): Builder => $query->where('app_id', $appId)
+                            )
+                        )),
+
+                Tables\Filters\SelectFilter::make('grade_id')
+                    ->label('پایه')
+                    ->options(Grade::query()->orderBy('grade_number')->pluck('title', 'id'))
+                    ->query(fn (Builder $query, array $data): Builder => $query
+                        ->when(
+                            $data['value'] ?? null,
+                            fn (Builder $query, $gradeId): Builder => $query->whereHas(
+                                'book.appGradeSubject',
+                                fn (Builder $query): Builder => $query->where('grade_id', $gradeId)
+                            )
+                        )),
 
                 Tables\Filters\SelectFilter::make('book_id')
                     ->label('کتاب')
@@ -347,4 +383,3 @@ class ChapterResource extends Resource
         );
     }
 }
-

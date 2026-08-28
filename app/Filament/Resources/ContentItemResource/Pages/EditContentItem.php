@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ContentItemResource\Pages;
 
 use App\Filament\Resources\ContentItemResource;
+use App\Filament\Resources\ContentItemResource\Pages\Concerns\HandlesMissingTemporaryUploads;
 use App\Models\ContentType;
 use App\Models\PdfFile;
 use App\Models\StepByStep;
@@ -12,10 +13,31 @@ use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class EditContentItem extends EditRecord
 {
+    use HandlesMissingTemporaryUploads;
+
     protected static string $resource = ContentItemResource::class;
+
+    public function mount(int|string $record): void
+    {
+        try {
+            parent::mount($record);
+        } catch (ModelNotFoundException) {
+            // اگر کاربر با Back مرورگر به صفحه ویرایش رکوردی برگردد
+            // که قبلاً حذف دائمی شده، به‌جای 404 به همان فهرست
+            // فیلترشده هدایت می‌شود.
+            $this->redirect(static::getResource()::getUrl('index', array_filter([
+                'book_id' => request()->query('book_id'),
+                'chapter_id' => request()->query('chapter_id'),
+                'section_id' => request()->query('section_id'),
+                'content_type_id' => request()->query('content_type_id'),
+                'creator_id' => request()->query('creator_id'),
+            ])));
+        }
+    }
 
     /**
      * وقتی محتوا «در انتظار بررسی» است، معلم فقط می‌تواند ببیندش
@@ -47,6 +69,12 @@ class EditContentItem extends EditRecord
         }
 
         return parent::getFormActions();
+    }
+
+    protected function getCancelFormAction(): Actions\Action
+    {
+        return parent::getCancelFormAction()
+            ->url(fn (): string => $this->previousPageUrl());
     }
 
     /**
@@ -235,6 +263,9 @@ class EditContentItem extends EditRecord
 
         while (
             \App\Models\ContentItem::query()
+                // The database unique index also includes soft-deleted rows.
+                // Include them here so restoring/editing titles stays safe.
+                ->withTrashed()
                 ->where('section_id', $sectionId)
                 ->where('slug', $slug)
                 ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
@@ -498,42 +529,31 @@ class EditContentItem extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        $chapter = $this->record->chapter;
-
         return [
 
             Actions\Action::make('back')
                 ->label('بازگشت')
                 ->icon('heroicon-o-arrow-right')
                 ->color('gray')
-                ->url(static::getResource()::getUrl('index', array_filter([
-                    'book_id' => request()->query('book_id', $chapter?->book_id),
-                    'chapter_id' => request()->query('chapter_id', $this->record->chapter_id),
-                    'section_id' => request()->query('section_id', $this->record->section_id),
-                    'content_type_id' => request()->query('content_type_id', $this->record->content_type_id),
-                ]))),
-
-            Actions\DeleteAction::make(),
-
-            Actions\ForceDeleteAction::make(),
-
-            Actions\RestoreAction::make(),
+                ->url(fn (): string => $this->previousPageUrl()),
 
         ];
     }
 
     protected function getRedirectUrl(): string
     {
-        // بعد از ذخیره، دقیقاً به همان فصل/بخش/نوع محتوایی برمی‌گردد
-        // که محتوا در آن بود — نه صفحه‌ی اول محتوای آموزشی.
-        $chapter = $this->record->chapter;
+        return $this->previousPageUrl();
+    }
 
+    protected function previousPageUrl(): string
+    {
         return static::getResource()::getUrl('index', array_filter([
-            'book_id' => request()->query('book_id', $chapter?->book_id),
+            'book_id' => request()->query('book_id', $this->record->book_id),
             'chapter_id' => request()->query('chapter_id', $this->record->chapter_id),
             'section_id' => request()->query('section_id', $this->record->section_id),
             'content_type_id' => request()->query('content_type_id', $this->record->content_type_id),
-        ]));
+            'creator_id' => request()->query('creator_id', $this->record->created_by),
+        ], fn($value) => $value !== null && $value !== ''));
     }
 
     protected function getSavedNotificationTitle(): ?string

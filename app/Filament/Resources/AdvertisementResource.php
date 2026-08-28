@@ -66,10 +66,24 @@ class AdvertisementResource extends Resource
                 ->columnSpanFull(),
 
             Forms\Components\TextInput::make('link')
-                ->label('لینک مقصد (اختیاری)')
-                ->url()
+                ->label('آدرس مقصد تبلیغ (اختیاری)')
+                ->placeholder('instagram.com/... یا t.me/... یا wa.me/...')
                 ->maxLength(255)
-                ->helperText('وقتی کاربر روی تبلیغ کلیک می‌کند، به این آدرس هدایت می‌شود. خالی بگذارید اگر فقط جنبه‌ی نمایشی دارد.')
+                ->rule(function () {
+                    return function (string $attribute, mixed $value, \Closure $fail): void {
+                        if (blank($value)) {
+                            return;
+                        }
+
+                        $normalized = self::normalizeAdvertisementLink((string) $value);
+
+                        if (! filter_var($normalized, FILTER_VALIDATE_URL)) {
+                            $fail('لینک واردشده معتبر نیست. لینک اینستاگرام، تلگرام، واتس‌اپ یا سایت را وارد کنید.');
+                        }
+                    };
+                })
+                ->dehydrateStateUsing(fn (?string $state): ?string => self::normalizeAdvertisementLink($state))
+                ->helperText('لینک اینستاگرام، تلگرام، واتس‌اپ یا هر سایت معتبری را وارد کنید؛ اگر https:// ننویسید، خودکار اضافه می‌شود.')
                 ->columnSpanFull(),
 
             Forms\Components\Textarea::make('description')
@@ -102,7 +116,8 @@ class AdvertisementResource extends Resource
 
             JalaliDateTimePicker::make('expires_at')
                 ->label('پایان نمایش (اختیاری)')
-                ->helperText('خالی بگذارید یعنی تا وقتی که دستی غیرفعالش نکنی.'),
+                ->after('starts_at')
+                ->helperText('باید بعد از زمان شروع باشد. خالی بگذارید یعنی تا وقتی که دستی غیرفعالش کنید.'),
 
             Forms\Components\Toggle::make('is_active')
                 ->label('فعال')
@@ -226,5 +241,20 @@ class AdvertisementResource extends Resource
                 SoftDeletingScope::class,
             ])
             ->withCount(['views', 'clicks']);
+    }
+
+    private static function normalizeAdvertisementLink(?string $link): ?string
+    {
+        $link = trim((string) $link);
+
+        if ($link === '') {
+            return null;
+        }
+
+        if (! preg_match('~^https?://~i', $link)) {
+            $link = 'https://'.$link;
+        }
+
+        return $link;
     }
 }

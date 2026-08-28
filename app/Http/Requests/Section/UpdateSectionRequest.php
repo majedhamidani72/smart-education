@@ -47,7 +47,16 @@ class UpdateSectionRequest extends FormRequest
 
             'description' => 'nullable|string',
 
-            'sort_order' => 'sometimes|integer|min:1',
+            'sort_order' => [
+                'sometimes',
+                'integer',
+                'min:1',
+                Rule::unique('sections', 'sort_order')
+                    ->where(fn ($query) => $query
+                        ->where('chapter_id', $this->integer('chapter_id'))
+                        ->whereNull('deleted_at'))
+                    ->ignore($section),
+            ],
 
             'is_active' => 'sometimes|boolean',
 

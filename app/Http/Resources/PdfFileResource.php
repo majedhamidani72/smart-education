@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\URL;
 
 class PdfFileResource extends JsonResource
 {
@@ -15,11 +16,17 @@ class PdfFileResource extends JsonResource
 
             'content_item_id' => $this->content_item_id,
 
-            'title' => $this->title,
+            'title' => $this->contentItem?->title,
 
-            'file' => asset($this->file),
+            'file' => URL::temporarySignedRoute('pdf-files.view', now()->addHours(2), ['pdfFile' => $this->id]),
+
+            'view_url' => URL::temporarySignedRoute('pdf-files.view', now()->addHours(2), ['pdfFile' => $this->id]),
+
+            'original_name' => $this->original_name,
 
             'file_size' => $this->file_size,
+
+            'download_allowed' => false,
 
             'created_at' => $this->created_at,
 

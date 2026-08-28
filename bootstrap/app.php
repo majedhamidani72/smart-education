@@ -88,7 +88,7 @@ return Application::configure(
             if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
-            return ApiResponse::notFound('Resource not found.');
+            return ApiResponse::notFound('اطلاعات درخواستی پیدا نشد.');
         });
 
         /*
@@ -143,7 +143,7 @@ return Application::configure(
                 return null;
             }
             return ApiResponse::error(
-                app()->hasDebugModeEnabled() ? $e->getMessage() : 'Internal Server Error',
+                app()->hasDebugModeEnabled() ? $e->getMessage() : 'مشکلی در سرور رخ داد. لطفاً کمی بعد دوباره تلاش کنید.',
                 null,
                 500
             );

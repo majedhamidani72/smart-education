@@ -4,11 +4,25 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class QuestionAttemptResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $questionSnapshot = $this->question_snapshot;
+        if (! empty($questionSnapshot['image_path'])) {
+            $questionSnapshot['image_path'] = $this->publicUrl($questionSnapshot['image_path']);
+        }
+
+        $optionsSnapshot = collect($this->options_snapshot ?? [])->map(function (array $option) {
+            if (! empty($option['image_path'])) {
+                $option['image_path'] = $this->publicUrl($option['image_path']);
+            }
+
+            return $option;
+        })->values()->all();
+
         return [
 
             'id' => $this->id,
@@ -26,12 +40,18 @@ class QuestionAttemptResource extends JsonResource
 
                 'score_awarded' => $this->score_awarded,
 
+                // فقط بعد از ثبت پاسخ فرستاده می‌شود تا بازخورد
+                // فوری بدون افشای پاسخ پیش از انتخاب ممکن باشد.
+                'correct_option_id' => $this->answered_at
+                    ? $this->question?->options()->where('is_correct', true)->value('id')
+                    : null,
+
             ],
 
 
-            'question_snapshot' => $this->question_snapshot,
+            'question_snapshot' => $questionSnapshot,
 
-            'options_snapshot' => $this->options_snapshot,
+            'options_snapshot' => $optionsSnapshot,
 
 
             'question' => $this->whenLoaded(
@@ -72,5 +92,14 @@ class QuestionAttemptResource extends JsonResource
                 : null,
 
         ];
+    }
+
+    private function publicUrl(string $path): string
+    {
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url(ltrim($path, '/'));
     }
 }

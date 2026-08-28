@@ -38,7 +38,12 @@ class PurchasePolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('purchases.create');
+        // هر کاربر احراز هویت‌شده باید بتواند برای خودش فاکتور
+        // خرید بسازد. PurchaseController شناسه کاربر را فقط از
+        // auth()->id() می‌گیرد و قیمت‌ها نیز سمت سرور از روی پلن
+        // محاسبه می‌شوند؛ بنابراین کاربر امکان ساخت خرید برای شخص
+        // دیگر یا دستکاری مبلغ را ندارد.
+        return true;
     }
 
     /**

@@ -55,11 +55,11 @@ use App\Repositories\Interfaces\VideoRepositoryInterface;
 use App\Services\Payment\Contracts\PaymentGatewayInterface;
 use App\Services\Payment\Providers\ZibalProvider;
 use App\Services\Sms\Contracts\SmsProviderInterface;
-use App\Services\Sms\Providers\MockSmsProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use App\Services\Sms\Providers\KavenegarProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -235,7 +235,7 @@ class AppServiceProvider extends ServiceProvider
         */
         $this->app->singleton(
             SmsProviderInterface::class,
-            MockSmsProvider::class
+            KavenegarProvider::class
         );
 
 

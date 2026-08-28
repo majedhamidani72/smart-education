@@ -80,7 +80,13 @@ class ContentItemResource extends Resource
 
     public static function form(Form $form): Form
     {
-        $isTeacher = auth()->user()?->hasRole('Teacher');
+        $user = auth()->user();
+        $canManageStructure = $user?->hasAnyRole(['SuperAdmin', 'Admin']) ?? false;
+
+        // نقش مدیریتی بر نقش Teacher اولویت دارد. ممکن است یک
+        // سوپرادمین برای آزمودن جریان معلم، هم‌زمان نقش Teacher نیز
+        // داشته باشد؛ در آن حالت نباید ابزارهای مدیریتی پنهان شوند.
+        $isTeacher = ($user?->hasRole('Teacher') ?? false) && ! $canManageStructure;
 
         // دامنه‌ی مجاز معلم؛ برای ادمین/سوپرادمین همیشه خالی
         // می‌ماند چون آن‌ها به کل ساختار آموزشی دسترسی دارند.
@@ -142,7 +148,7 @@ class ContentItemResource extends Resource
                                 : null;
                         })
                         ->when(
-                            ! $isTeacher,
+                            $canManageStructure,
                             fn(Forms\Components\Select $field) => $field
                                 ->createOptionForm([
 
@@ -264,7 +270,7 @@ class ContentItemResource extends Resource
                                 : null;
                         })
                         ->when(
-                            ! $isTeacher,
+                            $canManageStructure,
                             fn(Forms\Components\Select $field) => $field
                                 ->createOptionForm([
 
@@ -393,7 +399,7 @@ class ContentItemResource extends Resource
                                 : null;
                         })
                         ->when(
-                            ! $isTeacher,
+                            $canManageStructure,
                             fn(Forms\Components\Select $field) => $field
                                 ->createOptionForm([
 
@@ -517,7 +523,7 @@ class ContentItemResource extends Resource
                                 : null;
                         })
                         ->when(
-                            ! $isTeacher,
+                            $canManageStructure,
                             fn(Forms\Components\Select $field) => $field
                                 ->createOptionForm([
 
@@ -577,7 +583,9 @@ class ContentItemResource extends Resource
                             $set('section_id', null);
                         }),
                     Forms\Components\Select::make('chapter_id')
-                        ->label('فصل')
+                        ->label(fn(Get $get) => str_contains((string) Book::query()->whereKey($get('book_id'))->value('title'), 'ریاضی')
+                            ? 'فصل'
+                            : 'نوبت / بخش کلی')
                         ->options(function (Get $get) {
 
                             if (! $get('book_id')) {
@@ -667,7 +675,11 @@ class ContentItemResource extends Resource
                         }),
 
                     Forms\Components\Select::make('section_id')
-                        ->label('بخش (اختیاری)')
+                        ->label(fn(Get $get) => str_contains((string) Book::query()->whereKey($get('book_id'))->value('title'), 'ریاضی')
+                            ? 'بخش (اختیاری)'
+                            : 'درس')
+                        ->required(fn(Get $get) => filled($get('book_id'))
+                            && ! str_contains((string) Book::query()->whereKey($get('book_id'))->value('title'), 'ریاضی'))
                         ->options(function (Get $get) {
 
                             if (! $get('chapter_id')) {
@@ -685,7 +697,7 @@ class ContentItemResource extends Resource
                         ->createOptionForm([
 
                             Forms\Components\TextInput::make('title')
-                                ->label('نام بخش')
+                                ->label('عنوان بخش / درس')
                                 ->required(),
 
                             Forms\Components\Hidden::make('slug'),
@@ -715,6 +727,23 @@ class ContentItemResource extends Resource
                                     ->send();
 
                                 return $existing->id;
+                            }
+
+                            $sortOrderExists = Section::query()
+                                ->where('chapter_id', $get('chapter_id'))
+                                ->where('sort_order', $data['sort_order'])
+                                ->exists();
+
+                            if ($sortOrderExists) {
+
+                                Notification::make()
+                                    ->title('این ترتیب قبلاً برای بخش دیگری از همین فصل انتخاب شده است.')
+                                    ->danger()
+                                    ->send();
+
+                                throw \Illuminate\Validation\ValidationException::withMessages([
+                                    'sort_order' => 'ترتیب بخش در هر فصل باید یکتا باشد.',
+                                ]);
                             }
 
                             $section = Section::create([
@@ -773,9 +802,10 @@ class ContentItemResource extends Resource
                         ->columnSpanFull(),
 
                     Forms\Components\TextInput::make('page_number')
-                        ->label('شماره صفحه')
-                        ->numeric()
-                        ->minValue(0),
+                        ->label('صفحه یا صفحات کتاب')
+                        ->placeholder('مثلاً: صفحه ۲، صفحات ۲ و ۳، یا صفحات ۳ تا ۵')
+                        ->helperText('شماره یا بازهٔ صفحات را دقیقاً به همان شکلی که باید به دانش‌آموز نمایش داده شود بنویسید.')
+                        ->maxLength(100),
 
                     Forms\Components\Toggle::make('is_free')
                         ->label('رایگان')
@@ -785,7 +815,8 @@ class ContentItemResource extends Resource
                         ->default(fn() => auth()->id()),
 
                     Forms\Components\Hidden::make('status')
-                        ->default('pending'),
+                        ->default('pending')
+                        ->dehydrated(fn() => $isTeacher),
 
                     Forms\Components\Hidden::make('sort_order')
                         ->default(1),
@@ -822,6 +853,14 @@ class ContentItemResource extends Resource
                         ->label('فایل ویدئو')
                         ->disk('public')
                         ->directory('videos')
+                        // FilePond's integrated video preview adds a large
+                        // black preview area and does not provide the same
+                        // controls as the website player. Keep this field as
+                        // a compact upload/remove control; the real player is
+                        // rendered immediately below it.
+                        ->previewable(false)
+                        ->panelLayout('compact')
+                        ->live()
                         ->acceptedFileTypes([
                             'video/mp4',
                             'video/x-msvideo',
@@ -842,6 +881,20 @@ class ContentItemResource extends Resource
                                 ->whereKey($get('content_type_id'))
                                 ->value('slug') === 'teaching';
                         }),
+
+                    Forms\Components\Placeholder::make('video_preview')
+                        ->label('پیش‌نمایش کلیپ')
+                        ->content(fn (Get $get) => view(
+                            'filament.forms.video-upload-preview',
+                            ['file' => $get('video.video_file')]
+                        ))
+                        ->visible(function (Get $get) {
+                            return ContentType::query()
+                                ->whereKey($get('content_type_id'))
+                                ->value('slug') === 'teaching'
+                                && filled($get('video.video_file'));
+                        })
+                        ->columnSpanFull(),
 
                     /*
                     |--------------------------------------------------------------------------
@@ -947,6 +1000,12 @@ class ContentItemResource extends Resource
                             'application/pdf',
                         ])
 
+                        ->required(function (Get $get) {
+                            return ContentType::query()
+                                ->whereKey($get('content_type_id'))
+                                ->value('slug') === 'sample_questions';
+                        })
+
                         ->downloadable()
 
                         ->openable()
@@ -983,6 +1042,8 @@ class ContentItemResource extends Resource
                             'published' => 'منتشر شده',
 
                         ])
+
+                        ->default('pending')
 
                         ->required(),
 
@@ -1254,7 +1315,9 @@ class ContentItemResource extends Resource
 
     public static function table(Table $table): Table
     {
-        $isTeacher = auth()->user()?->hasRole('Teacher');
+        $user = auth()->user();
+        $isManager = $user?->hasAnyRole(['SuperAdmin', 'Admin']) ?? false;
+        $isTeacher = ($user?->hasRole('Teacher') ?? false) && ! $isManager;
 
         return $table
 
@@ -1533,10 +1596,11 @@ class ContentItemResource extends Resource
                 Tables\Filters\Filter::make('page_number')
                     ->label('شماره صفحه')
                     ->form([
-                        Forms\Components\TextInput::make('page_number')
-                            ->label('شماره صفحه')
-                            ->numeric()
-                            ->minValue(0),
+                    Forms\Components\TextInput::make('page_number')
+                        ->label('صفحه یا صفحات کتاب')
+                        ->placeholder('مثلاً: صفحه ۲، صفحات ۲ و ۳، یا صفحات ۳ تا ۵')
+                        ->helperText('شماره یا بازهٔ صفحات را دقیقاً به همان شکلی که باید به دانش‌آموز نمایش داده شود بنویسید.')
+                        ->maxLength(100),
                     ])
                     ->query(fn($query, array $data) => blank($data['page_number'] ?? null)
                         ? $query
@@ -1580,7 +1644,15 @@ class ContentItemResource extends Resource
 
                 Tables\Actions\EditAction::make(),
 
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->label('حذف')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('حذف محتوای آموزشی')
+                    ->modalDescription('آیا مطمئن هستید؟ این محتوا پس از تأیید از فهرست حذف می‌شود.')
+                    ->modalSubmitActionLabel('بله، حذف شود')
+                    ->visible(fn ($record) => ! $record->trashed()),
 
             ])
 

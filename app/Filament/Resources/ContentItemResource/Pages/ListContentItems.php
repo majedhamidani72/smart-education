@@ -79,7 +79,7 @@ class ListContentItems extends ListRecords
 
         $this->selectedAppId = $book->appGradeSubject?->app_id;
         $this->selectedGradeId = $book->appGradeSubject?->grade_id;
-        $this->selectedCreatorId = auth()->id();
+        $this->selectedCreatorId = (int) request()->query('creator_id', auth()->id());
         $this->selectedBookId = $book->id;
 
         $contentTypeId = request()->query('content_type_id');
@@ -94,6 +94,20 @@ class ListContentItems extends ListRecords
 
             $this->viewLevel = 'contentTypes';
         }
+    }
+
+    public function deleteItem(int $itemId): void
+    {
+        $item = ContentItemResource::getEloquentQuery()->findOrFail($itemId);
+
+        abort_unless(auth()->user()?->can('delete', $item), 403);
+
+        $item->delete();
+
+        Notification::make()
+            ->title('محتوا با موفقیت حذف شد.')
+            ->success()
+            ->send();
     }
 
     public function toggleGroup(string $key): void
@@ -122,7 +136,7 @@ class ListContentItems extends ListRecords
      */
     protected function baseQuery()
     {
-        $query = ContentItemResource::getEloquentQuery();
+        $query = ContentItemResource::getEloquentQuery()->whereNull('content_items.deleted_at');
 
         if ($this->isReviewer()) {
             $query->where('status', '!=', 'draft');

@@ -26,6 +26,7 @@ class PaymentController extends Controller
      * ایجاد تراکنش و دریافت لینک پرداخت
      */
     public function requestPayment(
+        Request $request,
         Purchase $purchase
     )
     {
@@ -34,9 +35,14 @@ class PaymentController extends Controller
             $purchase
         );
 
+        $validated = $request->validate([
+            'return_to' => ['required', 'string', 'max:2048', 'regex:/^\/(?!\/)/'],
+        ]);
+
         $transaction = $this->paymentService
             ->createTransaction(
-                $purchase
+                $purchase,
+                $validated['return_to']
             );
 
         $result = $this->paymentService
@@ -44,12 +50,47 @@ class PaymentController extends Controller
                 $transaction
             );
 
+        if (! ($result['success'] ?? false) || empty($result['payment_url'])) {
+            return ApiResponse::error(
+                $result['message'] ?? 'درگاه زیبال لینک پرداخت معتبری برنگرداند.',
+                $result['gateway_response'] ?? null,
+                502
+            );
+        }
+
         return ApiResponse::success(
 
             $result,
 
             'لینک پرداخت با موفقیت ایجاد شد.'
 
+        );
+    }
+
+    public function mode()
+    {
+        return ApiResponse::success([
+            'mode' => config('services.zibal.merchant') === 'zibal' ? 'test' : 'real',
+        ]);
+    }
+
+    public function completeTest(Purchase $purchase)
+    {
+        $this->authorize('view', $purchase);
+
+        return ApiResponse::success(
+            $this->paymentService->completeTestPayment($purchase),
+            'پرداخت آزمایشی دستی با موفقیت ثبت شد.'
+        );
+    }
+
+    public function failTest(Purchase $purchase)
+    {
+        $this->authorize('view', $purchase);
+
+        return ApiResponse::success(
+            $this->paymentService->failTestPayment($purchase),
+            'پرداخت آزمایشی ناموفق ثبت شد.'
         );
     }
 

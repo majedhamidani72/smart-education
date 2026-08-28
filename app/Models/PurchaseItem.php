@@ -144,6 +144,11 @@ class PurchaseItem extends Model
         return $this->item_type === 'quiz';
     }
 
+    public function isPowerpoint(): bool
+    {
+        return $this->item_type === 'powerpoint';
+    }
+
     /**
      * مبلغ کل
      */

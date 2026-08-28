@@ -3,12 +3,15 @@
 namespace App\Filament\Resources\QuestionResource\Pages;
 
 use App\Filament\Resources\QuestionResource;
+use App\Filament\Resources\QuestionResource\Pages\Concerns\HandlesMissingQuestionUploads;
 use App\Models\ContentItem;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
 class EditQuestion extends EditRecord
 {
+    use HandlesMissingQuestionUploads;
+
     protected static string $resource = QuestionResource::class;
 
     /**
@@ -48,17 +51,7 @@ class EditQuestion extends EditRecord
                 ->label('بازگشت')
                 ->icon('heroicon-o-arrow-right')
                 ->color('gray')
-                ->url(static::getResource()::getUrl('index', array_filter([
-                    'book_id' => request()->query('book_id', $this->record->book_id),
-                    'chapter_id' => request()->query('chapter_id', $this->record->chapter_id),
-                    'section_id' => request()->query('section_id', $this->record->section_id),
-                ]))),
-
-            Actions\DeleteAction::make(),
-
-            Actions\RestoreAction::make(),
-
-            Actions\ForceDeleteAction::make(),
+                ->url(fn (): string => $this->previousPageUrl()),
 
         ];
     }
@@ -157,6 +150,12 @@ class EditQuestion extends EditRecord
         return parent::getFormActions();
     }
 
+    protected function getCancelFormAction(): Actions\Action
+    {
+        return parent::getCancelFormAction()
+            ->url(fn (): string => $this->previousPageUrl());
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $isReviewer = auth()->user()?->hasRole('Admin')
@@ -193,13 +192,18 @@ class EditQuestion extends EditRecord
 
     protected function getRedirectUrl(): string
     {
-        // بعد از ذخیره، دقیقاً به همان فصل/بخشی برمی‌گردد که سوال
-        // در آن بود — نه صفحه‌ی اول بانک سوالات.
+        return $this->previousPageUrl();
+    }
+
+    protected function previousPageUrl(): string
+    {
         return static::getResource()::getUrl('index', array_filter([
             'book_id' => request()->query('book_id', $this->record->book_id),
             'chapter_id' => request()->query('chapter_id', $this->record->chapter_id),
             'section_id' => request()->query('section_id', $this->record->section_id),
-        ]));
+            'creator_id' => request()->query('creator_id', $this->record->created_by),
+            'exam_level' => request()->query('exam_level'),
+        ], fn ($value) => $value !== null && $value !== ''));
     }
 
     protected function getSavedNotificationTitle(): ?string

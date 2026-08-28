@@ -64,8 +64,8 @@ class StoreContentItemRequest extends FormRequest
 
             'page_number' => [
                 'nullable',
-                'integer',
-                'min:1',
+                'string',
+                'max:100',
             ],
 
             'thumbnail' => [

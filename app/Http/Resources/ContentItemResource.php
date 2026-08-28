@@ -30,6 +30,8 @@ class ContentItemResource extends JsonResource
 
             'id' => $this->id,
 
+            'chapter_id' => $this->chapter_id,
+
             'section_id' => $this->section_id,
 
             'content_type_id' => $this->content_type_id,
@@ -78,7 +80,12 @@ class ContentItemResource extends JsonResource
                 : null,
 
             'sample_questions' => $hasAccess
-                ? $this->whenLoaded('sampleQuestions')
+                ? $this->whenLoaded(
+                    'sampleQuestions',
+                    fn () => SampleQuestionResource::collection(
+                        $this->sampleQuestions->where('processing_status', 'approved')
+                    )
+                )
                 : null,
 
         ];

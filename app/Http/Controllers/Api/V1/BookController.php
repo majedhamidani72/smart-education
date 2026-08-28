@@ -2,13 +2,21 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Models\Book;
 use App\Helpers\ApiResponse;
-use App\Services\BookService;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\BookResource;
 use App\Http\Requests\Book\StoreBookRequest;
 use App\Http\Requests\Book\UpdateBookRequest;
+use App\Http\Resources\BookResource;
+use App\Http\Resources\TeacherResource;
+use App\Models\Book;
+use App\Models\Chapter;
+use App\Models\Quiz;
+use App\Models\Section;
+use App\Services\QuizTemplateService;
+use App\Models\TeacherAssignment;
+use App\Models\User;
+use App\Services\BookService;
+use Illuminate\Http\Request;
 
 class BookController extends Controller
 {
@@ -30,9 +38,8 @@ class BookController extends Controller
      * لیست کتاب‌ها
      */
     public function index(
-        \Illuminate\Http\Request $request
-    )
-    {
+        Request $request
+    ) {
         // مرور کتاب‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         // فیلتر اختیاری بر اساس پایه — برای مسیر «پایه → کتاب»ی
@@ -42,7 +49,7 @@ class BookController extends Controller
 
             $books = Book::query()
                 ->where('is_active', true)
-                ->whereHas('appGradeSubject', fn($q) => $q->where('grade_id', $request->query('grade_id')))
+                ->whereHas('appGradeSubject', fn ($q) => $q->where('grade_id', $request->query('grade_id')))
                 ->orderBy('sort_order')
                 ->paginate();
 
@@ -62,8 +69,7 @@ class BookController extends Controller
      */
     public function show(
         Book $book
-    )
-    {
+    ) {
         // مرور کتاب‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
         return ApiResponse::success(
@@ -77,8 +83,7 @@ class BookController extends Controller
      */
     public function store(
         StoreBookRequest $request
-    )
-    {
+    ) {
         $this->authorize(
             'create',
             Book::class
@@ -101,8 +106,7 @@ class BookController extends Controller
     public function update(
         UpdateBookRequest $request,
         Book $book
-    )
-    {
+    ) {
         $this->authorize(
             'update',
             $book
@@ -124,8 +128,7 @@ class BookController extends Controller
      */
     public function destroy(
         Book $book
-    )
-    {
+    ) {
         $this->authorize(
             'delete',
             $book
@@ -149,25 +152,24 @@ class BookController extends Controller
      */
     public function teachers(
         Book $book
-    )
-    {
+    ) {
         // برخلاف متدهای مدیریتی (index/show/store/...)، این مسیر
         // مخصوص خودِ دانش‌آموز است — او باید بتواند قبل از هرگونه
         // خرید، آزادانه معلم‌های یک کتاب را مرور کند. اینجا از
         // مجوز مدیریتی books.view استفاده نمی‌شود (که مخصوص پنل
         // ادمین/معلم است، نه کاربر عادی برنامه).
-        $teacherIds = \App\Models\TeacherAssignment::query()
+        $teacherIds = TeacherAssignment::query()
             ->where('book_id', $book->id)
             ->where('is_active', true)
             ->pluck('teacher_id');
 
-        $teachers = \App\Models\User::query()
+        $teachers = User::query()
             ->whereIn('id', $teacherIds)
             ->orderBy('name')
             ->get();
 
         return ApiResponse::success(
-            \App\Http\Resources\TeacherResource::collection($teachers),
+            TeacherResource::collection($teachers),
             'Teachers retrieved successfully.'
         );
     }
@@ -181,9 +183,11 @@ class BookController extends Controller
      */
     public function quizSummary(
         Book $book,
-        \Illuminate\Http\Request $request
-    )
-    {
+        Request $request
+    ) {
+        // هر بار ساختار کتاب تغییر کند (درس/بخش/فصل جدید)، نمونه‌های
+        // اجرایی الگوها بدون دخالت مدیر ساخته و همگام می‌شوند.
+        app(QuizTemplateService::class)->syncBook($book);
         // چون این مسیر بدون ورود هم قابل مرور است، اگر کاربر
         // وارد شده باشد (توکن معتبر فرستاده)، اینجا تشخیص داده
         // می‌شود — تا has_access دقیق برای همان کاربر محاسبه شود.
@@ -191,41 +195,41 @@ class BookController extends Controller
         // همیشه خالی است؛ باید مستقیم از گارد sanctum خوانده شود.
         $user = auth('sanctum')->user();
 
-        $hasAccess = fn($quiz) => $quiz->is_free
+        $hasAccess = fn ($quiz) => $quiz->is_free
             || ($user && $user->hasAccessToQuiz($quiz));
 
         $chapterIds = $book->chapters()->pluck('id');
 
-        $sectionIds = \App\Models\Section::whereIn('chapter_id', $chapterIds)->pluck('id');
+        $sectionIds = Section::whereIn('chapter_id', $chapterIds)->pluck('id');
 
-        $baseQuery = fn() => \App\Models\Quiz::query()
+        $baseQuery = fn () => Quiz::query()
+            ->where('is_template', false)
             ->where('status', 'active');
 
         $sectionQuizzes = $baseQuery()
-            ->where('quizable_type', \App\Models\Section::class)
+            ->where('quizable_type', Section::class)
             ->whereIn('quizable_id', $sectionIds)
-            ->withCount('questions')
             ->with('quizable.chapter')
             ->get();
 
         $chapterQuizzes = $baseQuery()
-            ->where('quizable_type', \App\Models\Chapter::class)
+            ->where('quizable_type', Chapter::class)
             ->whereIn('quizable_id', $chapterIds)
-            ->withCount('questions')
             ->with('quizable')
             ->get();
 
         $bookQuizzes = $baseQuery()
             ->where('quizable_type', Book::class)
             ->where('quizable_id', $book->id)
-            ->withCount('questions')
             ->get();
 
         return ApiResponse::success([
 
-            'section' => $sectionQuizzes->map(fn($q) => [
+            'section' => $sectionQuizzes->map(fn ($q) => [
                 'id' => $q->id,
                 'title' => $q->title,
+                'section_id' => $q->quizable_id,
+                'chapter_id' => $q->quizable?->chapter_id,
                 'section_title' => $q->quizable?->title,
                 'chapter_title' => $q->quizable?->chapter?->title,
                 'question_count' => $q->questions_count,
@@ -233,16 +237,17 @@ class BookController extends Controller
                 'has_access' => $hasAccess($q),
             ]),
 
-            'chapter' => $chapterQuizzes->map(fn($q) => [
+            'chapter' => $chapterQuizzes->map(fn ($q) => [
                 'id' => $q->id,
                 'title' => $q->title,
+                'chapter_id' => $q->quizable_id,
                 'chapter_title' => $q->quizable?->title,
                 'question_count' => $q->questions_count,
                 'is_free' => $q->is_free,
                 'has_access' => $hasAccess($q),
             ]),
 
-            'book' => $bookQuizzes->map(fn($q) => [
+            'book' => $bookQuizzes->map(fn ($q) => [
                 'id' => $q->id,
                 'title' => $q->title,
                 'question_count' => $q->questions_count,

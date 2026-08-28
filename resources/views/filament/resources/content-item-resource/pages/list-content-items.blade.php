@@ -163,6 +163,7 @@
                 <a href="{{ \App\Filament\Resources\ContentItemResource::getUrl('create', [
                         'book_id' => $selectedBookId,
                         'content_type_id' => $this->getSelectedContentTypeId(),
+                        'creator_id' => $selectedCreatorId,
                     ]) }}"
                    style="background:rgb(20,184,166);color:#fff;font-weight:600;font-size:.85rem;padding:.6rem 1.2rem;border-radius:.7rem;text-decoration:none">
                     + ایجاد {{ $typeLabel }} برای این کتاب
@@ -242,6 +243,7 @@
                                         'chapter_id' => $subGroup['chapter_id'],
                                         'section_id' => $subGroup['section_id'],
                                         'content_type_id' => $this->getSelectedContentTypeId(),
+                                        'creator_id' => $selectedCreatorId,
                                     ]) }}"
                                    style="background:rgb(20,184,166);color:#fff;font-weight:600;font-size:.8rem;padding:.4rem .9rem;border-radius:.6rem;text-decoration:none;white-space:nowrap">
                                     ادامه‌ی ایجاد {{ $typeLabel }} برای همین قسمت ←
@@ -310,9 +312,20 @@
                                                                     'chapter_id' => $subGroup['chapter_id'],
                                                                     'section_id' => $subGroup['section_id'],
                                                                     'content_type_id' => $this->getSelectedContentTypeId(),
+                                                                    'creator_id' => $selectedCreatorId,
                                                                 ]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
                                                                 {{ (! $isReviewer && $item->status === 'pending') ? 'نمایش' : 'ویرایش' }}
                                                             </a>
+
+                                                            @can('delete', $item)
+                                                                <button
+                                                                    type="button"
+                                                                    wire:click="deleteItem({{ $item->id }})"
+                                                                    wire:confirm="آیا مطمئن هستید؟ این محتوا پس از تأیید حذف می‌شود."
+                                                                    style="color:rgb(220,38,38);font-weight:600;background:none;border:none;padding:0;cursor:pointer">
+                                                                    حذف
+                                                                </button>
+                                                            @endcan
 
                                                             @if ($isReviewer && $item->status === 'pending')
                                                                 <button

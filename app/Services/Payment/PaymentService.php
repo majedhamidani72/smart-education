@@ -17,6 +17,7 @@ use App\Repositories\Interfaces\PaymentTransactionRepositoryInterface;
 use App\Repositories\Interfaces\SubscriptionRepositoryInterface;
 use App\Repositories\Interfaces\TeacherEarningRepositoryInterface;
 use App\Services\SettingService;
+use Illuminate\Support\Facades\DB;
 
 class PaymentService
 {
@@ -59,7 +60,8 @@ class PaymentService
      * ایجاد تراکنش جدید
      */
     public function createTransaction(
-        Purchase $purchase
+        Purchase $purchase,
+        ?string $returnTo = null
     ): PaymentTransaction {
         return $this->transactionRepository->create([
 
@@ -77,6 +79,8 @@ class PaymentService
             'currency' => 'IRT',
 
             'status' => 'pending',
+
+            'return_to' => $returnTo,
 
         ]);
     }
@@ -111,6 +115,61 @@ class PaymentService
 
             ];
         }
+    }
+
+    /**
+     * تکمیل دستی پرداخت فقط برای محیط توسعه و مرچنت آزمایشی زیبال.
+     * این مسیر هیچ تماس بانکی و هیچ درآمد واقعی برای معلم ثبت نمی‌کند.
+     */
+    public function completeTestPayment(Purchase $purchase): array
+    {
+        abort_unless(
+            app()->environment('local') && config('services.zibal.merchant') === 'zibal',
+            404
+        );
+
+        return DB::transaction(function () use ($purchase): array {
+            if ($purchase->status === 'paid') {
+                return ['success' => true, 'purchase_id' => $purchase->id];
+            }
+
+            $transaction = $this->createTransaction($purchase);
+            $reference = 'TEST-'.now()->format('YmdHis').'-'.$transaction->id;
+
+            $this->transactionRepository->markAsPaid($transaction, [
+                'reference_id' => $reference,
+                'transaction_id' => $reference,
+                'message' => 'Manual local Zibal test payment',
+                'gateway_response' => ['mode' => 'local_manual_test'],
+            ]);
+
+            $purchase->update(['status' => 'paid', 'paid_at' => now()]);
+            $this->grantAccessFromPurchase($purchase->fresh('items.plan'));
+
+            return [
+                'success' => true,
+                'purchase_id' => $purchase->id,
+                'reference_id' => $reference,
+            ];
+        });
+    }
+
+    public function failTestPayment(Purchase $purchase): array
+    {
+        abort_unless(
+            app()->environment('local') && config('services.zibal.merchant') === 'zibal',
+            404
+        );
+
+        if ($purchase->status === 'paid') {
+            return ['success' => false, 'message' => 'این خرید قبلاً با موفقیت پرداخت شده است.'];
+        }
+
+        $transaction = $this->createTransaction($purchase);
+        $this->transactionRepository->markAsFailed($transaction, 'Manual local Zibal test failure');
+        $purchase->update(['status' => 'cancelled']);
+
+        return ['success' => false, 'purchase_id' => $purchase->id];
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ContentItemResource\Pages;
 
 use App\Filament\Resources\ContentItemResource;
+use App\Filament\Resources\ContentItemResource\Pages\Concerns\HandlesMissingTemporaryUploads;
 use App\Models\ContentItem;
 use App\Models\ContentType;
 use App\Models\PdfFile;
@@ -15,6 +16,8 @@ use Illuminate\Support\Str;
 
 class CreateContentItem extends CreateRecord
 {
+    use HandlesMissingTemporaryUploads;
+
     protected static string $resource = ContentItemResource::class;
 
     // یک دکمه‌ی «بازگشت» بالای صفحه (کنار عنوان) — چون فرم طولانی
@@ -27,12 +30,7 @@ class CreateContentItem extends CreateRecord
                 ->label('بازگشت')
                 ->icon('heroicon-o-arrow-right')
                 ->color('gray')
-                ->url(static::getResource()::getUrl('index', array_filter([
-                    'book_id' => request()->query('book_id'),
-                    'chapter_id' => request()->query('chapter_id'),
-                    'section_id' => request()->query('section_id'),
-                    'content_type_id' => request()->query('content_type_id'),
-                ]))),
+                ->url(fn (): string => $this->previousPageUrl()),
 
         ];
     }
@@ -93,14 +91,28 @@ class CreateContentItem extends CreateRecord
     {
         $data['created_by'] = auth()->id();
 
-        // معلم نمی‌تواند وضعیت را خودش تعیین کند — همیشه با
-        // «پیش‌نویس» شروع می‌شود، تا خودش با دکمه‌ی «ارسال برای
-        // بررسی» (تکی یا دسته‌جمعی) آن را به دست ادمین/سوپرادمین
-        // برساند — دقیقاً مثل بانک سوالات. ادمین/سوپرادمین می‌توانند
-        // مستقیم محتوای «در انتظار بررسی» بسازند.
+        // Livewire may dehydrate the hidden field as null even though the
+        // form defines a default. Keep the database value valid server-side.
+        $data['sort_order'] ??= 1;
+
+        // معلم همیشه مستقیماً وارد صف بررسی می‌شود. ادمین و
+        // سوپرادمین اختیار دارند وضعیت انتخاب‌شده‌ی فرم (از جمله
+        // «تأیید شده») را همان لحظه ثبت کنند.
         $isReviewer = auth()->user()?->hasRole('SuperAdmin') || auth()->user()?->hasRole('Admin');
 
-        $data['status'] = $isReviewer ? 'pending' : 'draft';
+        $allowedReviewerStatuses = ['pending', 'approved', 'rejected', 'published'];
+
+        $data['status'] = $isReviewer && in_array($data['status'] ?? null, $allowedReviewerStatuses, true)
+            ? $data['status']
+            : 'pending';
+
+        if ($isReviewer && in_array($data['status'], ['approved', 'published'], true)) {
+            $data['reviewed_by'] = auth()->id();
+            $data['reviewed_at'] = now();
+            $data['rejection_reason'] = null;
+        } elseif (! $isReviewer) {
+            unset($data['reviewed_by'], $data['reviewed_at'], $data['rejection_reason']);
+        }
 
         // عنوان نهایی محتوا از روی همان فیلد اختصاصی نوع محتوا
         // ساخته می‌شود (دیگر فیلد «عنوان» جداگانه‌ای در فرم
@@ -134,6 +146,9 @@ class CreateContentItem extends CreateRecord
 
         while (
             ContentItem::query()
+                // The database unique index also includes soft-deleted rows.
+                // Include them here so a deleted item cannot cause a 500.
+                ->withTrashed()
                 ->where('section_id', $sectionId)
                 ->where('slug', $slug)
                 ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
@@ -381,11 +396,18 @@ class CreateContentItem extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        // همیشه به لیست محتوای آموزشی برمی‌گردد — چه سوپرادمین/
-        // ادمین باشد چه معلم. قبلاً تلاش می‌شد به آدرس دقیق صفحه‌ی
-        // قبلی (previousUrl) برگردد که همیشه قابل اعتماد نبود؛
-        // ساده و تضمین‌شده‌تر این است که همیشه همین لیست باز شود.
-        return static::getResource()::getUrl('index');
+        return $this->previousPageUrl();
+    }
+
+    protected function previousPageUrl(): string
+    {
+        return static::getResource()::getUrl('index', array_filter([
+            'book_id' => request()->query('book_id'),
+            'chapter_id' => request()->query('chapter_id'),
+            'section_id' => request()->query('section_id'),
+            'content_type_id' => request()->query('content_type_id'),
+            'creator_id' => request()->query('creator_id', auth()->id()),
+        ], fn($value) => $value !== null && $value !== ''));
     }
 
     protected function getCreatedNotificationTitle(): ?string

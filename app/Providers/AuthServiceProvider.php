@@ -14,6 +14,7 @@ use App\Models\PurchaseItem;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\Quiz;
+use App\Models\QuizAttempt;
 use App\Models\SampleQuestion;
 use App\Models\Section;
 use App\Models\StepByStepPage;
@@ -39,6 +40,7 @@ use App\Policies\PurchasePolicy;
 use App\Policies\QuestionOptionPolicy;
 use App\Policies\QuestionPolicy;
 use App\Policies\QuizPolicy;
+use App\Policies\QuizAttemptPolicy;
 use App\Policies\SampleQuestionPolicy;
 use App\Policies\SectionPolicy;
 use App\Policies\StepByStepPagePolicy;
@@ -78,6 +80,8 @@ class AuthServiceProvider extends ServiceProvider
         SampleQuestion::class => SampleQuestionPolicy::class,
 
         Quiz::class => QuizPolicy::class,
+
+        QuizAttempt::class => QuizAttemptPolicy::class,
 
         Question::class => QuestionPolicy::class,
 

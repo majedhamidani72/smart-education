@@ -313,9 +313,21 @@
                                                         'book_id' => $selectedBookId,
                                                         'chapter_id' => $subGroup['chapter_id'],
                                                         'section_id' => $subGroup['section_id'],
+                                                        'creator_id' => $selectedCreatorId,
+                                                        'exam_level' => $selectedExamLevel,
                                                     ]) }}" style="color:rgb(99,102,241);font-weight:600;text-decoration:none">
                                                     {{ (! $isReviewer && $q->status === 'pending') ? 'نمایش' : 'ویرایش' }}
                                                 </a>
+
+                                                @can('delete', $q)
+                                                    <button
+                                                        type="button"
+                                                        wire:click="deleteQuestion({{ $q->id }})"
+                                                        wire:confirm="آیا مطمئن هستید؟ این سؤال پس از تأیید حذف می‌شود."
+                                                        style="color:rgb(220,38,38);font-weight:600;background:none;border:none;padding:0;cursor:pointer">
+                                                        حذف
+                                                    </button>
+                                                @endcan
 
                                                 @if ($isReviewer && $q->status === 'pending')
                                                     <button

@@ -17,7 +17,7 @@ class QuestionOptionResource extends JsonResource
             'option_text' => $this->option_text,
 
             'image_path' => $this->image_path
-                ? Storage::url($this->image_path)
+                ? Storage::disk('public')->url($this->image_path)
                 : null,
 
             /*

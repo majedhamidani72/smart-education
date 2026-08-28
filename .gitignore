@@ -16,6 +16,12 @@
 /public/build
 /public/hot
 /public/storage
+/public/advertisements/
+/public/question-options/
+/public/questions/
+/public/sample-questions/
+/public/step-by-step/
+/public/videos/*
 /storage/*.key
 /storage/pail
 /vendor
@@ -25,3 +31,5 @@ Thumbs.db
 
 # فایل‌های پچ موقتی (اعمال می‌شن و نباید توی گیت بمونن)
 *.patch
+/an tinker
+/verify-pdf-links.php

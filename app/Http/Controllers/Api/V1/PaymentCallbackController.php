@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use Illuminate\Http\Request;
-use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Services\Payment\PaymentService;
 use App\Repositories\Interfaces\PaymentTransactionRepositoryInterface;
@@ -40,15 +39,7 @@ class PaymentCallbackController extends Controller
 
         if (!$authority) {
 
-            return ApiResponse::error(
-
-                'شناسه تراکنش ارسال نشده است.',
-
-                null,
-
-                422
-
-            );
+            return redirect()->to(config('app.frontend_url').'?payment=failed');
 
         }
 
@@ -59,11 +50,7 @@ class PaymentCallbackController extends Controller
 
         if (!$transaction) {
 
-            return ApiResponse::notFound(
-
-                'تراکنش یافت نشد.'
-
-            );
+            return redirect()->to(config('app.frontend_url').'?payment=failed');
 
         }
 
@@ -76,12 +63,16 @@ class PaymentCallbackController extends Controller
 
             );
 
-        return ApiResponse::success(
+        $returnTo = $transaction->return_to;
+        if (! is_string($returnTo) || ! preg_match('/^\/(?!\/)/', $returnTo)) {
+            $returnTo = '/';
+        }
 
-            $result,
+        $separator = str_contains($returnTo, '?') ? '&' : '?';
+        $status = ($result['success'] ?? false) ? 'success' : 'failed';
 
-            'پرداخت با موفقیت بررسی شد.'
-
+        return redirect()->to(
+            rtrim(config('app.frontend_url'), '/').$returnTo.$separator.'payment='.$status
         );
     }
 }

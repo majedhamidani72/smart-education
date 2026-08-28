@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\SectionResource;
 use App\Http\Requests\Section\StoreSectionRequest;
 use App\Http\Requests\Section\UpdateSectionRequest;
+use Illuminate\Http\Request;
 
 class SectionController extends Controller
 {
@@ -26,11 +27,26 @@ class SectionController extends Controller
     /**
      * لیست بخش‌ها
      */
-    public function index()
+    public function index(Request $request)
     {
         // مرور بخش‌ها آزاد است — نیازی به مجوز مدیریتی نیست.
 
-        $sections = $this->sectionService->paginate();
+        // در خروجی عمومی فقط بخشی نمایش داده می‌شود که فعال باشد و
+        // حداقل یک محتوای تأییدشده داشته باشد. ایجاد ساختار فصل/بخش
+        // نباید پیش از تأیید محتوا باعث نمایش آن در سایت شود.
+        $sections = Section::query()
+            ->where('is_active', true)
+            ->whereHas(
+                'contentItems',
+                fn ($query) => $query->where('status', 'approved')
+            )
+            ->when(
+                $request->filled('chapter_id'),
+                fn ($query) => $query->where('chapter_id', $request->integer('chapter_id'))
+            )
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->paginate();
 
         return ApiResponse::success(
 

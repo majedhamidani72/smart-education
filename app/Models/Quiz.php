@@ -10,6 +10,21 @@ class Quiz extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Quiz $quiz) {
+            if ($quiz->is_template) {
+                $quiz->generatedQuizzes()->get()->each->delete();
+            }
+        });
+
+        static::restored(function (Quiz $quiz) {
+            if ($quiz->is_template) {
+                app(\App\Services\QuizTemplateService::class)->sync($quiz);
+            }
+        });
+    }
+
 
     protected $fillable = [
 
@@ -18,6 +33,14 @@ class Quiz extends Model
         'quizable_id',
 
         'term_scope',
+
+        'is_template',
+
+        'template_id',
+
+        'template_book_id',
+
+        'template_scope',
 
         'created_by',
 
@@ -68,6 +91,8 @@ class Quiz extends Model
             'show_correct_answers' => 'boolean',
 
             'is_free' => 'boolean',
+
+            'is_template' => 'boolean',
 
             'published_at' => 'datetime',
 
@@ -148,6 +173,21 @@ class Quiz extends Model
         return $this->hasMany(
             QuizAttempt::class
         );
+    }
+
+    public function template()
+    {
+        return $this->belongsTo(self::class, 'template_id');
+    }
+
+    public function generatedQuizzes()
+    {
+        return $this->hasMany(self::class, 'template_id');
+    }
+
+    public function templateBook()
+    {
+        return $this->belongsTo(Book::class, 'template_book_id');
     }
 
 

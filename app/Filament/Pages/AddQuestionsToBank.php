@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Resources\QuestionResource\Pages\Concerns\HandlesMissingQuestionUploads;
 use App\Models\App;
 use App\Models\AppGradeSubject;
 use App\Models\Book;
@@ -33,14 +34,14 @@ use Illuminate\Support\Facades\DB;
  *      نخورده می‌ماند.
  *   ۲) «متن سوال» — بعد از هر ذخیره خودکار خالی می‌شود تا سوال
  *      بعدی نوشته شود.
- * سوالات با وضعیت «پیش‌نویس» ذخیره می‌شوند و تا وقتی خودِ معلم
- * دکمه‌ی «ارسال برای بررسی» را نزند (چه یک سوال، چه صد سوال)،
- * پیش ادمین نمی‌روند — این ارسال از لیست اصلی «بانک سوالات»
- * (با همان قابلیت گروه‌بندی و اکشن دسته‌جمعی) انجام می‌شود.
+ * سؤال معلم مستقیماً با وضعیت «در انتظار بررسی» ذخیره می‌شود.
+ * ادمین و سوپرادمین نیز می‌توانند هنگام ایجاد، سؤال را همان لحظه
+ * تأیید کنند.
  */
 class AddQuestionsToBank extends Page implements HasForms
 {
     use InteractsWithForms;
+    use HandlesMissingQuestionUploads;
 
     protected static ?string $navigationIcon = 'heroicon-o-plus-circle';
 
@@ -308,7 +309,9 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->required(),
 
                 Forms\Components\Select::make('chapter_id')
-                    ->label('فصل (اختیاری — اگر سوال برای کل کتاب است، خالی بگذار)')
+                    ->label(fn(Get $get) => str_contains((string) Book::query()->whereKey($get('book_id'))->value('title'), 'ریاضی')
+                        ? 'فصل (اختیاری — اگر سؤال برای کل کتاب است، خالی بگذار)'
+                        : 'نوبت / بخش کلی (اختیاری)')
                     ->options(function (Get $get) {
                         if (! $get('book_id')) return [];
                         return Chapter::where('book_id', $get('book_id'))->where('is_active', true)
@@ -318,7 +321,9 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->afterStateUpdated(fn(Set $set) => $set('section_id', null) ?: $set('content_item_id', null)),
 
                 Forms\Components\Select::make('section_id')
-                    ->label('بخش/درس (اختیاری)')
+                    ->label(fn(Get $get) => str_contains((string) Book::query()->whereKey($get('book_id'))->value('title'), 'ریاضی')
+                        ? 'بخش (اختیاری)'
+                        : 'درس (اختیاری)')
                     ->options(function (Get $get) {
                         if (! $get('chapter_id')) return [];
                         return Section::where('chapter_id', $get('chapter_id'))->where('is_active', true)
@@ -362,14 +367,21 @@ class AddQuestionsToBank extends Page implements HasForms
                 Forms\Components\Repeater::make('options')
                     ->label('گزینه‌ها')
                     ->schema([
-                        Forms\Components\TextInput::make('option_text')->label('متن گزینه')->required()->columnSpan(2),
+                        Forms\Components\TextInput::make('option_text')
+                            ->label('متن گزینه')
+                            ->live()
+                            ->required(fn(Get $get) => blank($get('image_path')))
+                            ->helperText('برای هر گزینه، متن یا تصویر کافی است.')
+                            ->columnSpan(2),
 
                         Forms\Components\FileUpload::make('image_path')
                             ->label('تصویر گزینه (اختیاری)')
                             ->disk('public')
                             ->directory('question-options')
                             ->image()
-                            ->openable(),
+                            ->openable()
+                            ->live()
+                            ->required(fn(Get $get) => blank($get('option_text'))),
 
                         Forms\Components\Toggle::make('is_correct')
                             ->label('پاسخ صحیح')
@@ -419,6 +431,16 @@ class AddQuestionsToBank extends Page implements HasForms
                     ->rows(2)
                     ->columnSpanFull(),
 
+                Forms\Components\Select::make('status')
+                    ->label('وضعیت')
+                    ->options([
+                        'pending' => 'در انتظار بررسی',
+                        'approved' => 'تأیید شده',
+                    ])
+                    ->default('pending')
+                    ->required()
+                    ->visible(fn() => auth()->user()?->hasRole('Admin') || auth()->user()?->hasRole('SuperAdmin')),
+
             ])
             ->columns(2)
             ->statePath('question');
@@ -429,6 +451,12 @@ class AddQuestionsToBank extends Page implements HasForms
      */
     protected function persistQuestion(): bool
     {
+        if ($this->discardMissingQuestionUploads($this->question)) {
+            $this->notifyAboutMissingQuestionUpload();
+
+            return false;
+        }
+
         $context = $this->contextForm->getState();
 
         $questionData = $this->questionForm->getState();
@@ -475,7 +503,15 @@ class AddQuestionsToBank extends Page implements HasForms
             return false;
         }
 
-        DB::transaction(function () use ($context, $questionData) {
+        $isReviewer = auth()->user()?->hasRole('Admin')
+            || auth()->user()?->hasRole('SuperAdmin');
+
+        $allowedReviewerStatuses = ['pending', 'approved'];
+        $status = $isReviewer && in_array($questionData['status'] ?? null, $allowedReviewerStatuses, true)
+            ? $questionData['status']
+            : 'pending';
+
+        DB::transaction(function () use ($context, $questionData, $isReviewer, $status) {
 
             $question = Question::create([
 
@@ -507,9 +543,11 @@ class AddQuestionsToBank extends Page implements HasForms
 
                 'created_by' => auth()->id(),
 
-                // تا خودِ معلم دکمه‌ی «ارسال برای بررسی» را نزند،
-                // این سوال اصلاً وارد صف بررسی ادمین نمی‌شود.
-                'status' => 'draft',
+                'status' => $status,
+
+                'reviewed_by' => $isReviewer && $status === 'approved'
+                    ? auth()->id()
+                    : null,
 
                 'is_active' => true,
 
@@ -560,7 +598,7 @@ class AddQuestionsToBank extends Page implements HasForms
         }
 
         Notification::make()
-            ->title($this->savedCount.' سوال به‌صورت پیش‌نویس ذخیره شد.')
+            ->title($this->savedCount.' سوال با موفقیت ذخیره شد.')
             ->success()
             ->send();
 

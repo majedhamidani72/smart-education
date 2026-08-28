@@ -16,11 +16,13 @@ class UpdateQuestionOptionRequest extends FormRequest
         return [
 
             'option_text' => [
-                'sometimes',
+                'required_without:image_path',
+                'nullable',
                 'string',
             ],
 
             'image_path' => [
+                'required_without:option_text',
                 'nullable',
                 'image',
                 'max:5120',

@@ -101,18 +101,27 @@ class ListQuestions extends ListRecords
         // کاربر می‌آید.
         $this->selectedAppId = $book->appGradeSubject?->app_id;
         $this->selectedGradeId = $book->appGradeSubject?->grade_id;
-        $this->selectedCreatorId = auth()->id();
+        $this->selectedCreatorId = (int) request()->query('creator_id', auth()->id());
         $this->selectedBookId = $book->id;
 
-        if ($sectionId) {
-            $this->selectedExamLevel = 'section';
-        } elseif ($chapterId) {
-            $this->selectedExamLevel = 'chapter';
-        } else {
-            $this->selectedExamLevel = 'book';
-        }
+        $this->selectedExamLevel = request()->query('exam_level')
+            ?: ($sectionId ? 'section' : ($chapterId ? 'chapter' : 'book'));
 
         $this->viewLevel = 'list';
+    }
+
+    public function deleteQuestion(int $questionId): void
+    {
+        $question = QuestionResource::getEloquentQuery()->findOrFail($questionId);
+
+        abort_unless(auth()->user()?->can('delete', $question), 403);
+
+        $question->delete();
+
+        Notification::make()
+            ->title('سؤال با موفقیت حذف شد.')
+            ->success()
+            ->send();
     }
 
     protected function isReviewer(): bool
@@ -136,7 +145,7 @@ class ListQuestions extends ListRecords
      */
     protected function baseQuery()
     {
-        $query = QuestionResource::getEloquentQuery();
+        $query = QuestionResource::getEloquentQuery()->whereNull('questions.deleted_at');
 
         if ($this->isReviewer()) {
             $query->where('status', '!=', 'draft');

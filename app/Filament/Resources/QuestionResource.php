@@ -184,7 +184,9 @@ class QuestionResource extends Resource
                         }),
 
                     Forms\Components\Select::make('chapter_id')
-                        ->label('فصل')
+                        ->label(fn(Get $get) => str_contains((string) Book::query()->whereKey($get('book_id'))->value('title'), 'ریاضی')
+                            ? 'فصل'
+                            : 'نوبت / بخش کلی')
                         ->options(function (Get $get) {
 
                             if (! $get('book_id')) {
@@ -208,7 +210,9 @@ class QuestionResource extends Resource
                         }),
 
                     Forms\Components\Select::make('section_id')
-                        ->label('بخش/درس')
+                        ->label(fn(Get $get) => str_contains((string) Book::query()->whereKey($get('book_id'))->value('title'), 'ریاضی')
+                            ? 'بخش'
+                            : 'درس')
                         ->options(function (Get $get) {
 
                             if (! $get('chapter_id')) {
@@ -327,7 +331,9 @@ class QuestionResource extends Resource
 
                             Forms\Components\TextInput::make('option_text')
                                 ->label('متن گزینه')
-                                ->required()
+                                ->live()
+                                ->required(fn (Get $get) => blank($get('image_path')))
+                                ->helperText('برای هر گزینه، متن یا تصویر کافی است.')
                                 ->columnSpan(2),
 
                             Forms\Components\FileUpload::make('image_path')
@@ -335,7 +341,9 @@ class QuestionResource extends Resource
                                 ->disk('public')
                                 ->directory('question-options')
                                 ->image()
-                                ->openable(),
+                                ->openable()
+                                ->live()
+                                ->required(fn (Get $get) => blank($get('option_text'))),
 
                             Forms\Components\Toggle::make('is_correct')
                                 ->label('پاسخ صحیح')
@@ -427,7 +435,8 @@ class QuestionResource extends Resource
                     // معلم نمی‌تواند مستقیم وضعیت را تغییر دهد؛ هر
                     // سوال تازه در صف «در انتظار بررسی» می‌رود.
                     Forms\Components\Hidden::make('status')
-                        ->default('pending'),
+                        ->default('pending')
+                        ->dehydrated(fn() => $isTeacher),
 
                     Forms\Components\Select::make('status')
                         ->label('وضعیت')
@@ -436,6 +445,8 @@ class QuestionResource extends Resource
                             'approved' => 'تأیید شده',
                             'rejected' => 'رد شده',
                         ])
+                        ->default('pending')
+                        ->required()
                         ->live()
                         ->visible(fn() => ! $isTeacher),
 
@@ -701,11 +712,15 @@ class QuestionResource extends Resource
 
                 Tables\Actions\EditAction::make(),
 
-                Tables\Actions\DeleteAction::make(),
-
-                Tables\Actions\RestoreAction::make(),
-
-                Tables\Actions\ForceDeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->label('حذف')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('حذف سؤال')
+                    ->modalDescription('آیا مطمئن هستید؟ این سؤال پس از تأیید از بانک سؤال حذف می‌شود.')
+                    ->modalSubmitActionLabel('بله، حذف شود')
+                    ->visible(fn ($record) => ! $record->trashed()),
 
             ])
             ->bulkActions([
@@ -793,10 +808,6 @@ class QuestionResource extends Resource
                         }),
 
                     Tables\Actions\DeleteBulkAction::make(),
-
-                    Tables\Actions\RestoreBulkAction::make(),
-
-                    Tables\Actions\ForceDeleteBulkAction::make(),
 
                 ]),
 

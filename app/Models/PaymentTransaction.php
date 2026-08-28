@@ -35,6 +35,8 @@ class PaymentTransaction extends Model
 
         'gateway_response',
 
+        'return_to',
+
         'paid_at',
 
         'verified_at',

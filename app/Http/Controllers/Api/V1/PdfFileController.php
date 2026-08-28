@@ -12,6 +12,16 @@ use App\Http\Requests\PdfFile\UpdatePdfFileRequest;
 
 class PdfFileController extends Controller
 {
+    public function viewFile(PdfFile $pdfFile)
+    {
+        abort_unless(is_file($pdfFile->fullPath()), 404);
+
+        return response()->file($pdfFile->fullPath(), [
+            'Content-Type' => $pdfFile->mime_type ?: 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$pdfFile->filename.'"',
+        ]);
+    }
+
     /**
      * سرویس PDF
      */
