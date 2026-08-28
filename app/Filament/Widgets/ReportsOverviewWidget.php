@@ -43,8 +43,7 @@ class ReportsOverviewWidget extends BaseWidget
 
         $thisMonthRevenue = Purchase::query()
             ->where('status', 'paid')
-            ->whereMonth('paid_at', now()->month)
-            ->whereYear('paid_at', now()->year)
+            ->where('paid_at', '>=', now()->subDays(30))
             ->sum('payable_amount');
 
         $pendingSettlement = TeacherEarning::query()
@@ -63,8 +62,8 @@ class ReportsOverviewWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('primary'),
 
-            Stat::make('درآمد این ماه', number_format($thisMonthRevenue).' تومان')
-                ->description('از اول ماه میلادی جاری تا الان')
+            Stat::make('درآمد ۳۰ روز اخیر', number_format($thisMonthRevenue).' تومان')
+                ->description('از '.\App\Support\JalaliDate::format(now()->subDays(30), withTime: false).' تا امروز')
                 ->descriptionIcon('heroicon-m-calendar')
                 ->color('info'),
 

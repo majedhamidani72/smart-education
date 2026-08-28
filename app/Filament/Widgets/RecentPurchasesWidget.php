@@ -67,7 +67,7 @@ class RecentPurchasesWidget extends BaseWidget
 
                 Tables\Columns\TextColumn::make('paid_at')
                     ->label('تاریخ پرداخت')
-                    ->dateTime('Y-m-d H:i')
+                    ->formatStateUsing(fn($state) => \App\Support\JalaliDate::format($state))
                     ->sortable(),
 
             ]);
