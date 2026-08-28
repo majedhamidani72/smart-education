@@ -84,6 +84,6 @@ class Login extends BaseLogin
 
     protected function getPasswordResetUrl(): ?string
     {
-        return null;
+        return route('password.forgot.form');
     }
 }

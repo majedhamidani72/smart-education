@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AgreementController;
+use App\Http\Controllers\PasswordResetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,4 +13,27 @@ use App\Http\Controllers\AgreementController;
 Route::middleware(['auth',])->group(function () {
     Route::get('/agreement', [AgreementController::class, 'show'])->name('agreement.show');
     Route::post('/agreement', [AgreementController::class, 'accept'])->name('agreement.accept');
+});
+
+/*
+|--------------------------------------------------------------------------
+| بازیابی رمز عبور پنل (معلم/ادمین/سوپرادمین) — با پیامک، نه ایمیل
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('admin')->name('password.')->group(function () {
+
+    Route::get('/forgot-password', [PasswordResetController::class, 'showForgotForm'])
+        ->name('forgot.form');
+
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendOtp'])
+        ->middleware('throttle:send-otp')
+        ->name('forgot.send');
+
+    Route::get('/reset-password', [PasswordResetController::class, 'showResetForm'])
+        ->name('reset.form');
+
+    Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])
+        ->name('reset.submit');
+
 });
