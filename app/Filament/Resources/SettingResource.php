@@ -124,7 +124,13 @@ class SettingResource extends Resource
 
                 ->label('مقدار تنظیم')
 
-                ->rows(15)
+                ->rows(fn (?Setting $record): int => $record?->key === 'contact_email' ? 2 : 15)
+
+                ->rules(fn (?Setting $record): array => $record?->key === 'contact_email' ? ['email:rfc'] : [])
+
+                ->helperText(fn (?Setting $record): ?string => $record?->key === 'contact_email'
+                    ? 'پیام‌های فرم «تماس با ما» به این آدرس ارسال می‌شوند.'
+                    : null)
 
                 ->required()
 

@@ -46,11 +46,19 @@ class PowerpointResource extends Resource
             Forms\Components\Textarea::make('description')->label('توضیحات')->rows(3)->columnSpanFull(),
             Forms\Components\FileUpload::make('file_path')->label('فایل پاورپوینت')->disk('local')->directory('powerpoints')->acceptedFileTypes(['application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation'])->maxSize(51200)->downloadable()->required()->columnSpanFull(),
             Forms\Components\FileUpload::make('preview_image')->label('تصویر پیش‌نمایش')->disk('public')->directory('powerpoint-previews')->image()->imageEditor()->columnSpanFull(),
+            Forms\Components\FileUpload::make('preview_pdf_path')
+                ->label('PDF نمونه برای ورق‌زدن')
+                ->helperText('چند اسلاید منتخب را به PDF تبدیل و اینجا بارگذاری کنید؛ فایل اصلی پاورپوینت نمایش داده نمی‌شود.')
+                ->disk('local')->directory('powerpoint-samples')->acceptedFileTypes(['application/pdf'])
+                ->maxSize(20480)->columnSpanFull(),
             Forms\Components\TextInput::make('price')->label('قیمت اصلی (تومان)')->numeric()->minValue(0)->required(),
             Forms\Components\TextInput::make('discount_price')->label('قیمت با تخفیف (تومان)')->numeric()->minValue(0)->lt('price')->helperText('اختیاری؛ باید کمتر از قیمت اصلی باشد.'),
             Forms\Components\TextInput::make('slides_count')->label('تعداد اسلاید')->numeric()->minValue(1),
+            Forms\Components\TextInput::make('sample_slides_count')->label('تعداد اسلاید نمونه')->numeric()->minValue(1),
+            Forms\Components\TagsInput::make('features')->label('ویژگی‌ها')->placeholder('مثلاً کاملاً قابل ویرایش')->helperText('هر ویژگی را نوشته و Enter بزنید.')->columnSpanFull(),
             Forms\Components\TextInput::make('sort_order')->label('ترتیب')->numeric()->default(1)->required(),
             Forms\Components\Toggle::make('is_active')->label('فعال برای فروش')->default(true),
+            Forms\Components\Toggle::make('is_featured')->label('نمایش در ویترین منتخب')->default(false),
         ])->columns(2);
     }
 
@@ -65,6 +73,7 @@ class PowerpointResource extends Resource
             Tables\Columns\TextColumn::make('price')->label('قیمت')->money('IRR', divideBy: 10),
             Tables\Columns\TextColumn::make('discount_price')->label('قیمت فروش')->money('IRR', divideBy: 10)->placeholder('بدون تخفیف'),
             Tables\Columns\IconColumn::make('is_active')->label('فعال')->boolean(),
+            Tables\Columns\IconColumn::make('is_featured')->label('منتخب')->boolean(),
         ])->actions([Tables\Actions\EditAction::make()->label('ویرایش'), Tables\Actions\DeleteAction::make()->label('حذف')->requiresConfirmation()])->bulkActions([]);
     }
 

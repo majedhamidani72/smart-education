@@ -46,6 +46,15 @@ class KavenegarProvider implements SmsProviderInterface
 
         $template = config('services.kavenegar.otp_template');
 
+        if (blank($template)) {
+
+            return $this->send(
+                $mobile,
+                "کد تایید تغییر رمز عبور درسکا: {$code}\nاعتبار کد: ۲ دقیقه"
+            );
+
+        }
+
         try {
 
             $response = Http::timeout(15)->get($this->baseUrl.'verify/lookup.json', [

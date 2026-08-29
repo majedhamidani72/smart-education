@@ -16,29 +16,43 @@ class PowerpointStoreController extends Controller
     public function index(Request $request)
     {
         $query = Powerpoint::query()->where('is_active', true)
-            ->with(['app', 'grade', 'book', 'chapter'])->orderBy('sort_order');
+            ->with(['app', 'grade', 'book', 'chapter'])
+            ->orderByDesc('is_featured')->orderBy('sort_order');
         $query->when($request->integer('grade_id'), fn ($q, $id) => $q->where('grade_id', $id));
         $query->when($request->integer('book_id'), fn ($q, $id) => $q->where('book_id', $id));
         $query->when($request->integer('chapter_id'), fn ($q, $id) => $q->where('chapter_id', $id));
         $user = auth('sanctum')->user();
 
-        $items = $query->get()->map(function (Powerpoint $item) use ($user) {
-            $owned = $user ? $this->ownedBy($item, $user->id) : false;
-            return [
-                'id' => $item->id, 'title' => $item->title, 'description' => $item->description,
-                'preview_image' => $item->preview_image ? Storage::disk('public')->url($item->preview_image) : null,
-                'price' => $item->price, 'discount_price' => $item->discount_price,
-                'final_price' => $item->finalPrice(), 'discount_percent' => $item->discount_price
-                    ? (int) round(($item->price - $item->discount_price) * 100 / max(1, $item->price)) : 0,
-                'slides_count' => $item->slides_count, 'owned' => $owned,
-                'app' => ['id' => $item->app_id, 'title' => $item->app?->title],
-                'grade' => ['id' => $item->grade_id, 'title' => $item->grade?->title],
-                'book' => ['id' => $item->book_id, 'title' => $item->book?->title],
-                'chapter' => ['id' => $item->chapter_id, 'title' => $item->chapter?->title],
-            ];
-        });
+        $items = $query->get()->map(fn (Powerpoint $item) => $this->serialize($item, $user?->id));
 
         return ApiResponse::success(['items' => $items, 'count' => $items->count()], 'فروشگاه پاورپوینت دریافت شد.');
+    }
+
+    public function show(Powerpoint $powerpoint)
+    {
+        abort_unless($powerpoint->is_active, 404);
+        $powerpoint->load(['app', 'grade', 'book', 'chapter']);
+
+        return ApiResponse::success(
+            $this->serialize($powerpoint, auth('sanctum')->id()),
+            'جزئیات پاورپوینت دریافت شد.'
+        );
+    }
+
+    public function preview(Powerpoint $powerpoint)
+    {
+        abort_unless($powerpoint->is_active && $powerpoint->preview_pdf_path, 404, 'نمونه‌ای برای این پاورپوینت ثبت نشده است.');
+        abort_unless(Storage::disk('local')->exists($powerpoint->preview_pdf_path), 404, 'فایل نمونه پیدا نشد.');
+
+        return Storage::disk('local')->response(
+            $powerpoint->preview_pdf_path,
+            'sample-'.$powerpoint->id.'.pdf',
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="sample-'.$powerpoint->id.'.pdf"',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
     }
 
     public function purchase(Request $request, Powerpoint $powerpoint)
@@ -114,5 +128,32 @@ class PowerpointStoreController extends Controller
     {
         return Purchase::query()->where('user_id', $userId)->where('status', 'paid')
             ->whereHas('items', fn ($q) => $q->where('item_type', 'powerpoint')->where('item_id', $powerpoint->id))->exists();
+    }
+
+    private function serialize(Powerpoint $item, ?int $userId): array
+    {
+        return [
+            'id' => $item->id,
+            'slug' => $item->slug,
+            'title' => $item->title,
+            'description' => $item->description,
+            'preview_image' => $item->preview_image ? Storage::disk('public')->url($item->preview_image) : null,
+            'has_preview' => filled($item->preview_pdf_path),
+            'price' => $item->price,
+            'discount_price' => $item->discount_price,
+            'final_price' => $item->finalPrice(),
+            'discount_percent' => $item->discount_price
+                ? (int) round(($item->price - $item->discount_price) * 100 / max(1, $item->price)) : 0,
+            'slides_count' => $item->slides_count,
+            'sample_slides_count' => $item->sample_slides_count,
+            'features' => $item->features ?? [],
+            'is_featured' => $item->is_featured,
+            'owned' => $userId ? $this->ownedBy($item, $userId) : false,
+            'updated_at' => $item->updated_at?->toIso8601String(),
+            'app' => ['id' => $item->app_id, 'title' => $item->app?->title],
+            'grade' => ['id' => $item->grade_id, 'title' => $item->grade?->title],
+            'book' => ['id' => $item->book_id, 'title' => $item->book?->title],
+            'chapter' => ['id' => $item->chapter_id, 'title' => $item->chapter?->title],
+        ];
     }
 }

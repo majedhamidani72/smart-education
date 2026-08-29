@@ -20,7 +20,7 @@ use Throwable;
  * چون این کاربران ایمیل ندارند (فقط موبایل)، بازیابی رمز از طریق
  * پیامک OTP انجام می‌شود — با همان زیرساخت OtpService که برای
  * ورود دانش‌آموزان ساخته شده، فقط با purpose جداگانه
- * ('password_reset') تا با کدهای ورود دانش‌آموز قاطی نشود.
+ * ('reset_password') تا با کدهای ورود دانش‌آموز قاطی نشود.
  *
  * فرآیند دو مرحله‌ای:
  * ۱. وارد کردن شماره موبایل → دریافت کد پیامکی
@@ -70,7 +70,7 @@ class PasswordResetController extends Controller
 
             $loginToken = $this->otpService->sendOtp(
                 $data['mobile'],
-                'password_reset'
+                'reset_password'
             );
 
         } catch (Throwable $e) {

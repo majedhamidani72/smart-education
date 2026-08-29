@@ -9,6 +9,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Filament\Pages\Auth\Login as BaseLogin;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
 class Login extends BaseLogin
@@ -82,8 +84,18 @@ class Login extends BaseLogin
         return null;
     }
 
-    protected function getPasswordResetUrl(): ?string
+    protected function getPasswordFormComponent(): Component
     {
-        return route('password.forgot.form');
+        return TextInput::make('password')
+            ->label('رمز عبور')
+            ->hint(new HtmlString(Blade::render(
+                '<x-filament::link :href="$url" tabindex="3">فراموشی رمز عبور</x-filament::link>',
+                ['url' => route('password.forgot.form')]
+            )))
+            ->password()
+            ->revealable(filament()->arePasswordsRevealable())
+            ->autocomplete('current-password')
+            ->required()
+            ->extraInputAttributes(['tabindex' => 2]);
     }
 }

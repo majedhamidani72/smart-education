@@ -28,9 +28,13 @@ use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\PaymentTransactionController;
 use App\Http\Controllers\Api\V1\TeacherController;
 use App\Http\Controllers\Api\V1\PdfFileController;
+use App\Http\Controllers\Api\V1\ContactController;
 
 
 Route::prefix('v1')->group(function () {
+    Route::post('/contact', ContactController::class)
+        ->middleware('throttle:5,15');
+
     Route::get('/health', function () {
         DB::select('select 1');
         return \App\Helpers\ApiResponse::success([
@@ -196,6 +200,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/search/content', ContentSearchController::class);
 
     Route::get('/powerpoints', [PowerpointStoreController::class, 'index']);
+    Route::get('/powerpoints/{powerpoint}', [PowerpointStoreController::class, 'show'])->whereNumber('powerpoint');
+    Route::get('/powerpoints/{powerpoint}/preview', [PowerpointStoreController::class, 'preview'])->whereNumber('powerpoint');
     Route::get('/advertisements', [AdvertisementController::class, 'index']);
     Route::post('/advertisements/{advertisement}/view', [AdvertisementController::class, 'view']);
     Route::post('/advertisements/{advertisement}/click', [AdvertisementController::class, 'click']);

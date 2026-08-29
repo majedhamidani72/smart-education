@@ -12,12 +12,21 @@ class Powerpoint extends Model
     protected $fillable = [
         'app_id', 'grade_id', 'book_id', 'chapter_id', 'title', 'slug',
         'description', 'file_path', 'preview_image', 'price', 'discount_price',
-        'slides_count', 'is_active', 'sort_order',
+        'preview_pdf_path', 'slides_count', 'sample_slides_count', 'features',
+        'is_active', 'is_featured', 'sort_order',
     ];
 
     protected function casts(): array
     {
-        return ['price' => 'integer', 'discount_price' => 'integer', 'slides_count' => 'integer', 'is_active' => 'boolean'];
+        return [
+            'price' => 'integer',
+            'discount_price' => 'integer',
+            'slides_count' => 'integer',
+            'sample_slides_count' => 'integer',
+            'features' => 'array',
+            'is_active' => 'boolean',
+            'is_featured' => 'boolean',
+        ];
     }
 
     public function app() { return $this->belongsTo(App::class); }

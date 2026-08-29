@@ -6,6 +6,7 @@ use Throwable;
 use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use App\Services\Sms\SmsService;
 use App\Exceptions\Auth\ExpiredOtpException;
 use App\Exceptions\Auth\InvalidLoginTokenException;
@@ -96,13 +97,19 @@ class OtpService
 
             ]);
 
-            $this->smsService->sendOtp(
+            $sent = $this->smsService->sendOtp(
 
                 $mobile,
 
                 $otp
 
             );
+
+            if (! $sent) {
+
+                throw new RuntimeException('SMS OTP could not be sent.');
+
+            }
 
             return $loginToken;
 
@@ -287,13 +294,19 @@ class OtpService
 
             ]);
 
-            $this->smsService->sendOtp(
+            $sent = $this->smsService->sendOtp(
 
                 $otp->mobile,
 
                 $newOtp
 
             );
+
+            if (! $sent) {
+
+                throw new RuntimeException('SMS OTP could not be sent.');
+
+            }
 
             return [
 

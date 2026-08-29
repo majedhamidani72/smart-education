@@ -41,13 +41,6 @@ class AdminPanelProvider extends PanelProvider
 
             ->login(\App\Filament\Auth\Login::class)
 
-            // این فقط باعث می‌شود لینک «فراموشی رمز عبور» روی
-            // صفحه‌ی ورود نمایش داده شود؛ خودِ آدرسی که این لینک
-            // به آن می‌رود، توسط Login::getPasswordResetUrl()
-            // بازنویسی شده و به فرم پیامکی سفارشی ما می‌رود، نه
-            // به صفحات پیش‌فرض ایمیل‌محور خودِ Filament.
-            ->passwordReset()
-
             ->colors([
                 'primary' => Color::Blue,
             ])
