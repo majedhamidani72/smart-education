@@ -43,16 +43,6 @@ class Subject extends Model
 
 
 
-    // یک درس متعلق به چند پایه است
-    public function grades()
-    {
-        return $this->belongsToMany(
-            Grade::class,
-            'grade_subject'
-        );
-    }
-
-
 
     // ارتباط با اپلیکیشن‌ها
     public function appGradeSubjects()

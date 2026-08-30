@@ -70,12 +70,11 @@ class TestEducationSeeder extends Seeder
         |--------------------------------------------------------------------------
         | اتصال پایه و درس
         |--------------------------------------------------------------------------
+        | این سیدر فقط برای تست اولیه‌ی وجود پایه/درس است — برای
+        | داده‌ی نمایشی کامل (با کتاب، معلم، محتوا، آزمون) از
+        | DemoContentSeeder استفاده کن که مسیر واقعی و کامل
+        | (App → Grade → Subject → AppGradeSubject → Book) را
+        | رعایت می‌کند.
         */
-
-        if (! $grade->subjects()->where('subject_id', $subject->id)->exists()) {
-
-            $grade->subjects()->attach($subject->id);
-
-        }
     }
 }

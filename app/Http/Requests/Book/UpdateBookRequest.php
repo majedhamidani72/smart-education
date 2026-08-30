@@ -24,7 +24,7 @@ class UpdateBookRequest extends FormRequest
 
         return [
 
-            'grade_subject_id' => 'required|exists:grade_subject,id',
+            'app_grade_subject_id' => 'required|exists:app_grade_subjects,id',
 
             'title' => 'required|string|max:255',
 
@@ -33,7 +33,7 @@ class UpdateBookRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('books', 'slug')
-                    ->where(fn ($query) => $query->where('grade_subject_id', $this->grade_subject_id))
+                    ->where(fn ($query) => $query->where('app_grade_subject_id', $this->app_grade_subject_id))
                     ->ignore($book),
             ],
 

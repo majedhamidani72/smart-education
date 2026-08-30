@@ -21,7 +21,7 @@ class StoreBookRequest extends FormRequest
     {
         return [
 
-            'grade_subject_id' => 'required|exists:grade_subject,id',
+            'app_grade_subject_id' => 'required|exists:app_grade_subjects,id',
 
             'title' => 'required|string|max:255',
 

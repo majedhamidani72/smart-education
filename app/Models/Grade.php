@@ -39,20 +39,6 @@ class Grade extends Model
 
 
 
-    // یک پایه شامل چند درس است
-    public function subjects()
-    {
-        return $this->belongsToMany(
-            Subject::class,
-            'grade_subject'
-        )
-            ->withPivot([
-                'is_active',
-                'sort_order',
-            ])
-            ->withTimestamps();
-    }
-
 
 
     // ارتباط با اپلیکیشن‌ها
