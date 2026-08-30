@@ -1,5 +1,8 @@
 {
   "laravel": {
     "phpVersion": "8.3"
+  },
+  "node": {
+    "version": "22"
   }
 }
