@@ -217,9 +217,11 @@ class VideoProcessingService
         $input = $video->fullPath();
 
 
-        $output = public_path(
+        $output = storage_path(
 
-            $video->directory
+            'app/public/'
+                .
+                $video->directory
                 .
                 '/optimized_'
                 .
@@ -500,8 +502,8 @@ class VideoProcessingService
 
 
         $thumbnailDirectory =
-            public_path(
-                $directory
+            storage_path(
+                'app/public/' . $directory
             );
 
 

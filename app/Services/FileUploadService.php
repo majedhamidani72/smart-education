@@ -62,7 +62,7 @@ class FileUploadService
                 . '.'
                 . $extension;
 
-            $targetDirectory = public_path($directory);
+            $targetDirectory = storage_path('app/public/' . $directory);
 
             if (! File::exists($targetDirectory)) {
 
@@ -291,7 +291,7 @@ class FileUploadService
             now()->format('m')
         );
 
-        $path = public_path($directory);
+        $path = storage_path('app/public/' . $directory);
 
         if (! File::exists($path)) {
 
@@ -347,8 +347,9 @@ class FileUploadService
         string $filename
     ): string {
 
-        return public_path(
-            $directory
+        return storage_path(
+            'app/public/'
+                . $directory
                 . DIRECTORY_SEPARATOR
                 . $filename
         );

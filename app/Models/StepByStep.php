@@ -152,9 +152,9 @@ class StepByStep extends Model
 
     public function fullPath(): string
     {
-        return public_path(
+        return storage_path(
 
-            $this->directory . '/' . $this->filename
+            'app/public/' . $this->directory . '/' . $this->filename
 
         );
     }
