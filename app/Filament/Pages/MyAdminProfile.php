@@ -34,7 +34,11 @@ class MyAdminProfile extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->check() && auth()->user()->hasRole('Admin');
+        return auth()->check()
+            && (
+                auth()->user()->hasRole('Admin')
+                || auth()->user()->hasRole('SuperAdmin')
+            );
     }
 
     public function mount(): void
