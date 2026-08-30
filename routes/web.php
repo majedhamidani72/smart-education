@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AgreementController;
+use App\Http\Controllers\AgreementPrintController;
 use App\Http\Controllers\PasswordResetController;
 
 /*
@@ -13,6 +14,9 @@ use App\Http\Controllers\PasswordResetController;
 Route::middleware(['auth',])->group(function () {
     Route::get('/agreement', [AgreementController::class, 'show'])->name('agreement.show');
     Route::post('/agreement', [AgreementController::class, 'accept'])->name('agreement.accept');
+
+    Route::get('/admin/agreements/{agreement}/print', [AgreementPrintController::class, 'show'])
+        ->name('agreement.print');
 });
 
 /*

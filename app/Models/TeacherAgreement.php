@@ -26,6 +26,8 @@ class TeacherAgreement extends Model
 
         'agreement_version',
 
+        'agreement_text',
+
         'accepted_at',
 
         'ip_address',
@@ -152,6 +154,7 @@ class TeacherAgreement extends Model
         int $teacherId,
         string $type,
         string $version,
+        ?string $text,
         ?string $ip,
         ?string $userAgent
     ): self {
@@ -167,6 +170,8 @@ class TeacherAgreement extends Model
             ],
 
             [
+                'agreement_text' => $text,
+
                 'accepted_at' => now(),
 
                 'ip_address' => $ip,

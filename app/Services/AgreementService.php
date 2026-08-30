@@ -150,6 +150,8 @@ class AgreementService
 
             $version = $this->getAgreementVersion($type);
 
+            $text = $this->getAgreementText($type);
+
             TeacherAgreement::removeOldVersions(
 
                 $user->id,
@@ -167,6 +169,8 @@ class AgreementService
                 $type,
 
                 $version,
+
+                $text,
 
                 $ip,
 
