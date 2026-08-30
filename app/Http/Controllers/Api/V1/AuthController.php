@@ -61,9 +61,24 @@ class AuthController extends Controller
             900
         );
 
-        $result = $this->authService->sendOtp(
-            $data['mobile']
-        );
+        try {
+
+            $result = $this->authService->sendOtp(
+                $data['mobile']
+            );
+
+        } catch (\Throwable $e) {
+
+            // اگر سرویس پیامک (مثلاً کاوه‌نگار هنوز فعال/تنظیم
+            // نشده) نتواند کد را بفرستد، کاربر باید یک پیام روشن
+            // ببیند — نه یک خطای عمومی سرور. بدون این، تلاش برای
+            // ورود دانش‌آموز با یک خطای ناشناخته متوقف می‌شد.
+            return ApiResponse::error(
+                'ارسال پیامک با خطا مواجه شد. کمی بعد دوباره تلاش کنید.',
+                null,
+                503
+            );
+        }
 
         return ApiResponse::success(
             $result,
