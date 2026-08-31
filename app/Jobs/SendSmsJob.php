@@ -18,6 +18,13 @@ class SendSmsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /**
+     * پیامک‌ها روی صفِ اختصاصی «sms» پردازش می‌شوند، جدا از صف
+     * سنگین «videos» — تا پردازش یک ویدیوی حجیم هیچ‌وقت باعث
+     * تاخیر افتادن یک پیامک فوری (مثلاً اطلاع‌رسانی خرید) نشود.
+     */
+    public string $queue = 'sms';
+
     public function __construct(
         public string $mobile,
         public string $message
