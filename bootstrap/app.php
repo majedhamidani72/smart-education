@@ -139,6 +139,9 @@ return Application::configure(
         */
 
         $exceptions->render(function (\Throwable $e,$request) {
+            \Illuminate\Support\Facades\Log::channel('single')->error(
+                '[DIAGNOSTIC] Unhandled exception: ' . get_class($e) . ' — ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine()
+            );
             if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
