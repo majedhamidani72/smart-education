@@ -30,7 +30,7 @@ class ProcessVideoJob implements ShouldQueue
      * روی صفِ اختصاصی «videos» پردازش می‌شود — جدا از صف سریع «sms» —
      * چون هر اجرا (به‌خاطر FFmpeg) می‌تواند تا چند دقیقه طول بکشد.
      */
-    public string $queue = 'videos';
+    public $queue = 'videos';
 
 
     public function __construct(

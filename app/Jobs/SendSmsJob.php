@@ -23,7 +23,7 @@ class SendSmsJob implements ShouldQueue
      * سنگین «videos» — تا پردازش یک ویدیوی حجیم هیچ‌وقت باعث
      * تاخیر افتادن یک پیامک فوری (مثلاً اطلاع‌رسانی خرید) نشود.
      */
-    public string $queue = 'sms';
+    public $queue = 'sms';
 
     public function __construct(
         public string $mobile,
