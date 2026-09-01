@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -25,6 +26,30 @@ return Application::configure(
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Trust Proxies
+        |--------------------------------------------------------------------------
+        | لیارا (و هر PaaS مشابه) بین مرورگر و کانتینر ما یک Reverse Proxy
+        | دارد که خودِ HTTPS را مدیریت می‌کند و درخواست را با HTTP ساده به
+        | داخل کانتینر می‌فرستد. بدون این تنظیم، لاراول به‌اشتباه فکر
+        | می‌کند درخواست http بوده (نه https)، و همین باعث می‌شود URLهای
+        | امضاشده‌ی موقت (مثل آدرس آپلود فایل Livewire) نامعتبر تشخیص داده
+        | شوند — چون امضا برای https ساخته شده ولی اعتبارسنجی روی http
+        | انجام می‌شود. با اعتماد به هدرهای X-Forwarded-* از همه‌ی
+        | پراکسی‌ها ('*')، لاراول اسکیم واقعی (https) را درست تشخیص می‌دهد.
+        |--------------------------------------------------------------------------
+        */
+
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+                | Request::HEADER_X_FORWARDED_AWS_ELB
+        );
 
         /*
         |--------------------------------------------------------------------------
@@ -145,10 +170,15 @@ return Application::configure(
             if (! $request->expectsJson() && ! $request->is('api/*')) {
                 return null;
             }
+            $status = ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface)
+                ? $e->getStatusCode()
+                : 500;
             return ApiResponse::error(
-                app()->hasDebugModeEnabled() ? $e->getMessage() : 'مشکلی در سرور رخ داد. لطفاً کمی بعد دوباره تلاش کنید.',
+                app()->hasDebugModeEnabled()
+                    ? ($e->getMessage() ?: get_class($e) . ' (بدون پیام)')
+                    : 'مشکلی در سرور رخ داد. لطفاً کمی بعد دوباره تلاش کنید.',
                 null,
-                500
+                $status
             );
         });
 
