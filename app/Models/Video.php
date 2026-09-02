@@ -126,7 +126,7 @@ class Video extends Model
 
                 $this->thumbnail_path
 
-                    ? asset(
+                    ? Storage::disk('public')->url(
                         $this->thumbnail_path
                     )
 

@@ -160,7 +160,7 @@ class VideoResource extends JsonResource
 
             'video_url' => $this->directory && $this->filename
 
-                ? asset(
+                ? \Illuminate\Support\Facades\Storage::disk('public')->url(
                     $this->directory . '/' . $this->filename
                 )
 
@@ -196,7 +196,7 @@ class VideoResource extends JsonResource
 
             'thumbnail_url' => $this->thumbnail_path
 
-                ? asset($this->thumbnail_path)
+                ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->thumbnail_path)
 
                 : null,
 

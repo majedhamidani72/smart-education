@@ -21,7 +21,7 @@ class StepByStepPageResource extends JsonResource
             'page_number' => $this->page_number,
 
             'image' => $this->image
-                ? asset($this->image)
+                ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->image)
                 : null,
 
             'sort_order' => $this->sort_order,

@@ -110,7 +110,7 @@ class StepByStep extends Model
 
             $this->directory && $this->filename
 
-                ? asset(
+                ? \Illuminate\Support\Facades\Storage::disk('public')->url(
                     $this->directory . '/' . $this->filename
                 )
 
