@@ -1,4 +1,6 @@
 {
+  "platform": "laravel",
+  "port": 80,
   "laravel": {
     "phpVersion": "8.3",
     "buildAssets": false
