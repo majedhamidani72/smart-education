@@ -51,8 +51,27 @@ class PowerpointResource extends Resource
                 ->helperText('چند اسلاید منتخب را به PDF تبدیل و اینجا بارگذاری کنید؛ فایل اصلی پاورپوینت نمایش داده نمی‌شود.')
                 ->disk('local')->directory('powerpoint-samples')->acceptedFileTypes(['application/pdf'])
                 ->maxSize(20480)->columnSpanFull(),
-            Forms\Components\TextInput::make('price')->label('قیمت اصلی (تومان)')->numeric()->minValue(0)->required(),
-            Forms\Components\TextInput::make('discount_price')->label('قیمت با تخفیف (تومان)')->numeric()->minValue(0)->lt('price')->helperText('اختیاری؛ باید کمتر از قیمت اصلی باشد.'),
+            Forms\Components\TextInput::make('price')
+                ->label('قیمت اصلی (تومان)')
+                ->numeric()->minValue(0)->required()
+                ->live(onBlur: true)
+                ->afterStateUpdated(function (Set $set, $state) {
+                    // اگر قیمت اصلی صفر شد (یعنی محصول رایگان شد)، قیمت با
+                    // تخفیف را هم صفر می‌کنیم — چون منطقاً تخفیف روی محصول
+                    // رایگان معنا ندارد و اگر مقدار قدیمی‌اش (مثلاً از وقتی
+                    // که پولی بود) باقی بماند، قانون «باید کمتر از قیمت
+                    // اصلی باشد» رد می‌شود و کل فرم ذخیره نمی‌شود — بدون
+                    // این‌که همیشه دلیلش برای کاربر واضح باشد.
+                    if ((int) $state === 0) {
+                        $set('discount_price', null);
+                    }
+                }),
+            Forms\Components\TextInput::make('discount_price')
+                ->label('قیمت با تخفیف (تومان)')
+                ->numeric()->minValue(0)->lt('price')
+                ->disabled(fn (Get $get) => (int) $get('price') === 0)
+                ->dehydrated(fn (Get $get) => (int) $get('price') !== 0)
+                ->helperText('اختیاری؛ باید کمتر از قیمت اصلی باشد. برای محصول رایگان (قیمت اصلی صفر) غیرفعال می‌شود.'),
             Forms\Components\TextInput::make('slides_count')->label('تعداد اسلاید')->numeric()->minValue(1),
             Forms\Components\TextInput::make('sample_slides_count')->label('تعداد اسلاید نمونه')->numeric()->minValue(1),
             Forms\Components\TagsInput::make('features')->label('ویژگی‌ها')->placeholder('مثلاً کاملاً قابل ویرایش')->helperText('هر ویژگی را نوشته و Enter بزنید.')->columnSpanFull(),
