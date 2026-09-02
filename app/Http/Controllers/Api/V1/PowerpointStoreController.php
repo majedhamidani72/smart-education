@@ -142,7 +142,7 @@ class PowerpointStoreController extends Controller
             'price' => $item->price,
             'discount_price' => $item->discount_price,
             'final_price' => $item->finalPrice(),
-            'discount_percent' => $item->discount_price
+            'discount_percent' => $item->discount_price !== null
                 ? (int) round(($item->price - $item->discount_price) * 100 / max(1, $item->price)) : 0,
             'slides_count' => $item->slides_count,
             'sample_slides_count' => $item->sample_slides_count,

@@ -89,8 +89,8 @@ class PowerpointResource extends Resource
             Tables\Columns\TextColumn::make('grade.title')->label('پایه')->badge(),
             Tables\Columns\TextColumn::make('book.title')->label('کتاب'),
             Tables\Columns\TextColumn::make('chapter.title')->label('فصل'),
-            Tables\Columns\TextColumn::make('price')->label('قیمت')->money('IRR', divideBy: 10),
-            Tables\Columns\TextColumn::make('discount_price')->label('قیمت فروش')->money('IRR', divideBy: 10)->placeholder('بدون تخفیف'),
+            Tables\Columns\TextColumn::make('price')->label('قیمت')->formatStateUsing(fn ($state) => number_format($state) . ' تومان'),
+            Tables\Columns\TextColumn::make('discount_price')->label('قیمت فروش')->formatStateUsing(fn ($state) => $state === null ? null : number_format($state) . ' تومان')->placeholder('بدون تخفیف'),
             Tables\Columns\IconColumn::make('is_active')->label('فعال')->boolean(),
             Tables\Columns\IconColumn::make('is_featured')->label('منتخب')->boolean(),
         ])->actions([Tables\Actions\EditAction::make()->label('ویرایش'), Tables\Actions\DeleteAction::make()->label('حذف')->requiresConfirmation()])->bulkActions([]);
