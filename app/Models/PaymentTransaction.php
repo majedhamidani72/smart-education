@@ -14,6 +14,7 @@ class PaymentTransaction extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
+            ->logFillable()
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('payment_transactions');
