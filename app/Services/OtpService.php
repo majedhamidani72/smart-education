@@ -221,6 +221,14 @@ class OtpService
 
             $otp->save();
 
+            activity('auth')
+                ->causedBy($user)
+                ->withProperties([
+                    'ip' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                ])
+                ->log('ورود موفق با کد پیامکی');
+
             return $user;
 
         } catch (Throwable $e) {

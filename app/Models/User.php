@@ -18,6 +18,8 @@ use Laravel\Sanctum\HasApiTokens;
 
 
 use Spatie\Permission\Traits\HasRoles;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 
 
@@ -35,7 +37,26 @@ class User extends Authenticatable implements FilamentUser, \Filament\Models\Con
 
     use SoftDeletes;
 
+    use LogsActivity;
 
+    /*
+    |--------------------------------------------------------------------------
+    | لاگ فعالیت
+    |--------------------------------------------------------------------------
+    | فقط فیلدهای مشخص‌شده لاگ می‌شوند — «password» عمداً حذف شده تا هش
+    | رمز عبور یا تغییرات آن هرگز داخل لاگ فعالیت (که قابل‌مشاهده در پنل
+    | ادمین است) ذخیره نشود.
+    |--------------------------------------------------------------------------
+    */
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'mobile', 'avatar', 'is_active', 'must_change_password'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('users');
+    }
 
 
 

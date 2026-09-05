@@ -5,10 +5,32 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Purchase extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, LogsActivity;
+
+    /*
+    |--------------------------------------------------------------------------
+    | لاگ فعالیت
+    |--------------------------------------------------------------------------
+    | هر خرید (و هر تغییری روی آن، مثل تغییر وضعیت یا بازگشت وجه) به‌طور
+    | خودکار و دائمی (توی جدول activity_log) با مشخصِ کردنِ اینکه چه کسی
+    | چه زمانی چه کاری کرده، ثبت می‌شود — مستقل از فایل‌های لاگ متنی که
+    | ممکن است پاک یا Rotate شوند. این برای پاسخ به شکایت‌ها یا اختلافات
+    | احتمالی کاربران، یک مدرک قابل‌استناد و قابل‌جستجوست.
+    |--------------------------------------------------------------------------
+    */
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('purchases');
+    }
 
     /*
     |--------------------------------------------------------------------------
